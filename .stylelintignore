@@ -1,0 +1,5 @@
+# Blacklist of dev/artifacts directories
+dist
+build
+coverage
+node_modules

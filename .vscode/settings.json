@@ -1,0 +1,64 @@
+{
+	// ESLint handles formatting.
+	"prettier.enable": false,
+
+	// Turn autofix on.
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit",
+		"source.fixAll.stylelint": "explicit",
+	},
+
+	// Enable ESLint for all files that could
+	// potentially be processed by ESLint.
+	"eslint.validate": [
+		"javascript",
+		"javascriptreact",
+		"typescript",
+		"typescriptreact",
+		"vue",
+		"astro",
+		"html",
+		"markdown",
+		"json",
+		"jsonc",
+		"yaml",
+	],
+	"css.validate": false,
+	"less.validate": false,
+	"scss.validate": false,
+	"stylelint.validate": [
+		"css",
+		"postcss",
+		"scss",
+	],
+
+	// Just warn about stylistic errors that will be fixed automatically on save.
+	"eslint.rules.customizations": [
+		{ "rule": "@stylistic/*", "severity": "warn", "fixable": true },
+		{ "rule": "*-indent", "severity": "warn", "fixable": true },
+		{ "rule": "*-spacing", "severity": "warn", "fixable": true },
+		{ "rule": "*-spaces", "severity": "warn", "fixable": true },
+		{ "rule": "*-order", "severity": "warn", "fixable": true },
+		{ "rule": "*-dangle", "severity": "warn", "fixable": true },
+		{ "rule": "*-newline", "severity": "warn", "fixable": true },
+		{ "rule": "*quotes", "severity": "warn", "fixable": true },
+		{ "rule": "*semi", "severity": "warn", "fixable": true },
+	],
+
+	"actionButtons": {
+		"loadNpmCommands": false,
+		"reloadButton": null,
+		"commands": [
+			{
+				"name": "Build",
+				"singleInstance": true,
+				"command": "yarn build",
+			},
+			{
+				"name": "Restart stylelint",
+				"useVsCodeApi": true,
+				"command": "stylelint.restart",
+			},
+		],
+	},
+}

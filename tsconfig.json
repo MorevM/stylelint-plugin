@@ -1,0 +1,33 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "Node",
+		"esModuleInterop": true,
+		"strict": true,
+		"strictNullChecks": true,
+		"noImplicitAny": true,
+		"forceConsistentCasingInFileNames": true,
+		"outDir": "./dist",
+		"checkJs": false,
+		"allowJs": false,
+		"skipLibCheck": true,
+		"baseUrl": ".",
+		"types": ["node", "vitest/globals"],
+		"paths": {
+			"#constants": ["./src/constants.ts"],
+			"#utils": ["./src/utils/index.ts"],
+			"#valibot": ["./src/valibot-extensions.ts"],
+		},
+	},
+	"ts-node": {
+		"esm": true,
+	},
+	"include": [
+		"./docs/.vitepress/**/*.ts",
+		"**/*.ts",
+	],
+	"exclude": [
+		"dist",
+	],
+}

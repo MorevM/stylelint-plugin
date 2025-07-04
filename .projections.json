@@ -1,0 +1,8 @@
+{
+	"src/*.ts": {
+		"alternate": [
+			"src/{}.test.ts",
+			"src/{dirname}/__tests__/{basename}.implementation.test.ts"
+		]
+	}
+}
