@@ -1,5 +1,5 @@
 import { parse } from 'postcss';
-import { resolveBemEntities } from '../../utils';
+import { resolveBemEntities } from './resolve-bem-entities';
 import type { Rule } from 'postcss';
 
 const getFirstNode = (sourceCss: string) => {

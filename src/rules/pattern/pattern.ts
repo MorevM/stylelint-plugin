@@ -1,10 +1,10 @@
-import { isEmpty, isString, quote, toArray } from '@morev/utils';
+import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
-import { CAMEL_CASE_REGEXP, KEBAB_CASE_REGEXP, PASCAL_CASE_REGEXP, SNAKE_CASE_REGEXP } from '#constants';
-import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
+import { KEBAB_CASE_REGEXP } from '#constants';
+import { addNamespace, createRule, getRuleUrl } from '#utils';
 import { stringOrRegExpSchema, vArrayable, vFunction } from '#valibot';
-import { createViolationsRegistry, resolveBemEntities } from './utils';
-import type { Arrayable } from '@morev/utils';
+import { createMessage, createViolationsRegistry, normalizePattern, resolveBemEntities } from './utils';
+import type { ProcessedPattern } from './pattern.types';
 
 /**
  * TODO:
@@ -16,49 +16,6 @@ import type { Arrayable } from '@morev/utils';
 const RULE_NAME = 'pattern';
 
 const ENTITIES_IN_ORDER = ['block', 'element', 'modifierName', 'modifierValue', 'utility'] as const;
-
-const PATTERN_REPLACEMENT_MAP = {
-	KEBAB_CASE: KEBAB_CASE_REGEXP,
-	PASCAL_CASE: PASCAL_CASE_REGEXP,
-	CAMEL_CASE: CAMEL_CASE_REGEXP,
-	SNAKE_CASE: SNAKE_CASE_REGEXP,
-} as Record<string, RegExp>;
-
-export type ProcessedPattern = { source: string; regexp: RegExp };
-
-export const createMessage = (
-	bemEntity: string,
-	entityValue: string,
-	patterns: ProcessedPattern[],
-) => {
-	const patternsString = patterns
-		.map((pattern) => quote(pattern.source, '`'))
-		.join(', ');
-
-	const suffix = patterns.length === 1
-		? `to match pattern ${patternsString}`
-		: `to match one of the following [${patternsString}]`;
-
-	return `Expected BEM ${bemEntity} \`${entityValue}\` ${suffix}`;
-};
-
-export const normalizePattern = (
-	input: Arrayable<string | RegExp> | false,
-): ProcessedPattern[] | false => {
-	if (input === false) return false;
-
-	return toArray(input).map((part) => {
-		// Allow usage of string patterns like `KEBAB_CASE`
-		if (isString(part) && PATTERN_REPLACEMENT_MAP[part]) {
-			return { source: part, regexp: PATTERN_REPLACEMENT_MAP[part] };
-		}
-
-		return {
-			source: part.toString(),
-			regexp: toRegExp(part, { allowWildcard: true }),
-		};
-	});
-};
 
 export default createRule({
 	name: addNamespace(RULE_NAME),
