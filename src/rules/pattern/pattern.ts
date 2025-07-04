@@ -119,6 +119,17 @@ export default createRule({
 
 				bemEntities.forEach((entity) => {
 					const entityPatterns = patterns[entityName];
+
+					// Utility classes are not allowed via the config.
+					if (entityPatterns === false && entityName === 'utility') {
+						violations.push({
+							rule,
+							entity: entityName,
+							value: entity.value,
+							...getViolationIndexes(rule, entity.value),
+						});
+						return;
+					}
 					if (!entityPatterns) return;
 
 					if (

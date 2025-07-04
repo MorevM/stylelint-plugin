@@ -4,6 +4,7 @@ const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 
 testRule({
+	description: 'Default options',
 	config: [true],
 	accept: [
 		{
@@ -253,6 +254,178 @@ testRule({
 					message: messages.modifierName('El'),
 					line: 1, column: 1,
 					endLine: 1, endColumn: 23,
+				},
+			],
+		},
+	],
+});
+
+testRule({
+	description: 'Pattern as a keyword',
+	config: [true, { blockPattern: 'PASCAL_CASE' }],
+	accept: [
+		{ code: '.MyBlock {}' },
+		{ code: '.FooBar123 {}' },
+	],
+	reject: [
+		{
+			code: '.my-block {}',
+			warnings: [
+				{
+					message: messages.block('my-block'),
+					line: 1, column: 2,
+					endLine: 1, endColumn: 10,
+				},
+			],
+		},
+		{
+			code: '.123Block {}',
+			warnings: [
+				{
+					message: messages.block('123Block'),
+					line: 1, column: 2,
+					endLine: 1, endColumn: 10,
+				},
+			],
+		},
+	],
+});
+
+testRule({
+	description: 'Pattern as a string',
+	config: [true, { blockPattern: 'PASCAL_CASE' }],
+	accept: [
+		{ code: '.MyBlock {}' },
+		{ code: '.FooBar123 {}' },
+	],
+	reject: [
+		{
+			code: '.my-block {}',
+			warnings: [
+				{
+					message: messages.block('my-block'),
+					line: 1, column: 2,
+					endLine: 1, endColumn: 10,
+				},
+			],
+		},
+		{
+			code: '.123Block {}',
+			warnings: [
+				{
+					message: messages.block('123Block'),
+					line: 1, column: 2,
+					endLine: 1, endColumn: 10,
+				},
+			],
+		},
+	],
+});
+
+testRule({
+	description: 'Pattern as a RegExp in string form',
+	config: [true, { blockPattern: '/^foo-[a-z]+$/' }],
+	accept: [
+		{ code: '.foo-bar {}' },
+		{ code: '.foo-test {}' },
+	],
+	reject: [
+		{
+			code: '.bar-foo {}',
+			warnings: [
+				{
+					message: messages.block('bar-foo'),
+					line: 1, column: 2,
+					endLine: 1, endColumn: 9,
+				},
+			],
+		},
+	],
+});
+
+testRule({
+	description: 'Pattern as an actual RegExp',
+	config: [true, { blockPattern: /^foo-[a-z]+$/ }],
+	accept: [
+		{ code: '.foo-bar {}' },
+		{ code: '.foo-test {}' },
+	],
+	reject: [
+		{
+			code: '.bar-foo {}',
+			warnings: [
+				{
+					message: messages.block('bar-foo'),
+					line: 1, column: 2,
+					endLine: 1, endColumn: 9,
+				},
+			],
+		},
+	],
+});
+
+testRule({
+	description: 'Pattern as an array of mixed values',
+	config: [true, { blockPattern: ['SNAKE_CASE', /^foo-[a-z]+$/, 'baz-*'] }],
+	accept: [
+		{ code: '.snake_case_selector {}' },
+		{ code: '.foo-test {}' },
+		{ code: '.baz-test {}' },
+	],
+	reject: [
+		{
+			code: '._bar_foo {}',
+			warnings: [
+				{
+					message: messages.block('_bar_foo'),
+					line: 1, column: 2,
+					endLine: 1, endColumn: 10,
+				},
+			],
+		},
+		{
+			code: '.my-foo {}',
+			warnings: [
+				{
+					message: messages.block('my-foo'),
+					line: 1, column: 2,
+					endLine: 1, endColumn: 8,
+				},
+			],
+		},
+	],
+});
+
+testRule({
+	description: 'Pattern as a false (only for utility)',
+	config: [true, { utilityPattern: false }],
+	accept: [
+		{ code: '.foo-test {}' },
+	],
+	reject: [
+		{
+			code: '.foo-test.is-active {}',
+			warnings: [
+				{
+					message: messages.utility('is-active'),
+					line: 1, column: 11,
+					endLine: 1, endColumn: 20,
+				},
+			],
+		},
+		{
+			code: `
+				.foo-test {
+					&__element {
+						&.is-active {}
+					}
+				}
+			`,
+			warnings: [
+				{
+					message: messages.utility('is-active'),
+					line: 3, column: 5,
+					endLine: 3, endColumn: 14,
 				},
 			],
 		},
