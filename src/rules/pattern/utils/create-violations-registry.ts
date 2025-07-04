@@ -8,6 +8,7 @@ type Violation = {
 	startIndex: number;
 	endIndex: number;
 	value: string;
+	message: string;
 };
 
 const getViolationIndexes = (rule: Rule | AtRule, searchString: string) => {

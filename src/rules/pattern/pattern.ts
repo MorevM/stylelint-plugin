@@ -1,4 +1,4 @@
-import { isEmpty, isString, toArray } from '@morev/utils';
+import { isEmpty, isString, quote, toArray } from '@morev/utils';
 import * as v from 'valibot';
 import { CAMEL_CASE_REGEXP, KEBAB_CASE_REGEXP, PASCAL_CASE_REGEXP, SNAKE_CASE_REGEXP } from '#constants';
 import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
@@ -10,7 +10,7 @@ import type { Arrayable } from '@morev/utils';
  * TODO:
  * * Documentation
  * * Custom messages
- * * Better default messages
+ * * Ignore selectors
  */
 
 const RULE_NAME = 'pattern';
@@ -24,17 +24,39 @@ const PATTERN_REPLACEMENT_MAP = {
 	SNAKE_CASE: SNAKE_CASE_REGEXP,
 } as Record<string, RegExp>;
 
-const normalizePattern = (
+export type ProcessedPattern = { source: string; regexp: RegExp };
+
+export const createMessage = (
+	bemEntity: string,
+	entityValue: string,
+	patterns: ProcessedPattern[],
+) => {
+	const patternsString = patterns
+		.map((pattern) => quote(pattern.source, '`'))
+		.join(', ');
+
+	const suffix = patterns.length === 1
+		? `to match pattern ${patternsString}`
+		: `to match one of the following [${patternsString}]`;
+
+	return `Expected BEM ${bemEntity} \`${entityValue}\` ${suffix}`;
+};
+
+export const normalizePattern = (
 	input: Arrayable<string | RegExp> | false,
-): RegExp[] | false => {
+): ProcessedPattern[] | false => {
 	if (input === false) return false;
 
 	return toArray(input).map((part) => {
+		// Allow usage of string patterns like `KEBAB_CASE`
 		if (isString(part) && PATTERN_REPLACEMENT_MAP[part]) {
-			return PATTERN_REPLACEMENT_MAP[part];
+			return { source: part, regexp: PATTERN_REPLACEMENT_MAP[part] };
 		}
 
-		return toRegExp(part, { allowWildcard: true });
+		return {
+			source: part.toString(),
+			regexp: toRegExp(part, { allowWildcard: true }),
+		};
 	});
 };
 
@@ -46,11 +68,21 @@ export default createRule({
 		fixable: false,
 	},
 	messages: {
-		block: (name: string) => `BEM block "${name}" does not match the pattern`,
-		element: (name: string) => `BEM element "${name}" does not match the pattern`,
-		modifierName: (name: string) => `BEM modifier name "${name}" does not match the pattern`,
-		modifierValue: (name: string) => `BEM modifier value "${name}" does not match the pattern`,
-		utility: (name: string) => `Utility class "${name}" does not match the pattern`,
+		block: (name: string, patterns: ProcessedPattern[]) =>
+			createMessage('block', name, patterns),
+		element: (name: string, patterns: ProcessedPattern[]) =>
+			createMessage('element', name, patterns),
+		modifierName: (name: string, patterns: ProcessedPattern[]) =>
+			createMessage('modifier name', name, patterns),
+		modifierValue: (name: string, patterns: ProcessedPattern[]) =>
+			createMessage('modifier value', name, patterns),
+		utility: (name: string, patterns: false | ProcessedPattern[]) => {
+			if (patterns === false) {
+				return 'Utility classes are not allowed according to the configuration';
+			}
+
+			return createMessage('utility class', name, patterns);
+		},
 	},
 	schema: {
 		primary: v.literal(true),
@@ -126,6 +158,7 @@ export default createRule({
 							rule,
 							entity: entityName,
 							value: entity.value,
+							message: messages.utility(entity.value, entityPatterns),
 							...getViolationIndexes(rule, entity.value),
 						});
 						return;
@@ -133,13 +166,14 @@ export default createRule({
 					if (!entityPatterns) return;
 
 					if (
-						entityPatterns.every((p) => !p.test(entity.value))
+						entityPatterns.every((pattern) => !pattern.regexp.test(entity.value))
 						&& !hasParentViolation(rule, entityName, entity)
 					) {
 						violations.push({
 							rule,
 							entity: entityName,
 							value: entity.value,
+							message: messages[entityName](entity.value, entityPatterns),
 							...getViolationIndexes(rule, entity.value),
 						});
 					}
@@ -148,12 +182,12 @@ export default createRule({
 		});
 	});
 
-	violations.forEach(({ rule, entity, startIndex, endIndex, value }) => {
+	violations.forEach(({ rule, startIndex, endIndex, message }) => {
 		report({
 			node: rule,
-			message: messages[entity](value),
 			index: startIndex,
 			endIndex,
+			message,
 		});
 	});
 });

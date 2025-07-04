@@ -1,7 +1,12 @@
-import rule from './pattern';
+import { KEBAB_CASE_REGEXP } from '#constants';
+import rule, { normalizePattern } from './pattern';
+import type { ProcessedPattern } from './pattern';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
+
+const KEBAB_CASE_PATTERN = normalizePattern(KEBAB_CASE_REGEXP) as ProcessedPattern[];
+const UTILITY_PATTERN = normalizePattern(['is-*', 'has-*', 'js-*', '-*']) as ProcessedPattern[];
 
 testRule({
 	description: 'Default options',
@@ -56,32 +61,32 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.block('TheComponent'),
+					message: messages.block('TheComponent', KEBAB_CASE_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 14,
 				},
 				{
-					message: messages.block('TheComponent'),
+					message: messages.block('TheComponent', KEBAB_CASE_PATTERN),
 					line: 2, column: 2,
 					endLine: 2, endColumn: 14,
 				},
 				{
-					message: messages.block('AnotherComponent'),
+					message: messages.block('AnotherComponent', KEBAB_CASE_PATTERN),
 					line: 3, column: 10,
 					endLine: 3, endColumn: 26,
 				},
 				{
-					message: messages.block('BazComponent'),
+					message: messages.block('BazComponent', KEBAB_CASE_PATTERN),
 					line: 4, column: 4,
 					endLine: 4, endColumn: 16,
 				},
 				{
-					message: messages.block('FooComponent'),
+					message: messages.block('FooComponent', KEBAB_CASE_PATTERN),
 					line: 6, column: 12,
 					endLine: 6, endColumn: 24,
 				},
 				{
-					message: messages.block('BarComponent'),
+					message: messages.block('BarComponent', KEBAB_CASE_PATTERN),
 					line: 7, column: 11,
 					endLine: 7, endColumn: 23,
 				},
@@ -105,27 +110,27 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.element('fooBar'),
+					message: messages.element('fooBar', KEBAB_CASE_PATTERN),
 					line: 2, column: 5,
 					endLine: 2, endColumn: 11,
 				},
 				{
-					message: messages.element('foo__bar'),
+					message: messages.element('foo__bar', KEBAB_CASE_PATTERN),
 					line: 3, column: 5,
 					endLine: 3, endColumn: 13,
 				},
 				{
-					message: messages.element('FooBar'),
+					message: messages.element('FooBar', KEBAB_CASE_PATTERN),
 					line: 4, column: 5,
 					endLine: 4, endColumn: 11,
 				},
 				{
-					message: messages.element('fooBar'),
+					message: messages.element('fooBar', KEBAB_CASE_PATTERN),
 					line: 6, column: 3,
 					endLine: 6, endColumn: 7,
 				},
 				{
-					message: messages.element('foo__bar'),
+					message: messages.element('foo__bar', KEBAB_CASE_PATTERN),
 					line: 9, column: 4,
 					endLine: 9, endColumn: 10,
 				},
@@ -142,7 +147,7 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.modifierName('modName'),
+					message: messages.modifierName('modName', KEBAB_CASE_PATTERN),
 					line: 3, column: 6,
 					endLine: 3, endColumn: 13,
 				},
@@ -161,7 +166,7 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.modifierValue('modValue'),
+					message: messages.modifierValue('modValue', KEBAB_CASE_PATTERN),
 					line: 4, column: 7,
 					endLine: 4, endColumn: 15,
 				},
@@ -183,27 +188,27 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.utility('foo'),
+					message: messages.utility('foo', UTILITY_PATTERN),
 					line: 2, column: 4,
 					endLine: 2, endColumn: 7,
 				},
 				{
-					message: messages.utility('foo'),
+					message: messages.utility('foo', UTILITY_PATTERN),
 					line: 4, column: 5,
 					endLine: 4, endColumn: 8,
 				},
 				{
-					message: messages.utility('foo'),
+					message: messages.utility('foo', UTILITY_PATTERN),
 					line: 6, column: 6,
 					endLine: 6, endColumn: 9,
 				},
 				{
-					message: messages.utility('foo'),
+					message: messages.utility('foo', UTILITY_PATTERN),
 					line: 7, column: 6,
 					endLine: 7, endColumn: 9,
 				},
 				{
-					message: messages.utility('bar'),
+					message: messages.utility('bar', UTILITY_PATTERN),
 					line: 7, column: 20,
 					endLine: 7, endColumn: 23,
 				},
@@ -223,17 +228,17 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.element('fooBar'),
+					message: messages.element('fooBar', KEBAB_CASE_PATTERN),
 					line: 2, column: 13,
 					endLine: 2, endColumn: 19,
 				},
 				{
-					message: messages.modifierName('MODNAME'),
+					message: messages.modifierName('MODNAME', KEBAB_CASE_PATTERN),
 					line: 3, column: 19,
 					endLine: 3, endColumn: 26,
 				},
 				{
-					message: messages.modifierValue('ModValue'),
+					message: messages.modifierValue('ModValue', KEBAB_CASE_PATTERN),
 					line: 5, column: 7,
 					endLine: 5, endColumn: 15,
 				},
@@ -246,12 +251,12 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.element('El'),
+					message: messages.element('El', KEBAB_CASE_PATTERN),
 					line: 1, column: 1,
 					endLine: 1, endColumn: 23,
 				},
 				{
-					message: messages.modifierName('El'),
+					message: messages.modifierName('El', KEBAB_CASE_PATTERN),
 					line: 1, column: 1,
 					endLine: 1, endColumn: 23,
 				},
@@ -259,6 +264,8 @@ testRule({
 		},
 	],
 });
+
+const KEYWORD_PASCAL_PATTERN = normalizePattern('PASCAL_CASE') as ProcessedPattern[];
 
 testRule({
 	description: 'Pattern as a keyword',
@@ -272,7 +279,7 @@ testRule({
 			code: '.my-block {}',
 			warnings: [
 				{
-					message: messages.block('my-block'),
+					message: messages.block('my-block', KEYWORD_PASCAL_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 10,
 				},
@@ -282,7 +289,7 @@ testRule({
 			code: '.123Block {}',
 			warnings: [
 				{
-					message: messages.block('123Block'),
+					message: messages.block('123Block', KEYWORD_PASCAL_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 10,
 				},
@@ -291,29 +298,20 @@ testRule({
 	],
 });
 
+const FOO_PATTERN = normalizePattern('foo-*') as ProcessedPattern[];
+
 testRule({
 	description: 'Pattern as a string',
-	config: [true, { blockPattern: 'PASCAL_CASE' }],
+	config: [true, { blockPattern: 'foo-*' }],
 	accept: [
-		{ code: '.MyBlock {}' },
-		{ code: '.FooBar123 {}' },
+		{ code: '.foo-block {}' },
 	],
 	reject: [
 		{
 			code: '.my-block {}',
 			warnings: [
 				{
-					message: messages.block('my-block'),
-					line: 1, column: 2,
-					endLine: 1, endColumn: 10,
-				},
-			],
-		},
-		{
-			code: '.123Block {}',
-			warnings: [
-				{
-					message: messages.block('123Block'),
+					message: messages.block('my-block', FOO_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 10,
 				},
@@ -321,6 +319,8 @@ testRule({
 		},
 	],
 });
+
+const FOO_STRING_REGEX_PATTERN = normalizePattern('/^foo-[a-z]+$/') as ProcessedPattern[];
 
 testRule({
 	description: 'Pattern as a RegExp in string form',
@@ -334,7 +334,7 @@ testRule({
 			code: '.bar-foo {}',
 			warnings: [
 				{
-					message: messages.block('bar-foo'),
+					message: messages.block('bar-foo', FOO_STRING_REGEX_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 9,
 				},
@@ -342,6 +342,8 @@ testRule({
 		},
 	],
 });
+
+const FOO_REGEX_PATTERN = normalizePattern('/^foo-[a-z]+$/') as ProcessedPattern[];
 
 testRule({
 	description: 'Pattern as an actual RegExp',
@@ -355,7 +357,7 @@ testRule({
 			code: '.bar-foo {}',
 			warnings: [
 				{
-					message: messages.block('bar-foo'),
+					message: messages.block('bar-foo', FOO_REGEX_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 9,
 				},
@@ -363,6 +365,8 @@ testRule({
 		},
 	],
 });
+
+const MIXED_PATTERN = normalizePattern(['SNAKE_CASE', /^foo-[a-z]+$/, 'baz-*']) as ProcessedPattern[];
 
 testRule({
 	description: 'Pattern as an array of mixed values',
@@ -377,7 +381,7 @@ testRule({
 			code: '._bar_foo {}',
 			warnings: [
 				{
-					message: messages.block('_bar_foo'),
+					message: messages.block('_bar_foo', MIXED_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 10,
 				},
@@ -387,7 +391,7 @@ testRule({
 			code: '.my-foo {}',
 			warnings: [
 				{
-					message: messages.block('my-foo'),
+					message: messages.block('my-foo', MIXED_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 8,
 				},
@@ -407,7 +411,7 @@ testRule({
 			code: '.foo-test.is-active {}',
 			warnings: [
 				{
-					message: messages.utility('is-active'),
+					message: messages.utility('is-active', false),
 					line: 1, column: 11,
 					endLine: 1, endColumn: 20,
 				},
@@ -423,7 +427,7 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.utility('is-active'),
+					message: messages.utility('is-active', false),
 					line: 3, column: 5,
 					endLine: 3, endColumn: 14,
 				},
