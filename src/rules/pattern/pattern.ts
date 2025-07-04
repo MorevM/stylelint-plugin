@@ -1,6 +1,6 @@
-import { isEmpty, toArray } from '@morev/utils';
+import { isEmpty, isString, toArray } from '@morev/utils';
 import * as v from 'valibot';
-import { KEBAB_CASE_REGEXP } from '#constants';
+import { CAMEL_CASE_REGEXP, KEBAB_CASE_REGEXP, PASCAL_CASE_REGEXP, SNAKE_CASE_REGEXP } from '#constants';
 import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
 import { stringOrRegExpSchema, vArrayable, vFunction } from '#valibot';
 import { createViolationsRegistry, resolveBemEntities } from './utils';
@@ -8,20 +8,34 @@ import type { Arrayable } from '@morev/utils';
 
 /**
  * TODO:
- * * Документация
- * * Паттерны KEBAB
+ * * Documentation
  * * Custom messages
+ * * Better default messages
  */
 
 const RULE_NAME = 'pattern';
 
 const ENTITIES_IN_ORDER = ['block', 'element', 'modifierName', 'modifierValue', 'utility'] as const;
 
+const PATTERN_REPLACEMENT_MAP = {
+	KEBAB_CASE: KEBAB_CASE_REGEXP,
+	PASCAL_CASE: PASCAL_CASE_REGEXP,
+	CAMEL_CASE: CAMEL_CASE_REGEXP,
+	SNAKE_CASE: SNAKE_CASE_REGEXP,
+} as Record<string, RegExp>;
+
 const normalizePattern = (
 	input: Arrayable<string | RegExp> | false,
 ): RegExp[] | false => {
 	if (input === false) return false;
-	return toArray(input).map((part) => toRegExp(part, { allowWildcard: true }));
+
+	return toArray(input).map((part) => {
+		if (isString(part) && PATTERN_REPLACEMENT_MAP[part]) {
+			return PATTERN_REPLACEMENT_MAP[part];
+		}
+
+		return toRegExp(part, { allowWildcard: true });
+	});
 };
 
 export default createRule({
@@ -86,9 +100,7 @@ export default createRule({
 	};
 
 	const {
-		violations,
-		getViolationIndexes,
-		hasParentViolation,
+		violations, getViolationIndexes, hasParentViolation,
 	} = createViolationsRegistry(ENTITIES_IN_ORDER);
 
 	root.walk((rule) => {
