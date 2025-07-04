@@ -19,4 +19,12 @@ export type Options = {
 	 * @default true
 	 */
 	firstChild: boolean;
+
+	/**
+	 * Whether to automatically replace hardcoded occurrences of the block name
+	 * inside nested selectors with the corresponding block variable.
+	 *
+	 * @default true
+	 */
+	replaceBlockName: boolean;
 };
