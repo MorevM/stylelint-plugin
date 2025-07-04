@@ -1,7 +1,7 @@
 import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
-import { stringOrRegExpSchema } from '#constants';
 import { addNamespace, createRule, getBemBlock, getRuleUrl, isCssFile, isKeyframesRule, parseSelectors, toRegExp } from '#utils';
+import { stringOrRegExpSchema } from '#valibot';
 import type parser from 'postcss-selector-parser';
 
 const RULE_NAME = 'no-side-effects';

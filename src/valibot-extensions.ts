@@ -1,5 +1,7 @@
 import * as v from 'valibot';
 
+export const stringOrRegExpSchema = v.union([v.string(), v.instance(RegExp)]);
+
 export const vArrayable = <
 	T extends v.BaseSchema<any, any, any>,
 >(type: T) => {

@@ -1,10 +1,7 @@
-import { isEmpty } from '@morev/utils';
 import resolveNestedSelector from 'postcss-resolve-nested-selector';
 import * as v from 'valibot';
-import { stringOrRegExpSchema } from '#constants';
-import { addNamespace, createRule, getBemBlock, getFirstRule, getRuleUrl, isCssFile, isKeyframesRule, parseSelector, toRegExp } from '#utils';
-import type parser from 'postcss-selector-parser';
-import type { Root } from 'postcss-selector-parser';
+import { addNamespace, createRule, getBemBlock, getFirstRule, getRuleUrl, isCssFile, isKeyframesRule, parseSelectors, toRegExp } from '#utils';
+import { stringOrRegExpSchema } from '#valibot';
 
 const RULE_NAME = 'no-internal-side-effects';
 
@@ -36,6 +33,6 @@ export default createRule({
 	if (!bemBlock) return;
 
 	root.walkRules((rule) => {
-		const resolvedSelector = resolveNestedSelector(rule.selector, rule)[0];
+		const resolvedSelector = resolveNestedSelector(rule.selector, rule as any)[0];
 	});
 });

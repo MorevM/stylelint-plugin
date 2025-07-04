@@ -1,7 +1,7 @@
 import { toArray, tsObject } from '@morev/utils';
 import * as v from 'valibot';
-import { stringOrRegExpSchema } from '#constants';
 import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
+import { stringOrRegExpSchema } from '#valibot';
 
 const RULE_NAME = 'no-selectors-in-at-rules';
 

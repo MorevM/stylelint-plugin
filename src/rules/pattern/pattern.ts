@@ -1,8 +1,8 @@
 import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
-import { KEBAB_CASE_REGEXP, stringOrRegExpSchema } from '#constants';
+import { KEBAB_CASE_REGEXP } from '#constants';
 import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
-import { vArrayable, vFunction } from '#valibot';
+import { stringOrRegExpSchema, vArrayable, vFunction } from '#valibot';
 import { createViolationsRegistry, resolveBemEntities } from './utils';
 import type { Arrayable } from '@morev/utils';
 

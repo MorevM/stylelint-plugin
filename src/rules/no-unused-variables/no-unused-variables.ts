@@ -1,6 +1,6 @@
 import * as v from 'valibot';
-import { stringOrRegExpSchema } from '#constants';
 import { addNamespace, createRule, getRuleUrl, isCssFile, toRegExp } from '#utils';
+import { stringOrRegExpSchema } from '#valibot';
 import type { Declaration, Node } from 'postcss';
 
 const RULE_NAME = 'no-unused-variables';
