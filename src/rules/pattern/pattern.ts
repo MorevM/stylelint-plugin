@@ -116,33 +116,23 @@ export default createRule({
 				bemEntities.forEach((entity) => {
 					const entityPatterns = patterns[entityName];
 
-					// Utility classes are not allowed via the config.
-					if (entityPatterns === false && entityName === 'utility') {
-						violations.push({
-							rule,
-							entity: entityName,
-							value: entity.value,
-							message: secondary.messages?.utility?.(entity.value, entityPatterns)
-								?? messages.utility(entity.value, entityPatterns),
-							...getViolationIndexes(rule, entity.value),
-						});
-						return;
-					}
-					if (!entityPatterns) return;
+					const isDisallowedEntity = entityPatterns === false && entityName === 'utility';
 
-					if (
-						entityPatterns.every((pattern) => !pattern.regexp.test(entity.value))
+					const shouldReport = isDisallowedEntity || (
+						entityPatterns
+						&& entityPatterns.every((pattern) => !pattern.regexp.test(entity.value))
 						&& !hasParentViolation(rule, entityName, entity)
-					) {
-						violations.push({
-							rule,
-							entity: entityName,
-							value: entity.value,
-							message: secondary.messages?.[entityName]?.(entity.value, entityPatterns)
-								?? messages[entityName](entity.value, entityPatterns),
-							...getViolationIndexes(rule, entity.value),
-						});
-					}
+					);
+
+					shouldReport && violations.push({
+						rule,
+						entity: entityName,
+						value: entity.value,
+						message: secondary.messages?.[entityName]?.(entity.value, entityPatterns)
+							// Intentionally loosened type for utility scenario
+							?? messages[entityName](entity.value, entityPatterns as any),
+						...getViolationIndexes(rule, entity.value),
+					});
 				});
 			});
 		});
