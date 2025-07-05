@@ -268,6 +268,7 @@ testRule({
 
 const KEYWORD_PASCAL_PATTERN = normalizePattern('PASCAL_CASE') as ProcessedPattern[];
 
+// Pattern as a keyword
 testRule({
 	description: 'Pattern as a keyword',
 	config: [true, { blockPattern: 'PASCAL_CASE' }],
@@ -301,6 +302,7 @@ testRule({
 
 const FOO_PATTERN = normalizePattern('foo-*') as ProcessedPattern[];
 
+// Pattern as a string
 testRule({
 	description: 'Pattern as a string',
 	config: [true, { blockPattern: 'foo-*' }],
@@ -323,6 +325,7 @@ testRule({
 
 const FOO_STRING_REGEX_PATTERN = normalizePattern('/^foo-[a-z]+$/') as ProcessedPattern[];
 
+// Pattern as a RegExp in string form
 testRule({
 	description: 'Pattern as a RegExp in string form',
 	config: [true, { blockPattern: '/^foo-[a-z]+$/' }],
@@ -346,6 +349,7 @@ testRule({
 
 const FOO_REGEX_PATTERN = normalizePattern('/^foo-[a-z]+$/') as ProcessedPattern[];
 
+// Pattern as a RegExp
 testRule({
 	description: 'Pattern as an actual RegExp',
 	config: [true, { blockPattern: /^foo-[a-z]+$/ }],
@@ -369,6 +373,7 @@ testRule({
 
 const MIXED_PATTERN = normalizePattern(['SNAKE_CASE', /^foo-[a-z]+$/, 'baz-*']) as ProcessedPattern[];
 
+// Pattern as an array of mixed values
 testRule({
 	description: 'Pattern as an array of mixed values',
 	config: [true, { blockPattern: ['SNAKE_CASE', /^foo-[a-z]+$/, 'baz-*'] }],
@@ -401,6 +406,7 @@ testRule({
 	],
 });
 
+// Pattern is false (disable utility classes)
 testRule({
 	description: 'Pattern as a false (only for utility)',
 	config: [true, { utilityPattern: false }],
@@ -432,6 +438,50 @@ testRule({
 					line: 3, column: 5,
 					endLine: 3, endColumn: 14,
 				},
+			],
+		},
+	],
+});
+
+// `ignoredBlocks` option
+testRule.only({
+	description: 'Pattern as a false (only for utility)',
+	config: [true, { ignoreBlocks: ['FOO', 'swiper-*', /^tippy.*/, '/d\\d+.*/'] }],
+	accept: [
+		{ code: '.FOO {}' },
+		{ code: '.swiper-slide__ElEmEnt.blah-blah {}' },
+		{
+			code: `
+				.tippy {
+					&__STRANGE {
+						&--SELECTOR {}
+					}
+				}
+			`,
+		},
+		{
+			code: `
+				.d2 {
+					&__STRANGE {
+						&--SELECTOR {}
+					}
+				}
+			`,
+		},
+	],
+	reject: [
+		{
+			description: 'Still warns rest selectors',
+			code: `
+				.FOOBAR {}
+				.non-swiper-BLOCK__ELEMENT {}
+				.dB {}
+			`,
+			warnings: [
+				{ message: messages.block('FOOBAR', KEBAB_CASE_PATTERN) },
+				{ message: messages.block('non-swiper-BLOCK', KEBAB_CASE_PATTERN) },
+				{ message: messages.element('ELEMENT', KEBAB_CASE_PATTERN) },
+				{ message: messages.block('dB', KEBAB_CASE_PATTERN) },
 			],
 		},
 	],

@@ -1,7 +1,7 @@
 import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
 import { KEBAB_CASE_REGEXP } from '#constants';
-import { addNamespace, createRule, getRuleUrl } from '#utils';
+import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
 import { stringOrRegExpSchema, vArrayable, vFunction } from '#valibot';
 import { createMessage, createViolationsRegistry, normalizePattern, resolveBemEntities } from './utils';
 import type { ProcessedPattern } from './pattern.types';
@@ -10,7 +10,6 @@ import type { ProcessedPattern } from './pattern.types';
  * TODO:
  * * Documentation
  * * Custom messages
- * * Ignore selectors
  */
 
 const RULE_NAME = 'pattern';
@@ -76,6 +75,10 @@ export default createRule({
 				elementSeparator: v.optional(v.string(), '__'),
 				modifierSeparator: v.optional(v.string(), '--'),
 				modifierValueSeparator: v.optional(v.string(), '--'),
+				ignoreBlocks: v.optional(
+					vArrayable(stringOrRegExpSchema),
+					[],
+				),
 			}),
 		),
 	},
@@ -88,6 +91,9 @@ export default createRule({
 		utility: normalizePattern(secondary.utilityPattern),
 	};
 
+	const ignoreBlocks = toArray(secondary.ignoreBlocks)
+		.map((entry) => toRegExp(entry, { allowWildcard: true }));
+
 	const {
 		violations, getViolationIndexes, hasParentViolation,
 	} = createViolationsRegistry(ENTITIES_IN_ORDER);
@@ -98,6 +104,7 @@ export default createRule({
 
 		resolveBemEntities(rule, secondary).forEach((bemEntity) => {
 			if (!bemEntity.block) return;
+			if (ignoreBlocks.some((pattern) => pattern.test(bemEntity.block.value))) return;
 
 			ENTITIES_IN_ORDER.forEach((entityName) => {
 				const bemEntityData = bemEntity[entityName];
