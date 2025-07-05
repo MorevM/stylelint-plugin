@@ -444,7 +444,7 @@ testRule({
 });
 
 // `ignoredBlocks` option
-testRule.only({
+testRule({
 	description: 'Pattern as a false (only for utility)',
 	config: [true, { ignoreBlocks: ['FOO', 'swiper-*', /^tippy.*/, '/d\\d+.*/'] }],
 	accept: [
@@ -482,6 +482,43 @@ testRule.only({
 				{ message: messages.block('non-swiper-BLOCK', KEBAB_CASE_PATTERN) },
 				{ message: messages.element('ELEMENT', KEBAB_CASE_PATTERN) },
 				{ message: messages.block('dB', KEBAB_CASE_PATTERN) },
+			],
+		},
+	],
+});
+
+// `messages` option
+testRule({
+	description: 'Pattern as a false (only for utility)',
+	config: [true, {
+		messages: {
+			block: (name: string, patterns: ProcessedPattern[]) => `Block ${name}`,
+			element: (name: string, patterns: ProcessedPattern[]) => `Element ${name}`,
+			modifierName: (name: string, patterns: ProcessedPattern[]) => `Modifier name ${name}`,
+			modifierValue: (name: string, patterns: ProcessedPattern[]) => `Modifier value ${name}`,
+			utility: (name: string, patterns: false | ProcessedPattern[]) => `Utility ${name}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.FOOBAR {
+					&__ELEMENT {
+						&--MODIFIER {
+							&--VALUE {
+								&.foo-bar:hover {}
+							}
+						}
+					}
+				}
+			`,
+			warnings: [
+				{ message: `Block FOOBAR` },
+				{ message: `Element ELEMENT` },
+				{ message: `Modifier name MODIFIER` },
+				{ message: `Modifier value VALUE` },
+				{ message: `Utility foo-bar` },
 			],
 		},
 	],

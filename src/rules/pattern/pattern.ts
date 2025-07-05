@@ -9,7 +9,6 @@ import type { ProcessedPattern } from './pattern.types';
 /**
  * TODO:
  * * Documentation
- * * Custom messages
  */
 
 const RULE_NAME = 'pattern';
@@ -46,10 +45,11 @@ export default createRule({
 			v.strictObject({
 				messages: v.optional(
 					v.strictObject({
-						block: v.optional(
-							vFunction([v.string()], v.string()),
-							undefined,
-						),
+						block: v.optional(vFunction([v.string(), v.any()], v.string())),
+						element: v.optional(vFunction([v.string(), v.any()], v.string())),
+						modifierName: v.optional(vFunction([v.string(), v.any()], v.string())),
+						modifierValue: v.optional(vFunction([v.string(), v.any()], v.string())),
+						utility: v.optional(vFunction([v.string(), v.any()], v.string())),
 					}),
 				),
 				blockPattern: v.optional(
@@ -122,7 +122,8 @@ export default createRule({
 							rule,
 							entity: entityName,
 							value: entity.value,
-							message: messages.utility(entity.value, entityPatterns),
+							message: secondary.messages?.utility?.(entity.value, entityPatterns)
+								?? messages.utility(entity.value, entityPatterns),
 							...getViolationIndexes(rule, entity.value),
 						});
 						return;
@@ -137,7 +138,8 @@ export default createRule({
 							rule,
 							entity: entityName,
 							value: entity.value,
-							message: messages[entityName](entity.value, entityPatterns),
+							message: secondary.messages?.[entityName]?.(entity.value, entityPatterns)
+								?? messages[entityName](entity.value, entityPatterns),
 							...getViolationIndexes(rule, entity.value),
 						});
 					}
