@@ -13,6 +13,7 @@ import type { ProcessedPattern } from './selector-pattern.types';
 
 const RULE_NAME = 'selector-pattern';
 
+// Defines processing order for BEM entities to respect parent-child dependency
 const ENTITIES_IN_ORDER = ['block', 'element', 'modifierName', 'modifierValue', 'utility'] as const;
 
 export default createRule({
@@ -83,6 +84,8 @@ export default createRule({
 		),
 	},
 }, (primary, secondary, { report, messages, root }) => {
+	// Normalize all configured patterns to internal RegExp format,
+	// resolve string wildcards and keywords like 'KEBAB_CASE'.
 	const patterns = {
 		block: normalizePattern(secondary.blockPattern),
 		element: normalizePattern(secondary.elementPattern),
@@ -91,6 +94,7 @@ export default createRule({
 		utility: normalizePattern(secondary.utilityPattern),
 	};
 
+	// Precompile ignore list for block names
 	const ignoreBlocks = toArray(secondary.ignoreBlocks)
 		.map((entry) => toRegExp(entry, { allowWildcard: true }));
 
@@ -116,8 +120,10 @@ export default createRule({
 				bemEntities.forEach((entity) => {
 					const entityPatterns = patterns[entityName];
 
+					// Special case: utility classes can be completely forbidden via `false`
 					const isDisallowedEntity = entityPatterns === false && entityName === 'utility';
 
+					// Determine whether this entity violates the configured patterns
 					const shouldReport = isDisallowedEntity || (
 						entityPatterns
 						&& entityPatterns.every((pattern) => !pattern.regexp.test(entity.value))
@@ -128,6 +134,7 @@ export default createRule({
 						rule,
 						entity: entityName,
 						value: entity.value,
+						// Use user-provided message if available, fallback to default
 						message: secondary.messages?.[entityName]?.(entity.value, entityPatterns)
 							// Intentionally loosened type for utility scenario
 							?? messages[entityName](entity.value, entityPatterns as any),
