@@ -8,7 +8,7 @@ import type { ProcessedPattern } from './pattern.types';
 
 /**
  * TODO:
- * * Documentation
+ * * Требовать значение модификатора, если название модификатора не удовлетворяет чему-то?
  */
 
 const RULE_NAME = 'pattern';

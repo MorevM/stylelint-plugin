@@ -100,7 +100,6 @@ export const resolveBemEntities = (rule: Rule | AtRule, separators: Separators) 
 			const { groups, indices } = match;
 			if (isEmpty(indices) || isEmpty(indices.groups) || isEmpty(groups)) return acc;
 
-
 			// eslint-disable-next-line unicorn/consistent-function-scoping -- false positive
 			const getPart = (type: Exclude<keyof BemEntity, 'utilities' | 'selector'>) => {
 				if (!groups[type] || !indices.groups?.[type]) return;
