@@ -8,6 +8,7 @@ export * from './is-css-file/is-css-file';
 export * from './is-keyframes-rule/is-keyframes-rule';
 export * from './parse-regexp-from-string/parse-regexp-from-string';
 export * from './parse-selectors/parse-selectors';
+export * from './resolve-bem-entities/resolve-bem-entities';
 export * from './to-case/to-case';
 export * from './to-regexp/to-regexp';
 export * from './validate-options/validate-options';

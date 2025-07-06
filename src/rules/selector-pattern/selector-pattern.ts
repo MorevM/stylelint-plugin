@@ -1,9 +1,9 @@
 import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
 import { KEBAB_CASE_REGEXP } from '#constants';
-import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
+import { addNamespace, createRule, getRuleUrl, resolveBemEntities, toRegExp } from '#utils';
 import { vArrayable, vFunction, vSeparatorsSchema, vStringOrRegExpSchema } from '#valibot';
-import { createMessage, createViolationsRegistry, normalizePattern, resolveBemEntities } from './utils';
+import { createMessage, createViolationsRegistry, normalizePattern } from './utils';
 import type { ProcessedPattern } from './selector-pattern.types';
 
 /**

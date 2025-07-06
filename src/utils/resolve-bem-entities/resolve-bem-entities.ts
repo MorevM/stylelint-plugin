@@ -1,6 +1,6 @@
 import { isEmpty, isUndefined } from '@morev/utils';
 import resolveNestedSelector from 'postcss-resolve-nested-selector';
-import { parseSelectors } from '#utils';
+import { parseSelectors } from '../parse-selectors/parse-selectors';
 import type { AtRule, Rule } from 'postcss';
 
 type Separators = {
