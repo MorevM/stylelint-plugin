@@ -123,6 +123,23 @@ describe(resolveBemEntities, () => {
 			expect(entity.modifierValue?.value).toBe('value');
 			expect(entity.utility?.[0].value).toBe('is-active');
 		});
+
+		it('Resolves entities by selector, not a `Rule` or `AtRule`', () => {
+			const entity = resolveBemEntities(`.block__el--mod--val.util-1.util-2`, styles.TWO_DASH)[0];
+
+			expect(entity.originalSelector).toBe('.block__el--mod--val.util-1.util-2');
+			expect(entity.resolvedSelector).toBe('.block__el--mod--val.util-1.util-2');
+
+			expect(entity.selector.value).toBe('.block__el--mod--val.util-1.util-2');
+			expect(entity.selector.startIndex).toBe(0);
+			expect(entity.selector.endIndex).toBe(entity.selector.value.length);
+
+			expect(entity.block?.value).toBe('block');
+			expect(entity.element?.value).toBe('el');
+			expect(entity.modifierName?.value).toBe('mod');
+			expect(entity.modifierValue?.value).toBe('val');
+			expect(entity.utility?.map((u) => u.value)).toStrictEqual(['util-1', 'util-2']);
+		});
 	});
 
 	describe('Indices', () => {

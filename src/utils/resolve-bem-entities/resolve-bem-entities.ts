@@ -1,4 +1,4 @@
-import { isEmpty, isUndefined } from '@morev/utils';
+import { isEmpty, isString, isUndefined } from '@morev/utils';
 import resolveNestedSelector from 'postcss-resolve-nested-selector';
 import { parseSelectors } from '../parse-selectors/parse-selectors';
 import type { AtRule, Rule } from 'postcss';
@@ -48,9 +48,19 @@ const isValidBemEntity = (
 	return true;
 };
 
-export const resolveBemEntities = (rule: Rule | AtRule, separators: Separators) => {
-	const ruleSource = rule.type === 'rule' ? rule.selector : rule.params;
-	const resolvedSelector = resolveNestedSelector(ruleSource, rule as any)[0];
+export const resolveBemEntities = (
+	ruleOrResolvedSelector: Rule | AtRule | string,
+	separators: Separators,
+) => {
+	const ruleSource = isString(ruleOrResolvedSelector)
+		? ruleOrResolvedSelector
+		: ruleOrResolvedSelector.type === 'rule'
+			? ruleOrResolvedSelector.selector
+			: ruleOrResolvedSelector.params;
+
+	const resolvedSelector = isString(ruleOrResolvedSelector)
+		? ruleOrResolvedSelector
+		: resolveNestedSelector(ruleSource, ruleOrResolvedSelector as any)[0];
 
 	const { elementSeparator, modifierSeparator, modifierValueSeparator } = separators;
 
