@@ -49,3 +49,32 @@ testRuleConfig({
 		},
 	],
 });
+
+
+testRuleConfig({
+	description: 'Secondary option > matchDirectory',
+	accept: [
+		{
+			description: 'No property (has a default)',
+			config: [true, {}],
+		},
+		{
+			description: 'Option `true`',
+			config: [true, { matchDirectory: true }],
+		},
+		{
+			description: 'Option `false`',
+			config: [true, { matchDirectory: false }],
+		},
+	],
+	reject: [
+		{
+			description: 'Unknown option type',
+			config: [true, { matchDirectory: 'yes' }],
+		},
+		{
+			description: 'Unknown additional option',
+			config: [true, { matchDirectory: true, foo: 'bar' }],
+		},
+	],
+});

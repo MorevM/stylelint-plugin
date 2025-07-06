@@ -75,6 +75,7 @@ export default {
   rules: {
     '@morev/bem/match-file-name': [true, {
       caseSensitive: true,
+      matchDirectory: false,
     }],
   }
 }
@@ -134,3 +135,32 @@ type CaseSensitiveOption = boolean;
 ```
 
 :::
+
+### `matchDirectory`
+
+Whether to use the name of the containing directory instead of the file name for block name comparison.
+
+```ts
+/**
+ * @default false
+ */
+type MatchDirectoryOption = boolean;
+```
+
+#### Examples
+
+```scss
+// ✅ The directory name matches the block name
+// 📄 /the-component/index.scss
+.the-component {}
+
+// ❌ The directory name does not match the block name
+// 📄 /bar-component/index.scss
+.the-component {}
+```
+
+#### Notes
+
+* The `caseSensitive` option applies regardless of whether `matchDirectory` is enabled.
+* When both options are enabled, the rule compares the directory name to the block name,
+  respecting case sensitivity if `caseSensitive` is `true`.

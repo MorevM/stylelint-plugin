@@ -55,20 +55,20 @@ testRule({
 			code: `
 				.foo-component {}
 			`,
-			message: messages.match('foo-component'),
+			message: messages.match('file', 'foo-component'),
 		},
 		{
 			description: 'The block name matches the filename, but not its case',
 			code: `
 				.TheComponent {}
 			`,
-			message: messages.matchCase('TheComponent'),
+			message: messages.matchCase('file', 'TheComponent'),
 		},
 	],
 });
 
 testRule({
-	description: 'Non-strict mode, file name in PascalCase',
+	description: 'Case insensitive mode, file name in PascalCase',
 	config: [true, { caseSensitive: false }],
 	codeFilename: '/the-component/TheComponent.styles.scss',
 	accept: [
@@ -105,7 +105,83 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.match('foo-component'),
+					message: messages.match('file', 'foo-component'),
+				},
+			],
+		},
+	],
+});
+
+testRule({
+	description: 'Case sensitive mode, matches directory name instead of file name',
+	config: [true, { matchDirectory: true, caseSensitive: true }],
+	codeFilename: '/the-component/index.styles.scss',
+	accept: [
+		{
+			description: 'Directory name matches the block name',
+			code: `
+				.the-component {}
+			`,
+		},
+	],
+	reject: [
+		{
+			codeFilename: '/the-component/index.scss',
+			description: 'Directory name matches the block name, but in different case',
+			code: `
+				.TheComponent {}
+			`,
+			warnings: [
+				{
+					message: messages.matchCase('directory', 'TheComponent'),
+				},
+			],
+		},
+		{
+			codeFilename: '/the-component/index.scss',
+			description: 'Directory name does not match the block name',
+			code: `
+				.foo-component {}
+			`,
+			warnings: [
+				{
+					message: messages.match('directory', 'foo-component'),
+				},
+			],
+		},
+	],
+});
+
+
+testRule({
+	description: 'Case sensitive mode, matches directory name instead of file name',
+	config: [true, { matchDirectory: true, caseSensitive: false }],
+	codeFilename: '/the-component/index.styles.scss',
+	accept: [
+		{
+			description: 'Directory name matches the block name',
+			code: `.the-component {}`,
+		},
+		{
+			description: 'Directory name matches the block name, but case is different',
+			code: `.TheComponent {}`,
+		},
+		{
+			codeFilename: '/TheComponent/index.scss',
+			description: 'Directory name matches the block name, but case is different',
+			code: `.the-component {}`,
+		},
+	],
+	reject: [
+		{
+			codeFilename: '/the-component/index.scss',
+			description: 'Directory name does not match the block name',
+			code: `
+				.foo-component {}
+			`,
+			warnings: [
+				{
+					message: messages.match('directory', 'foo-component'),
 				},
 			],
 		},
