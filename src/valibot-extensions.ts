@@ -2,6 +2,12 @@ import * as v from 'valibot';
 
 export const stringOrRegExpSchema = v.union([v.string(), v.instance(RegExp)]);
 
+export const vSeparatorsSchema = {
+	elementSeparator: v.optional(v.string(), '__'),
+	modifierSeparator: v.optional(v.string(), '--'),
+	modifierValueSeparator: v.optional(v.string(), '--'),
+};
+
 export const vArrayable = <
 	T extends v.BaseSchema<any, any, any>,
 >(type: T) => {

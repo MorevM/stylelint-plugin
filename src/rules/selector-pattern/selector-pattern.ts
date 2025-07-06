@@ -2,7 +2,7 @@ import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
 import { KEBAB_CASE_REGEXP } from '#constants';
 import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
-import { stringOrRegExpSchema, vArrayable, vFunction } from '#valibot';
+import { stringOrRegExpSchema, vArrayable, vFunction, vSeparatorsSchema } from '#valibot';
 import { createMessage, createViolationsRegistry, normalizePattern, resolveBemEntities } from './utils';
 import type { ProcessedPattern } from './selector-pattern.types';
 
@@ -73,13 +73,11 @@ export default createRule({
 					v.union([v.literal(false), vArrayable(stringOrRegExpSchema)]),
 					['is-*', 'has-*', 'js-*', '-*'],
 				),
-				elementSeparator: v.optional(v.string(), '__'),
-				modifierSeparator: v.optional(v.string(), '--'),
-				modifierValueSeparator: v.optional(v.string(), '--'),
 				ignoreBlocks: v.optional(
 					vArrayable(stringOrRegExpSchema),
 					[],
 				),
+				...vSeparatorsSchema,
 			}),
 		),
 	},
