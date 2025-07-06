@@ -1,6 +1,6 @@
 import * as v from 'valibot';
 import { addNamespace, createRule, getRuleUrl, isCssFile, toRegExp } from '#utils';
-import { stringOrRegExpSchema } from '#valibot';
+import { vStringOrRegExpSchema } from '#valibot';
 import type { Declaration, Node } from 'postcss';
 
 const RULE_NAME = 'no-unused-variables';
@@ -37,7 +37,7 @@ export default createRule({
 		secondary: v.optional(
 			v.strictObject({
 				checkRoot: v.optional(v.boolean(), false),
-				ignore: v.optional(v.array(stringOrRegExpSchema), []),
+				ignore: v.optional(v.array(vStringOrRegExpSchema), []),
 			}),
 		),
 	},

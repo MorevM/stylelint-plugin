@@ -2,7 +2,7 @@ import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
 import { KEBAB_CASE_REGEXP } from '#constants';
 import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
-import { stringOrRegExpSchema, vArrayable, vFunction, vSeparatorsSchema } from '#valibot';
+import { vArrayable, vFunction, vSeparatorsSchema, vStringOrRegExpSchema } from '#valibot';
 import { createMessage, createViolationsRegistry, normalizePattern, resolveBemEntities } from './utils';
 import type { ProcessedPattern } from './selector-pattern.types';
 
@@ -54,27 +54,27 @@ export default createRule({
 					}),
 				),
 				blockPattern: v.optional(
-					vArrayable(stringOrRegExpSchema),
+					vArrayable(vStringOrRegExpSchema),
 					KEBAB_CASE_REGEXP,
 				),
 				elementPattern: v.optional(
-					vArrayable(stringOrRegExpSchema),
+					vArrayable(vStringOrRegExpSchema),
 					KEBAB_CASE_REGEXP,
 				),
 				modifierNamePattern: v.optional(
-					vArrayable(stringOrRegExpSchema),
+					vArrayable(vStringOrRegExpSchema),
 					KEBAB_CASE_REGEXP,
 				),
 				modifierValuePattern: v.optional(
-					vArrayable(stringOrRegExpSchema),
+					vArrayable(vStringOrRegExpSchema),
 					KEBAB_CASE_REGEXP,
 				),
 				utilityPattern: v.optional(
-					v.union([v.literal(false), vArrayable(stringOrRegExpSchema)]),
+					v.union([v.literal(false), vArrayable(vStringOrRegExpSchema)]),
 					['is-*', 'has-*', 'js-*', '-*'],
 				),
 				ignoreBlocks: v.optional(
-					vArrayable(stringOrRegExpSchema),
+					vArrayable(vStringOrRegExpSchema),
 					[],
 				),
 				...vSeparatorsSchema,

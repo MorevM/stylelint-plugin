@@ -1,7 +1,7 @@
 import resolveNestedSelector from 'postcss-resolve-nested-selector';
 import * as v from 'valibot';
 import { addNamespace, createRule, getBemBlock, getFirstRule, getRuleUrl, isCssFile, isKeyframesRule, parseSelectors, toRegExp } from '#utils';
-import { stringOrRegExpSchema } from '#valibot';
+import { vStringOrRegExpSchema } from '#valibot';
 
 const RULE_NAME = 'no-internal-side-effects';
 
@@ -21,7 +21,7 @@ export default createRule({
 		secondary: v.optional(
 			v.strictObject({
 				allow: v.optional(v.array(v.picklist(['<TAG>', '<ID>'])), []),
-				ignore: v.optional(v.array(stringOrRegExpSchema), []),
+				ignore: v.optional(v.array(vStringOrRegExpSchema), []),
 			}),
 		),
 	},

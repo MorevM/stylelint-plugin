@@ -1,7 +1,7 @@
 import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
 import { addNamespace, createRule, getBemBlock, getRuleUrl, isCssFile, isKeyframesRule, parseSelectors, toRegExp } from '#utils';
-import { stringOrRegExpSchema } from '#valibot';
+import { vStringOrRegExpSchema } from '#valibot';
 import type parser from 'postcss-selector-parser';
 
 const RULE_NAME = 'no-side-effects';
@@ -32,7 +32,7 @@ export default createRule({
 		secondary: v.optional(
 			v.strictObject({
 				allow: v.optional(v.array(v.picklist(['<TAG>', '<ID>'])), []),
-				ignore: v.optional(v.array(stringOrRegExpSchema), []),
+				ignore: v.optional(v.array(vStringOrRegExpSchema), []),
 			}),
 		),
 	},

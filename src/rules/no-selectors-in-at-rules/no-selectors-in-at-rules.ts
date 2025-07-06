@@ -1,7 +1,7 @@
 import { toArray, tsObject } from '@morev/utils';
 import * as v from 'valibot';
 import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
-import { stringOrRegExpSchema } from '#valibot';
+import { vStringOrRegExpSchema } from '#valibot';
 
 const RULE_NAME = 'no-selectors-in-at-rules';
 
@@ -26,8 +26,8 @@ export default createRule({
 					v.objectWithRest(
 						{},
 						v.union([
-							stringOrRegExpSchema,
-							v.array(stringOrRegExpSchema),
+							vStringOrRegExpSchema,
+							v.array(vStringOrRegExpSchema),
 						]),
 					), {},
 				),
