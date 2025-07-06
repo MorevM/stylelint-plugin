@@ -68,7 +68,7 @@ const EXTERNAL_GEOMETRY_PROPERTIES = [
 These are properties that can be confidently classified as external geometry properties.
 
 ::: info
-You may choose to add other existing properties like display or position to the list -
+You may choose to add other existing properties like `display` or `position` to the list -
 they're not part of the default blacklist because, in practice, disallowing them
 at the block level often turns out to be unnecessarily strict. \
 While it may be methodologically correct, it typically leads to a situation

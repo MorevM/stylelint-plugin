@@ -44,10 +44,10 @@ styles, documentation, i18n, tests, and so on:
 This approach is especially valuable when using the BEM methodology. \
 If a component's name matches the name of a BEM block (as it should),
 it makes navigating the project much easier: when we see a block named "the-component" in the HTML,
-we can be 100% sure there's a corresponding the-component.scss file containing its styles.
+we can be 100% sure there's a corresponding `the-component.scss` file containing its styles.
 We know that it is the only source of truth for the component, and we can jump to it instantly.
 
-It also improves the development experience - different style files can be edited independently,
+It also improves the DX - different style files can be edited independently,
 and IDE tabs show clear, descriptive names instead of a dozen identical `index.scss` files.
 
 ## Rule options
@@ -74,7 +74,7 @@ export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
     '@morev/bem/match-file-name': [true, {
-      caseSensitive: false,
+      caseSensitive: true,
     }],
   }
 }
