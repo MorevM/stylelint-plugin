@@ -6,6 +6,7 @@ export * from './get-first-rule/get-first-rule';
 export * from './get-rule-url/get-rule-url';
 export * from './is-css-file/is-css-file';
 export * from './is-keyframes-rule/is-keyframes-rule';
+export * from './is-pseudo-element-node/is-pseudo-element-node';
 export * from './parse-regexp-from-string/parse-regexp-from-string';
 export * from './parse-selectors/parse-selectors';
 export * from './resolve-bem-entities/resolve-bem-entities';
