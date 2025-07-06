@@ -34,4 +34,14 @@ describe(parseSelectors, () => {
 
 		expect(result).toStrictEqual([]);
 	});
+
+	it('Returns Node array with custom `.toString()` method that restores selectors', () => {
+		const result = parseSelectors('.foo, .bar span::before');
+
+		expect(typeof result[0].toString).toBe('function');
+		expect(result[0].toString()).toBe('.foo');
+
+		expect(typeof result[1].toString).toBe('function');
+		expect(result[1].toString()).toBe(' .bar span::before');
+	});
 });

@@ -9,6 +9,17 @@ type ToReturn<T extends boolean> = T extends true
 	? Node[]
 	: Node[][];
 
+const setCustomToString = (nodes: Node[]) => {
+	nodes.toString = function () {
+		return this.reduce((acc, node) => {
+			acc += node.toString();
+			return acc;
+		}, '');
+	};
+
+	return nodes;
+};
+
 export const parseSelectors = <
 	OnlyFirst extends boolean = false,
 >(
@@ -22,8 +33,8 @@ export const parseSelectors = <
 
 		parser((root: Root) => {
 			nodes = onlyFirst
-				? root.nodes[0]?.nodes ?? []
-				: root.nodes.map((selectorNode: Selector) => selectorNode.nodes);
+				? setCustomToString(root.nodes[0]?.nodes ?? [])
+				: root.nodes.map((selectorNode: Selector) => setCustomToString(selectorNode.nodes));
 		}).processSync(selector);
 
 		return nodes as ToReturn<OnlyFirst>;
