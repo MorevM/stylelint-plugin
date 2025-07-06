@@ -2,7 +2,7 @@ import { isString, toArray } from '@morev/utils';
 import { CAMEL_CASE_REGEXP, KEBAB_CASE_REGEXP, PASCAL_CASE_REGEXP, SNAKE_CASE_REGEXP } from '#constants';
 import { toRegExp } from '#utils';
 import type { Arrayable } from '@morev/utils';
-import type { ProcessedPattern } from '../../pattern.types';
+import type { ProcessedPattern } from '../../selector-pattern.types';
 
 const PATTERN_REPLACEMENT_MAP = {
 	KEBAB_CASE: KEBAB_CASE_REGEXP,

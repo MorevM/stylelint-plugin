@@ -4,14 +4,14 @@ import { KEBAB_CASE_REGEXP } from '#constants';
 import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
 import { stringOrRegExpSchema, vArrayable, vFunction } from '#valibot';
 import { createMessage, createViolationsRegistry, normalizePattern, resolveBemEntities } from './utils';
-import type { ProcessedPattern } from './pattern.types';
+import type { ProcessedPattern } from './selector-pattern.types';
 
 /**
  * TODO:
  * * Требовать значение модификатора, если название модификатора не удовлетворяет чему-то?
  */
 
-const RULE_NAME = 'pattern';
+const RULE_NAME = 'selector-pattern';
 
 const ENTITIES_IN_ORDER = ['block', 'element', 'modifierName', 'modifierValue', 'utility'] as const;
 

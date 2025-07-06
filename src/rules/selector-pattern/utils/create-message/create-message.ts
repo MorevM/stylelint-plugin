@@ -1,5 +1,5 @@
 import { quote } from '@morev/utils';
-import type { ProcessedPattern } from '../../pattern.types';
+import type { ProcessedPattern } from '../../selector-pattern.types';
 
 export const createMessage = (
 	bemEntity: string,

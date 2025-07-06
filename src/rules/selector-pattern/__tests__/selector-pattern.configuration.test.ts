@@ -1,4 +1,4 @@
-import rule from '../pattern';
+import rule from '../selector-pattern';
 
 const { ruleName } = rule;
 const testRuleConfig = createTestRuleConfig({ ruleName });

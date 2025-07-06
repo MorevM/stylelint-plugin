@@ -6,4 +6,4 @@ export { default as atRuleNoChildren } from './no-selectors-in-at-rules/no-selec
 export { default as noSideEffects } from './no-side-effects/no-side-effects';
 export { default as noBreakEntities } from './no-splitted-entities/no-splitted-entities';
 export { default as noUnusedVariables } from './no-unused-variables/no-unused-variables';
-export { default as pattern } from './pattern/pattern';
+export { default as selectorPattern } from './selector-pattern/selector-pattern';

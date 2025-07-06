@@ -1,4 +1,4 @@
-# @morev/bem/pattern
+# @morev/bem/selector-pattern
 
 Enforces naming patterns for BEM entities and utility classes.
 

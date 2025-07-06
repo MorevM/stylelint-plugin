@@ -1,7 +1,7 @@
 import { KEBAB_CASE_REGEXP } from '#constants';
-import rule from './pattern';
-import { normalizePattern } from './utils';
-import type { ProcessedPattern } from './pattern.types';
+import rule from '../selector-pattern';
+import { normalizePattern } from '../utils';
+import type { ProcessedPattern } from '../selector-pattern.types';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
