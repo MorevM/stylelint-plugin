@@ -1,8 +1,8 @@
 import { isEmpty, tsObject } from '@morev/utils';
 import resolveNestedSelector from 'postcss-resolve-nested-selector';
 import * as v from 'valibot';
-import { addNamespace, createRule, getRuleDeclarations, getRuleUrl, isPseudoElementNode, parseSelectors, resolveBemEntities, toRegExp } from '#utils';
-import { vSeparatorsSchema, vStringOrRegExpSchema } from '#valibot';
+import { addNamespace, createRule, getRuleDeclarations, getRuleUrl, isPseudoElementNode, mergeMessages, parseSelectors, resolveBemEntities, toRegExp } from '#utils';
+import { vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#valibot';
 
 const RULE_NAME = 'no-block-properties';
 
@@ -10,7 +10,6 @@ const RULE_NAME = 'no-block-properties';
  * TODO:
  * * Per-entity allow/disallow
  * * Custom presets?
- * * Custom messages
  */
 
 const PRESETS = {
@@ -81,16 +80,19 @@ export default createRule({
 			v.strictObject({
 				presets: v.optional(
 					v.array(v.picklist(['EXTERNAL_GEOMETRY', 'CONTEXT', 'POSITIONING'])),
-					['EXTERNAL_GEOMETRY'],
+					['EXTERNAL_GEOMETRY'], // TODO: Enable more by default?
 				),
 				allowProperties: v.optional(v.array(v.string()), []),
 				disallowProperties: v.optional(v.array(v.string()), []),
 				ignoreBlocks: v.optional(v.array(vStringOrRegExpSchema), []),
+				messages: vMessagesSchema({
+					unexpected: [v.string(), v.string(), v.string()],
+				}),
 				...vSeparatorsSchema,
 			}),
 		),
 	},
-}, (primary, secondary, { report, messages, root }) => {
+}, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	// Add disallowed properties from `presets` (if any) and `disallowProperties`
 	const disallowedProperties = new Set([
 		...secondary.disallowProperties,
@@ -98,6 +100,8 @@ export default createRule({
 	]);
 	// Omit explicitly allowed ones
 	secondary.allowProperties.forEach((property) => disallowedProperties.delete(property));
+
+	const messages = mergeMessages(ruleMessages, secondary.messages);
 
 	const ignorePatterns = secondary.ignoreBlocks
 		.map((value) => toRegExp(value, { allowWildcard: true }));

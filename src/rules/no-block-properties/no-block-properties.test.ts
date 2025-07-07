@@ -187,3 +187,28 @@ testRule({
 		},
 	],
 });
+
+testRule({
+	description: '`messages` option',
+	config: [true, {
+		messages: {
+			unexpected: (propertyName: string, selectorName: string, presetName: string) =>
+				[propertyName, selectorName, presetName].join(':'),
+		},
+	}],
+	reject: [
+		{
+			description: 'Reports with user-defined message',
+			code: `
+				.the-component { margin-block-start: 16px; }
+			`,
+			warnings: [
+				{
+					message: 'margin-block-start:.the-component:EXTERNAL_GEOMETRY',
+					line: 1, column: 18,
+					endLine: 1, endColumn: 36,
+				},
+			],
+		},
+	],
+});
