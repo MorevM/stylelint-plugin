@@ -1,7 +1,7 @@
 import { quote, stripIndent } from '@morev/utils';
 import { Declaration } from 'postcss';
 import * as v from 'valibot';
-import { addNamespace, createRule, findRuleDeclarations, getBemBlock, getRuleUrl, isCssFile, parseSelectors } from '#utils';
+import { addNamespace, createRule, getBemBlock, getRuleDeclarations, getRuleUrl, isCssFile, parseSelectors } from '#utils';
 import type { Rule } from 'postcss';
 
 const RULE_NAME = 'block-variable';
@@ -71,7 +71,7 @@ export default createRule({
 		return ['#{&}', '&'];
 	})();
 
-	const nodeChildDeclarations = findRuleDeclarations(bemBlock.rule, {
+	const nodeChildDeclarations = getRuleDeclarations(bemBlock.rule, {
 		onlyDirectChildren: true,
 	});
 

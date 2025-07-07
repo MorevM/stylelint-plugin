@@ -1,7 +1,7 @@
 import { isEmpty, tsObject } from '@morev/utils';
 import resolveNestedSelector from 'postcss-resolve-nested-selector';
 import * as v from 'valibot';
-import { addNamespace, createRule, findRuleDeclarations, getRuleUrl, isPseudoElementNode, parseSelectors, resolveBemEntities, toRegExp } from '#utils';
+import { addNamespace, createRule, getRuleDeclarations, getRuleUrl, isPseudoElementNode, parseSelectors, resolveBemEntities, toRegExp } from '#utils';
 import { vSeparatorsSchema, vStringOrRegExpSchema } from '#valibot';
 
 const RULE_NAME = 'no-block-properties';
@@ -128,7 +128,7 @@ export default createRule({
 
 			if (isEmpty(entitiesToReport)) return;
 
-			const declarationsToReport = findRuleDeclarations(rule, { onlyDirectChildren: true })
+			const declarationsToReport = getRuleDeclarations(rule, { onlyDirectChildren: true })
 				.filter((declaration) => disallowedProperties.has(declaration.prop));
 
 			entitiesToReport.forEach((bemEntity) => {

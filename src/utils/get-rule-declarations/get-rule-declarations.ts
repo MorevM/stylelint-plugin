@@ -11,7 +11,7 @@ const DEFAULTS = {
 	onlyDirectChildren: false,
 };
 
-export const findRuleDeclarations = (
+export const getRuleDeclarations = (
 	rule: Rule,
 	userOptions?: Partial<Options>,
 ): Declaration[] => {
