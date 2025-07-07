@@ -2,7 +2,7 @@ import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
 import { KEBAB_CASE_REGEXP } from '#constants';
 import { addNamespace, createRule, getRuleUrl, resolveBemEntities, toRegExp } from '#utils';
-import { vArrayable, vFunction, vSeparatorsSchema, vStringOrRegExpSchema } from '#valibot';
+import { vArrayable, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#valibot';
 import { createMessage, createViolationsRegistry, normalizePattern } from './utils';
 import type { ProcessedPattern } from './selector-pattern.types';
 
@@ -44,15 +44,13 @@ export default createRule({
 		primary: v.literal(true),
 		secondary: v.optional(
 			v.strictObject({
-				messages: v.optional(
-					v.strictObject({
-						block: v.optional(vFunction([v.string(), v.any()], v.string())),
-						element: v.optional(vFunction([v.string(), v.any()], v.string())),
-						modifierName: v.optional(vFunction([v.string(), v.any()], v.string())),
-						modifierValue: v.optional(vFunction([v.string(), v.any()], v.string())),
-						utility: v.optional(vFunction([v.string(), v.any()], v.string())),
-					}),
-				),
+				messages: vMessagesSchema({
+					block: [v.string(), v.any()],
+					element: [v.string(), v.any()],
+					modifierName: [v.string(), v.any()],
+					modifierValue: [v.string(), v.any()],
+					utility: [v.string(), v.any()],
+				}),
 				blockPattern: v.optional(
 					vArrayable(vStringOrRegExpSchema),
 					KEBAB_CASE_REGEXP,

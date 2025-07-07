@@ -27,3 +27,18 @@ export const vFunction = <
 		v.returns(functionReturnValue),
 	);
 };
+
+export const vMessagesSchema = <
+	T extends Record<string, VSchema[]>,
+>(definition: T) => {
+	const shape = {} as {
+		[K in keyof T]: v.OptionalSchema<ReturnType<typeof vFunction>, undefined>
+	};
+
+	// eslint-disable-next-line no-restricted-syntax, guard-for-in -- Trust me it's safe here
+	for (const key in definition) {
+		shape[key] = v.optional(vFunction(definition[key], v.string()));
+	}
+
+	return v.optional(v.strictObject(shape));
+};
