@@ -24,6 +24,11 @@ testRule({
 			code: `
 				.the-component {
 					&__element {
+						&:hover {}
+						&::before {}
+						&#id {}
+						&[data-attribute] {}
+
 						&--element-modifier {}
 						&--theme--light {}
 						&--theme-variant--dark {}
@@ -41,14 +46,16 @@ testRule({
 			description: 'Does not report not BEM-related content',
 			code: `
 				.the-component {
+					&:hover {}
+					&::before {}
 					&.is-disabled {}
 					&[disabled] {}
-					&#{foo} {}
+					&#{$foo} {}
 				}
 			`,
 		},
 		{
-			description: 'Does not report prefixed not splitted entities',
+			description: 'Does not report interpolated strings',
 			code: `
 				.the-component {
 					$b: #{&};
@@ -66,7 +73,7 @@ testRule({
 				.the-component {
 					&__element {
 						& ~ #{$inner} {}
-						& > * {}
+						& > & {}
 						& + & {}
 					}
 				}
@@ -79,36 +86,42 @@ testRule({
 			code: `
 				.the-component {
 					&__element {
-						&-title {}
-						&-value {
+						&-title, &-value {
 							&--modifier {
 								&-one {}
 								&-two {}
 							}
 						}
 					}
+
+					&-name, &--modifier {}
 				}
 			`,
 			warnings: [
 				{
 					line: 3, column: 3,
 					endLine: 3, endColumn: 10,
-					message: messages.split('&-title'),
+					message: messages.element('&-title'),
 				},
 				{
-					line: 4, column: 3,
-					endLine: 4, endColumn: 10,
-					message: messages.split('&-value'),
+					line: 3, column: 12,
+					endLine: 3, endColumn: 19,
+					message: messages.element('&-value'),
+				},
+				{
+					line: 5, column: 5,
+					endLine: 5, endColumn: 10,
+					message: messages.modifierName('&-one'),
 				},
 				{
 					line: 6, column: 5,
 					endLine: 6, endColumn: 10,
-					message: messages.split('&-one'),
+					message: messages.modifierName('&-two'),
 				},
 				{
-					line: 7, column: 5,
-					endLine: 7, endColumn: 10,
-					message: messages.split('&-two'),
+					line: 11, column: 2,
+					endLine: 11, endColumn: 8,
+					message: messages.block('&-name'),
 				},
 			],
 		},
@@ -117,16 +130,32 @@ testRule({
 			code: `
 				.the-component {
 					&__element {
-						.another-component
-						&-title {}
+						.another-component &-title {}
 					}
 				}
 			`,
 			warnings: [
 				{
-					line: 4, column: 3,
-					endLine: 4, endColumn: 10,
-					message: messages.split('&-title'),
+					line: 3, column: 22,
+					endLine: 3, endColumn: 29,
+					message: messages.element('&-title'),
+				},
+			],
+		},
+		{
+			description: 'Splitted element selector (withthin compound selector)',
+			code: `
+				.the-component {
+					&__element {
+						.another-component, &-title {}
+					}
+				}
+			`,
+			warnings: [
+				{
+					line: 3, column: 23,
+					endLine: 3, endColumn: 30,
+					message: messages.element('&-title'),
 				},
 			],
 		},
@@ -153,22 +182,22 @@ testRule({
 				{
 					line: 4, column: 4,
 					endLine: 4, endColumn: 11,
-					message: messages.split('&-title'),
+					message: messages.element('&-title'),
 				},
 				{
 					line: 5, column: 4,
 					endLine: 5, endColumn: 11,
-					message: messages.split('&-value'),
+					message: messages.element('&-value'),
 				},
 				{
 					line: 8, column: 7,
 					endLine: 8, endColumn: 12,
-					message: messages.split('&-one'),
+					message: messages.modifierName('&-one'),
 				},
 				{
 					line: 10, column: 6,
 					endLine: 10, endColumn: 11,
-					message: messages.split('&-two'),
+					message: messages.modifierName('&-two'),
 				},
 			],
 		},
