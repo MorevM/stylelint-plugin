@@ -1,4 +1,4 @@
-import rule from './no-block-properties';
+import rule from '../no-block-properties';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
