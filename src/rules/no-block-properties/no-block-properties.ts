@@ -1,51 +1,11 @@
-import { isEmpty, tsObject } from '@morev/utils';
+import { isEmpty } from '@morev/utils';
 import resolveNestedSelector from 'postcss-resolve-nested-selector';
 import * as v from 'valibot';
 import { addNamespace, createRule, getRuleDeclarations, getRuleUrl, isPseudoElementNode, mergeMessages, parseSelectors, resolveBemEntities, toRegExp } from '#utils';
 import { vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#valibot';
+import { createPropertiesRegistry } from './utils';
 
 const RULE_NAME = 'no-block-properties';
-
-/**
- * TODO:
- * * Per-entity allow/disallow
- * * Custom presets?
- */
-
-const PRESETS = {
-	EXTERNAL_GEOMETRY: new Set([
-		'margin',
-		'margin-block', 'margin-block-start', 'margin-block-end',
-		'margin-inline', 'margin-inline-start', 'margin-inline-end',
-		'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
-	]),
-	CONTEXT: new Set([
-		'float', 'clear',
-		'flex', 'flex-grow', 'flex-shrink', 'flex-basis',
-		'grid', 'grid-area',
-		'grid-row', 'grid-row-start', 'grid-row-end',
-		'grid-column', 'grid-column-start', 'grid-column-end',
-		'place-self', 'align-self',
-		'order',
-		'counter-increment',
-		'z-index',
-	]),
-	POSITIONING: new Set([
-		'position',
-		'inset',
-		'inset-block', 'inset-block-start', 'inset-block-end',
-		'inset-inline', 'inset-inline-start', 'inset-inline-end',
-		'top', 'right', 'bottom', 'left',
-	]),
-};
-
-const propertyToPresetMap = new Map<string, keyof typeof PRESETS>();
-
-for (const [preset, properties] of tsObject.entries(PRESETS)) {
-	for (const property of properties) {
-		propertyToPresetMap.set(property, preset);
-	}
-}
 
 export default createRule({
 	name: addNamespace(RULE_NAME),
@@ -58,7 +18,8 @@ export default createRule({
 		unexpected: (
 			propertyName: string,
 			selector: string,
-			presetName: keyof (typeof PRESETS) | 'CUSTOM',
+			context: 'block' | 'modifier' | 'utility',
+			presetName: string | undefined,
 		) => {
 			const propertyType = (() => {
 				if (presetName === 'EXTERNAL_GEOMETRY') return 'external geometry';
@@ -70,7 +31,7 @@ export default createRule({
 			return [
 				`Unexpected`,
 				propertyType,
-				`property "${propertyName}" within BEM Block selector ${selector}`,
+				`property "${propertyName}" within BEM Block selector "${selector}"`,
 			].filter(Boolean).join(' ');
 		},
 	},
@@ -79,29 +40,49 @@ export default createRule({
 		secondary: v.optional(
 			v.strictObject({
 				presets: v.optional(
-					v.array(v.picklist(['EXTERNAL_GEOMETRY', 'CONTEXT', 'POSITIONING'])),
-					['EXTERNAL_GEOMETRY'], // TODO: Enable more by default?
+					v.array(v.string()),
+					['EXTERNAL_GEOMETRY'],
+				),
+				customPresets: v.optional(
+					v.objectWithRest({}, v.array(v.string())),
+					{},
 				),
 				allowProperties: v.optional(v.array(v.string()), []),
 				disallowProperties: v.optional(v.array(v.string()), []),
+				perEntity: v.optional(
+					v.strictObject({
+						block: v.optional(v.object({
+							presets: v.optional(v.array(v.string())),
+							allow: v.optional(v.array(v.string())),
+							disallow: v.optional(v.array(v.string())),
+						})),
+						modifier: v.optional(v.object({
+							presets: v.optional(v.array(v.string())),
+							allow: v.optional(v.array(v.string())),
+							disallow: v.optional(v.array(v.string())),
+						})),
+						utility: v.optional(v.object({
+							presets: v.optional(v.array(v.string())),
+							allow: v.optional(v.array(v.string())),
+							disallow: v.optional(v.array(v.string())),
+						})),
+					}),
+				),
 				ignoreBlocks: v.optional(v.array(vStringOrRegExpSchema), []),
 				messages: vMessagesSchema({
-					unexpected: [v.string(), v.string(), v.string()],
+					unexpected: [v.string(), v.string(), v.string(), v.union([v.string(), v.undefined()])],
 				}),
 				...vSeparatorsSchema,
 			}),
 		),
 	},
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
-	// Add disallowed properties from `presets` (if any) and `disallowProperties`
-	const disallowedProperties = new Set([
-		...secondary.disallowProperties,
-		...secondary.presets.flatMap((presetName) => [...PRESETS[presetName]]),
-	]);
-	// Omit explicitly allowed ones
-	secondary.allowProperties.forEach((property) => disallowedProperties.delete(property));
-
 	const messages = mergeMessages(ruleMessages, secondary.messages);
+
+	const {
+		disallowedProperties,
+		propertyToPresetMap,
+	} = createPropertiesRegistry(secondary);
 
 	const ignorePatterns = secondary.ignoreBlocks
 		.map((value) => toRegExp(value, { allowWildcard: true }));
@@ -132,16 +113,23 @@ export default createRule({
 
 			if (isEmpty(entitiesToReport)) return;
 
-			const declarationsToReport = getRuleDeclarations(rule, { onlyDirectChildren: true })
-				.filter((declaration) => disallowedProperties.has(declaration.prop));
-
 			entitiesToReport.forEach((bemEntity) => {
+				const bemEntityContext = (() => {
+					if (bemEntity.utility) return 'utility';
+					if (bemEntity.modifierName) return 'modifier';
+					return 'block';
+				})();
+
+				const declarationsToReport = getRuleDeclarations(rule, { onlyDirectChildren: true })
+					.filter((declaration) => disallowedProperties[bemEntityContext].has(declaration.prop));
+
 				declarationsToReport.forEach((declaration) => {
 					report({
 						message: messages.unexpected(
 							declaration.prop,
 							bemEntity.selector.value,
-							propertyToPresetMap.get(declaration.prop) ?? 'CUSTOM',
+							bemEntityContext,
+							propertyToPresetMap.get(declaration.prop),
 						),
 						node: declaration,
 						word: declaration.prop,
