@@ -53,18 +53,18 @@ export default createRule({
 					v.strictObject({
 						block: v.optional(v.object({
 							presets: v.optional(v.array(v.string())),
-							allow: v.optional(v.array(v.string())),
-							disallow: v.optional(v.array(v.string())),
+							allowProperties: v.optional(v.array(v.string())),
+							disallowProperties: v.optional(v.array(v.string())),
 						})),
 						modifier: v.optional(v.object({
 							presets: v.optional(v.array(v.string())),
-							allow: v.optional(v.array(v.string())),
-							disallow: v.optional(v.array(v.string())),
+							allowProperties: v.optional(v.array(v.string())),
+							disallowProperties: v.optional(v.array(v.string())),
 						})),
 						utility: v.optional(v.object({
 							presets: v.optional(v.array(v.string())),
-							allow: v.optional(v.array(v.string())),
-							disallow: v.optional(v.array(v.string())),
+							allowProperties: v.optional(v.array(v.string())),
+							disallowProperties: v.optional(v.array(v.string())),
 						})),
 					}),
 				),
