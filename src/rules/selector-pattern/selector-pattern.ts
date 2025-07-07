@@ -79,7 +79,7 @@ export default createRule({
 			}),
 		),
 	},
-}, (primary, secondary, { report, messages, root }) => {
+}, (primary, secondary, { report, messages: pluginMessages, root }) => {
 	// Normalize all configured patterns to internal RegExp format,
 	// resolve string wildcards and keywords like 'KEBAB_CASE'.
 	const patterns = {
@@ -89,6 +89,8 @@ export default createRule({
 		modifierValue: normalizePattern(secondary.modifierValuePattern),
 		utility: normalizePattern(secondary.utilityPattern),
 	};
+
+	const messages = mergeMessages(pluginMessages, secondary.messages);
 
 	// Precompile ignore list for block names
 	const ignoreBlocks = toArray(secondary.ignoreBlocks)
@@ -130,10 +132,8 @@ export default createRule({
 						rule,
 						entity: entityName,
 						value: entity.value,
-						// Use user-provided message if available, fallback to default
-						message: secondary.messages?.[entityName]?.(entity.value, entityPatterns)
-							// Intentionally loosened type for utility scenario
-							?? messages[entityName](entity.value, entityPatterns as any),
+						// Intentionally loosened type for utility scenario (might be `false`)
+						message: messages[entityName](entity.value, entityPatterns as any),
 						...getViolationIndexes(rule, entity.value),
 					});
 				});
