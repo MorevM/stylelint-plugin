@@ -1,4 +1,4 @@
-import { quote, stripIndent } from '@morev/utils';
+import { quote } from '@morev/utils';
 import { Declaration } from 'postcss';
 import * as v from 'valibot';
 import { addNamespace, createRule, getBemBlock, getRuleDeclarations, getRuleUrl, isCssFile, parseSelectors } from '#utils';
@@ -32,29 +32,29 @@ export default createRule({
 			return `The variable "${validValue}" referencing the block should be the first child of selector "${selector}"`;
 		},
 		wrongName: (validName: string, actualName: string) => {
-			return stripIndent(`
+			return `
 				The component has the variable referencing the block, but its name is wrong.
 				Expected "${validName}", but got "${actualName}".
-			`);
+			`;
 		},
 		wrongValue: (actualValue: string, availableValues: string[]) => {
 			const neededValues = availableValues.map((value) => quote(value, '"')).join(' or ');
-			return stripIndent(`
+			return `
 				The component has the variable referencing the block, but its value is wrong.
 				Expected ${neededValues}, but got "${actualValue}".
-			`);
+			`;
 		},
 		extra: (nonValid: string, validName: string) => {
-			return stripIndent(`
+			return `
 				Unexpected extra variable referencing the block "${nonValid}".
 				Expected a single one named "${validName}".
-			`);
+			`;
 		},
 		replacement: (blockName: string, variableName: string) => {
-			return stripIndent(`
+			return `
 				Unexpected inline notation of the component name "${blockName}".
 				Replace it with a variable "${variableName}".
-			`);
+			`;
 		},
 	},
 }, (primary, secondary, { root, report, messages }) => {

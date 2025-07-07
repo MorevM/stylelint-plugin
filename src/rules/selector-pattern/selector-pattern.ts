@@ -79,7 +79,7 @@ export default createRule({
 			}),
 		),
 	},
-}, (primary, secondary, { report, messages: pluginMessages, root }) => {
+}, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	// Normalize all configured patterns to internal RegExp format,
 	// resolve string wildcards and keywords like 'KEBAB_CASE'.
 	const patterns = {
@@ -90,7 +90,7 @@ export default createRule({
 		utility: normalizePattern(secondary.utilityPattern),
 	};
 
-	const messages = mergeMessages(pluginMessages, secondary.messages);
+	const messages = mergeMessages(ruleMessages, secondary.messages);
 
 	// Precompile ignore list for block names
 	const ignoreBlocks = toArray(secondary.ignoreBlocks)
