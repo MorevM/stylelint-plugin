@@ -11,6 +11,7 @@ type Separators = {
 
 type EntityPart = {
 	value: string;
+	separator: string;
 	startIndex: number;
 	endIndex: number;
 };
@@ -25,6 +26,11 @@ type BemEntity = {
 	modifierValue: EntityPart | undefined;
 	utility: EntityPart[] | undefined;
 };
+
+type EntityName = Exclude<
+	keyof BemEntity,
+	'originalSelector' | 'resolvedSelector' | 'selector'
+>;
 
 const createBemEntity = (): Partial<BemEntity> => ({
 	originalSelector: undefined,
@@ -94,6 +100,7 @@ export const resolveBemEntities = (
 
 			bemEntity.selector ??= {
 				value: '',
+				separator: '',
 				startIndex: node.sourceIndex,
 				endIndex: node.sourceIndex,
 			};
@@ -112,13 +119,23 @@ export const resolveBemEntities = (
 			if (isEmpty(indices) || isEmpty(indices.groups) || isEmpty(groups)) return acc;
 
 			// eslint-disable-next-line unicorn/consistent-function-scoping -- false positive
-			const getPart = (type: Exclude<keyof BemEntity, 'utilities' | 'selector'>) => {
-				if (!groups[type] || !indices.groups?.[type]) return;
-				const [start, end] = indices.groups[type];
+			const getPart = (name: EntityName) => {
+				if (!groups[name] || !indices.groups?.[name]) return;
+				const [start, end] = indices.groups[name];
+
+				const separator = (() => {
+					if (name === 'block') return '.';
+					if (name === 'element') return separators.elementSeparator;
+					if (name === 'modifierName') return separators.modifierSeparator;
+					if (name === 'modifierValue') return separators.modifierValueSeparator;
+					if (name === 'utility') return '.';
+					return '';
+				})();
 
 				// +1 to consider leading dot in class declaration
 				return {
-					value: groups[type],
+					value: groups[name],
+					separator,
 					startIndex: start + 1,
 					endIndex: end + 1,
 				};
@@ -133,6 +150,7 @@ export const resolveBemEntities = (
 				bemEntity.utility ??= [];
 				bemEntity.utility.push({
 					value: node.value,
+					separator: '.',
 					startIndex: bemEntity.selector.value.length - node.value.length,
 					endIndex: bemEntity.selector.value.length - node.value.length + node.value.length,
 				});
