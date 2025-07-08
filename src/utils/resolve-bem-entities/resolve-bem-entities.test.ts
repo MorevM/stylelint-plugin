@@ -140,6 +140,39 @@ describe(resolveBemEntities, () => {
 			expect(entity.modifierValue?.value).toBe('val');
 			expect(entity.utility?.map((u) => u.value)).toStrictEqual(['util-1', 'util-2']);
 		});
+
+		it('Resolves entities by a partial selector using `source` option', () => {
+			const root = parse(`
+				.block {
+					&__el, &__el2 {}
+				}
+			`);
+
+			// @ts-expect-error -- Trust me it exists
+			const compoundRule = root.nodes[0].nodes[0] as Rule;
+
+			expect(compoundRule.selector).toBe('&__el, &__el2');
+			expect(resolveBemEntities(compoundRule, styles.TWO_DASH)).toHaveLength(2);
+
+			const singleSelectorEntities = resolveBemEntities(compoundRule, styles.TWO_DASH, { source: '&__el' });
+
+			expect(singleSelectorEntities).toHaveLength(1);
+
+			const entity = singleSelectorEntities[0];
+
+			expect(entity.originalSelector).toBe('&__el');
+			expect(entity.resolvedSelector).toBe('.block__el');
+
+			expect(entity.selector.value).toBe('.block__el');
+			expect(entity.selector.startIndex).toBe(0);
+			expect(entity.selector.endIndex).toBe(entity.selector.value.length);
+
+			expect(entity.block?.value).toBe('block');
+			expect(entity.element?.value).toBe('el');
+			expect(entity.modifierName?.value).toBeUndefined();
+			expect(entity.modifierValue?.value).toBeUndefined();
+			expect(entity.utility).toBeUndefined();
+		});
 	});
 
 	describe('Indices', () => {

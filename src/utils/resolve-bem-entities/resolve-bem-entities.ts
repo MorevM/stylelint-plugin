@@ -51,12 +51,13 @@ const isValidBemEntity = (
 export const resolveBemEntities = (
 	ruleOrResolvedSelector: Rule | AtRule | string,
 	separators: Separators,
+	{ source }: { source?: string } = {},
 ) => {
 	const ruleSource = isString(ruleOrResolvedSelector)
 		? ruleOrResolvedSelector
 		: ruleOrResolvedSelector.type === 'rule'
-			? ruleOrResolvedSelector.selector
-			: ruleOrResolvedSelector.params;
+			? source ?? ruleOrResolvedSelector.selector
+			: source ?? ruleOrResolvedSelector.params;
 
 	const resolvedSelector = isString(ruleOrResolvedSelector)
 		? ruleOrResolvedSelector
@@ -124,9 +125,7 @@ export const resolveBemEntities = (
 			};
 
 			if (!bemEntity.block) {
-				if (groups.block) {
-					bemEntity.block = getPart('block');
-				}
+				if (groups.block) bemEntity.block = getPart('block');
 				if (groups.element) bemEntity.element = getPart('element');
 				if (groups.modifierName) bemEntity.modifierName = getPart('modifierName');
 				if (groups.modifierValue) bemEntity.modifierValue = getPart('modifierValue');
