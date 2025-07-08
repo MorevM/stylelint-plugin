@@ -90,12 +90,20 @@ export type SecondaryOption = Partial<{
 	modifierValueSeparator: string;
 
 	/**
-	 * Block names to ignore completely.
-	 * Patterns can be strings (including wildcard strings) or RegExp.
+	 * Block names to ignore completely. \
+	 * Each entry can be a string (optionally with wildcards)
+	 * or a regular expression.
+	 *
+	 * @example
+	 * // Ignore blocks by exact name
+	 * ['ui-button', 'header']
+	 * @example
+	 * // Ignore blocks using wildcards or RegExp
+	 * ['ui-*', /^legacy-/]
 	 *
 	 * @default []
 	 */
-	ignoreBlocks: string | RegExp | Array<string | RegExp>;
+	ignoreBlocks: Array<string | RegExp>;
 
 	/**
 	 * Custom message functions for each entity.

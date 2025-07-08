@@ -58,7 +58,7 @@ export default {
       elementSeparator: '__',
       modifierSeparator: '--',
       modifierValueSeparator: '--',
-      ignoreBlocks: ['swiper-*', 'u-'],
+      ignoreBlocks: ['swiper-*', 'u-*'],
       messages: {
         block: (name, patterns) => {
           return `Unexpected block name ${name}`;
@@ -146,11 +146,12 @@ type BemPatternOptions = Partial<{
 
   /**
    * Block names to ignore completely.
-   * Patterns can be strings (including wildcard strings) or RegExp.
+   * Each entry can be a string (optionally with wildcards)
+   * or a regular expression.
    *
    * @default []
    */
-  ignoreBlocks: string | RegExp | Array<string | RegExp>;
+  ignoreBlocks: Array<string | RegExp>;
 
   /**
    * Custom message functions for each entity.

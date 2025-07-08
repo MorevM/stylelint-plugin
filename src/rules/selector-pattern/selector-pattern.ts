@@ -72,7 +72,7 @@ export default createRule({
 					['is-*', 'has-*', 'js-*', '-*'],
 				),
 				ignoreBlocks: v.optional(
-					vArrayable(vStringOrRegExpSchema),
+					v.array(vStringOrRegExpSchema),
 					[],
 				),
 				...vSeparatorsSchema,
