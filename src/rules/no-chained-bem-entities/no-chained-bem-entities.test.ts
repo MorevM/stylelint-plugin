@@ -88,7 +88,7 @@ testRule({
 					&__element {
 						&-title, &-value {
 							&--modifier {
-								&-one {}
+								&-one, &-one-two {}
 								&-two {}
 							}
 						}
@@ -101,27 +101,32 @@ testRule({
 				{
 					line: 3, column: 3,
 					endLine: 3, endColumn: 10,
-					message: messages.element('&-title'),
+					message: messages.element('&__element-title'),
 				},
 				{
 					line: 3, column: 12,
 					endLine: 3, endColumn: 19,
-					message: messages.element('&-value'),
+					message: messages.element('&__element-value'),
 				},
 				{
 					line: 5, column: 5,
 					endLine: 5, endColumn: 10,
-					message: messages.modifierName('&-one'),
+					message: messages.modifierName('&--modifier-one'),
+				},
+				{
+					line: 5, column: 12,
+					endLine: 5, endColumn: 21,
+					message: messages.modifierName('&--modifier-one-two'),
 				},
 				{
 					line: 6, column: 5,
 					endLine: 6, endColumn: 10,
-					message: messages.modifierName('&-two'),
+					message: messages.modifierName('&--modifier-two'),
 				},
 				{
 					line: 11, column: 2,
 					endLine: 11, endColumn: 8,
-					message: messages.block('&-name'),
+					message: messages.block('.the-component-name'),
 				},
 			],
 		},
@@ -138,7 +143,7 @@ testRule({
 				{
 					line: 3, column: 22,
 					endLine: 3, endColumn: 29,
-					message: messages.element('&-title'),
+					message: messages.element('&__element-title'),
 				},
 			],
 		},
@@ -155,7 +160,7 @@ testRule({
 				{
 					line: 3, column: 23,
 					endLine: 3, endColumn: 30,
-					message: messages.element('&-title'),
+					message: messages.element('&__element-title'),
 				},
 			],
 		},
@@ -182,22 +187,22 @@ testRule({
 				{
 					line: 4, column: 4,
 					endLine: 4, endColumn: 11,
-					message: messages.element('&-title'),
+					message: messages.element('&__element-title'),
 				},
 				{
 					line: 5, column: 4,
 					endLine: 5, endColumn: 11,
-					message: messages.element('&-value'),
+					message: messages.element('&__element-value'),
 				},
 				{
 					line: 8, column: 7,
 					endLine: 8, endColumn: 12,
-					message: messages.modifierName('&-one'),
+					message: messages.modifierName('&--modifier-one'),
 				},
 				{
 					line: 10, column: 6,
 					endLine: 10, endColumn: 11,
-					message: messages.modifierName('&-two'),
+					message: messages.modifierName('&--modifier-two'),
 				},
 			],
 		},
