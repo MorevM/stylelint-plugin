@@ -5,7 +5,7 @@ import { addNamespace, createRule, getRuleUrl, isCssFile, parseSelectors, resolv
 import { vSeparatorsSchema } from '#valibot';
 import type { Node } from 'postcss';
 
-const RULE_NAME = 'no-splitted-entities';
+const RULE_NAME = 'no-chained-bem-entities';
 
 /**
  * TODO:

@@ -1,4 +1,4 @@
-import rule from './no-splitted-entities';
+import rule from './no-chained-bem-entities';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });

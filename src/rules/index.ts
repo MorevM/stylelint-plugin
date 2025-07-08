@@ -1,9 +1,9 @@
 export { default as blockVariable } from './block-variable/block-variable';
 export { default as matchFileName } from './match-file-name/match-file-name';
 export { default as noBlockProperties } from './no-block-properties/no-block-properties';
+export { default as noChainedBemEntities } from './no-chained-bem-entities/no-chained-bem-entities';
 export { default as noInternalSideEffects } from './no-internal-side-effects/no-internal-side-effects';
 export { default as atRuleNoChildren } from './no-selectors-in-at-rules/no-selectors-in-at-rules';
 export { default as noSideEffects } from './no-side-effects/no-side-effects';
-export { default as noBreakEntities } from './no-splitted-entities/no-splitted-entities';
 export { default as noUnusedVariables } from './no-unused-variables/no-unused-variables';
 export { default as selectorPattern } from './selector-pattern/selector-pattern';
