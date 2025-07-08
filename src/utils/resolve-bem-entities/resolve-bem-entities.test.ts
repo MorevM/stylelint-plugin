@@ -62,7 +62,10 @@ describe(resolveBemEntities, () => {
 
 	describe('Structure tests', () => {
 		it('Resolves full structure for complex selector without nesting', () => {
-			const entity = resolveWith(`.block__el--mod--val.util-1.util-2 {}`)[0];
+			const rule = parse(`.block__el--mod--val.util-1.util-2 {}`).nodes[0] as Rule;
+			const entity = resolveBemEntities(rule, styles.TWO_DASH)[0];
+
+			expect(entity.rule).toBe(rule);
 
 			expect(entity.originalSelector).toBe('.block__el--mod--val.util-1.util-2');
 			expect(entity.resolvedSelector).toBe('.block__el--mod--val.util-1.util-2');
@@ -138,6 +141,7 @@ describe(resolveBemEntities, () => {
 		it('Resolves entities by selector, not a `Rule` or `AtRule`', () => {
 			const entity = resolveBemEntities(`.block__el--mod--val.util-1.util-2`, styles.TWO_DASH)[0];
 
+			expect(entity.rule).toBeUndefined();
 			expect(entity.originalSelector).toBe('.block__el--mod--val.util-1.util-2');
 			expect(entity.resolvedSelector).toBe('.block__el--mod--val.util-1.util-2');
 

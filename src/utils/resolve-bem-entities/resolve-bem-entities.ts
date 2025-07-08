@@ -18,6 +18,7 @@ type EntityPart = {
 };
 
 type BemEntity = {
+	rule: Rule | AtRule | undefined;
 	originalSelector: string;
 	resolvedSelector: string;
 	selector: EntityPart;
@@ -33,7 +34,10 @@ type EntityName = Exclude<
 	'originalSelector' | 'resolvedSelector' | 'selector'
 >;
 
-const createBemEntity = (): Partial<BemEntity> => ({
+const createBemEntity = (
+	rule: Rule | AtRule | undefined,
+): Partial<BemEntity> => ({
+	rule,
 	originalSelector: undefined,
 	resolvedSelector: undefined,
 	selector: undefined,
@@ -66,6 +70,8 @@ export const resolveBemEntities = (
 			? source ?? ruleOrResolvedSelector.selector
 			: source ?? ruleOrResolvedSelector.params;
 
+	const rule = isString(ruleOrResolvedSelector) ? undefined : ruleOrResolvedSelector;
+
 	const resolvedSelector = isString(ruleOrResolvedSelector)
 		? ruleOrResolvedSelector
 		: resolveNestedSelector(ruleSource, ruleOrResolvedSelector as any)[0];
@@ -83,13 +89,13 @@ export const resolveBemEntities = (
 	const selectors = parseSelectors(resolvedSelector);
 
 	return selectors.reduce<BemEntity[]>((acc, selectorNodes) => {
-		let bemEntity: Partial<BemEntity> = createBemEntity();
+		let bemEntity: Partial<BemEntity> = createBemEntity(rule);
 
 		for (let i = 0, l = selectorNodes.length; i < l; i++) {
 			const node = selectorNodes[i];
 			if (node.type === 'combinator' && bemEntity?.block) {
 				isValidBemEntity(bemEntity) && acc.push(bemEntity);
-				bemEntity = createBemEntity();
+				bemEntity = createBemEntity(rule);
 				continue;
 			}
 			if (node.type !== 'class') continue;
