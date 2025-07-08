@@ -74,14 +74,19 @@ describe(resolveBemEntities, () => {
 
 			expect(entity.block?.value).toBe('block');
 			expect(entity.block?.separator).toBe('.');
+			expect(entity.block?.selector).toBe('.block');
 			expect(entity.element?.value).toBe('el');
 			expect(entity.element?.separator).toBe('__');
+			expect(entity.element?.selector).toBe('__el');
 			expect(entity.modifierName?.value).toBe('mod');
 			expect(entity.modifierName?.separator).toBe('--');
+			expect(entity.modifierName?.selector).toBe('--mod');
 			expect(entity.modifierValue?.value).toBe('val');
 			expect(entity.modifierValue?.separator).toBe('--');
+			expect(entity.modifierValue?.selector).toBe('--val');
 			expect(entity.utility?.map((u) => u.value)).toStrictEqual(['util-1', 'util-2']);
 			expect(entity.utility?.map((u) => u.separator)).toStrictEqual(['.', '.']);
+			expect(entity.utility?.map((u) => u.selector)).toStrictEqual(['.util-1', '.util-2']);
 		});
 
 		it('Resolves full structure for complex compound selector without nesting', () => {

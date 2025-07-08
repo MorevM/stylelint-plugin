@@ -12,6 +12,7 @@ type Separators = {
 type EntityPart = {
 	value: string;
 	separator: string;
+	selector: string;
 	startIndex: number;
 	endIndex: number;
 };
@@ -101,6 +102,7 @@ export const resolveBemEntities = (
 			bemEntity.selector ??= {
 				value: '',
 				separator: '',
+				selector: '',
 				startIndex: node.sourceIndex,
 				endIndex: node.sourceIndex,
 			};
@@ -136,6 +138,7 @@ export const resolveBemEntities = (
 				return {
 					value: groups[name],
 					separator,
+					selector: `${separator}${groups[name]}`,
 					startIndex: start + 1,
 					endIndex: end + 1,
 				};
@@ -151,6 +154,7 @@ export const resolveBemEntities = (
 				bemEntity.utility.push({
 					value: node.value,
 					separator: '.',
+					selector: `.${node.value}`,
 					startIndex: bemEntity.selector.value.length - node.value.length,
 					endIndex: bemEntity.selector.value.length - node.value.length + node.value.length,
 				});
