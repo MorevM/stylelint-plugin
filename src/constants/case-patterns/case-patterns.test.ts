@@ -1,4 +1,4 @@
-import { CAMEL_CASE_REGEXP, KEBAB_CASE_REGEXP, PASCAL_CASE_REGEXP, SNAKE_CASE_REGEXP } from './cases';
+import { CAMEL_CASE_REGEXP, KEBAB_CASE_REGEXP, PASCAL_CASE_REGEXP, SNAKE_CASE_REGEXP } from './case-patterns';
 
 describe('constants > cases', () => {
 	describe('KEBAB_CASE_REGEXP', () => {
