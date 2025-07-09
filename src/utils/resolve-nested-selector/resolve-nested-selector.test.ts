@@ -400,5 +400,49 @@ describe(resolveNestedSelector, () => {
 				'.bar .foo-b-c',
 			].sort());
 		});
+
+		it('Handles `@at-root` `with` and `without` entries', () => {
+			const code = `
+				@media print {
+					.page {
+						width: 8in;
+
+						@at-root (without: media) {
+							&--mod {
+								color: #111;
+							}
+						}
+
+						@at-root (with: media) {
+							&--mod2 {
+								color: #111;
+							}
+						}
+					}
+				}
+			`;
+
+			expect(resolveSelectorInContext(code, '&--mod').sort()).toStrictEqual([
+				'.page--mod',
+			].sort());
+
+			expect(resolveSelectorInContext(code, '&--mod2').sort()).toStrictEqual([
+				'.page--mod2',
+			].sort());
+		});
+
+		it('Hoists simple `@at-root` case', () => {
+			const code = `
+				.foo {
+					@at-root {
+						.bar {}
+					}
+				}
+			`;
+
+			expect(resolveSelectorInContext(code, '.bar').sort()).toStrictEqual([
+				'.bar',
+			].sort());
+		});
 	});
 });

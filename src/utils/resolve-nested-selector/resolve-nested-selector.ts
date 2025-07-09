@@ -4,13 +4,37 @@ import type { AtRule, ChildNode, Node, Root } from 'postcss';
 /**
  * Checks whether the given node is an at-rule that affects selector resolution.
  *
- * @param   rule
+ * @param   node   Node to check.
  *
  * @returns        Whether the ChildNote is AtRule instance named `nest` or `@at-root`
  */
-const isAtRule = (rule: ChildNode): rule is AtRule => {
-	return rule.type === 'atrule'
-		&& (rule.name === 'nest' || rule.name === 'at-root');
+const isAtRule = (node: ChildNode): node is AtRule => {
+	return node.type === 'atrule'
+		&& (node.name === 'nest' || node.name === 'at-root');
+};
+
+/**
+ * Checks whether the given node is inside an `@at-root` context.
+ *
+ * This includes the node itself being an `@at-root` at-rule,
+ * or being nested anywhere within an `@at-root` block up the AST.
+ *
+ * @param   node   The PostCSS node to check.
+ *
+ * @returns        `true` if the node is inside an `@at-root` context, otherwise `false`.
+ */
+const isAtRootContext = (node: Node) => {
+	if (node.type === 'atrule' && (node as AtRule).name === 'at-root') return true;
+	let parent = node.parent as undefined | Root | ChildNode;
+
+	while (parent) {
+		if (parent.type === 'atrule' && parent.name === 'at-root') {
+			return true;
+		}
+		parent = parent.parent as any;
+	}
+
+	return false;
 };
 
 /**
@@ -46,6 +70,15 @@ export const resolveNestedSelector = (
 		return resolveNestedSelector(selector, parent);
 	}
 
+	// `@at-root (with[out]: X)` should not be processed
+	if (
+		isAtRule(parent)
+		&& parent.name === 'at-root'
+		&& parent.params.match(/\(\s*with(?:out)?:/)
+	) {
+		return resolveNestedSelector(selector, parent);
+	}
+
 	const parentSelectors = isAtRule(parent)
 		? split(parent.params, ',', false).map((x) => x.trim())
 		: parent.selectors;
@@ -61,7 +94,9 @@ export const resolveNestedSelector = (
 			return acc;
 		}
 
-		const combinedSelector = [parentSelector, selector].join(' ');
+		const combinedSelector = isAtRootContext(node)
+			? selector
+			: [parentSelector, selector].join(' ');
 
 		acc.push(...resolveNestedSelector(combinedSelector, parent));
 		return acc;

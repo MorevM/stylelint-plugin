@@ -59,7 +59,6 @@
 	},
 	"dependencies": {
 		"@morev/utils": "^3.13.1",
-		"postcss-resolve-nested-selector": "^0.1.6",
 		"postcss-selector-parser": "^7.1.0",
 		"regexp-match-indices": "^1.0.2",
 		"valibot": "^1.1.0"
