@@ -7,7 +7,7 @@ const resolveSelectorInContext = (
 	code: string,
 	selector: string,
 	customSelector?: string,
-): string[] => {
+) => {
 	const { root } = postcss().process(code, { syntax: postcssScss });
 
 	let found: Rule | AtRule | null = null;
@@ -20,7 +20,11 @@ const resolveSelectorInContext = (
 		}
 	});
 	if (!found) throw new Error(`Rule not found: ${selector}`);
-	return resolveNestedSelector(customSelector ?? source!, found);
+
+	return resolveNestedSelector({
+		selector: customSelector ?? source!,
+		node: found,
+	});
 };
 
 describe(resolveNestedSelector, () => {
@@ -29,7 +33,7 @@ describe(resolveNestedSelector, () => {
 		it('Resolves deeply nested selectors', () => {
 			const code = `a { b { top: 0; c { d {}}}}`;
 
-			expect(resolveSelectorInContext(code, 'd')).toStrictEqual([
+			expect(resolveSelectorInContext(code, 'd')).toShallowEqualArray([
 				'a b c d',
 			]);
 		});
@@ -41,7 +45,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '.bar &, a, & + &:hover')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '.bar &, a, & + &:hover')).toShallowEqualArray([
 				'.bar .foo',
 				'.foo a',
 				'.foo + .foo:hover',
@@ -55,15 +59,15 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '.bar &, a', '.bar &')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '.bar &, a', '.bar &')).toShallowEqualArray([
 				'.bar .foo',
 			]);
 
-			expect(resolveSelectorInContext(code, '.bar &, a', 'a')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '.bar &, a', 'a')).toShallowEqualArray([
 				'.foo a',
 			]);
 
-			expect(resolveSelectorInContext(code, '.bar &, a', 'custom')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '.bar &, a', 'custom')).toShallowEqualArray([
 				'.foo custom',
 			]);
 		});
@@ -77,7 +81,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, 'b')).toStrictEqual([
+			expect(resolveSelectorInContext(code, 'b')).toShallowEqualArray([
 				'.bar .foo b',
 				'.foo + .foo:hover b',
 			]);
@@ -92,7 +96,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, 'c > &')).toStrictEqual([
+			expect(resolveSelectorInContext(code, 'c > &')).toShallowEqualArray([
 				'c > .bar .foo',
 				'c > .foo + .foo:hover',
 			]);
@@ -107,7 +111,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, 'c > &')).toStrictEqual([
+			expect(resolveSelectorInContext(code, 'c > &')).toShallowEqualArray([
 				'c > .bar .foo',
 				'c > .foo + .foo:hover',
 			]);
@@ -122,7 +126,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '> b')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '> b')).toShallowEqualArray([
 				'.foo:hover > b',
 				'.foo_bar > b',
 			]);
@@ -135,7 +139,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '.b:is(:hover, :focus) &, b, b &')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '.b:is(:hover, :focus) &, b, b &')).toShallowEqualArray([
 				'.b:is(:hover, :focus) .a',
 				'.a b',
 				'b .a',
@@ -151,7 +155,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
 				'.b:is(:hover, :focus) .a .c',
 			]);
 		});
@@ -163,7 +167,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '.bar:is(&, &.active)')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '.bar:is(&, &.active)')).toShallowEqualArray([
 				'.bar:is(.foo, .foo.active)',
 			]);
 		});
@@ -179,7 +183,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
 				'.b:not(:hover, :focus) .a .c',
 			]);
 		});
@@ -195,7 +199,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
 				'[a=,] .a .c',
 			]);
 		});
@@ -211,7 +215,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
 				'a \\, .a .c',
 			]);
 		});
@@ -227,7 +231,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
 				'[a=","] .a .c',
 			]);
 		});
@@ -243,7 +247,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '& .e')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '& .e')).toShallowEqualArray([
 				'.b .a .e',
 				'.a .c .e',
 				'.a .d .a .e',
@@ -257,7 +261,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '.b [c="&"] &')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '.b [c="&"] &')).toShallowEqualArray([
 				'.b [c="&"] .a',
 			]);
 		});
@@ -269,7 +273,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '.b [c=&] &')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '.b [c=&] &')).toShallowEqualArray([
 				'.b [c=&] .a',
 			]);
 		});
@@ -281,7 +285,7 @@ describe(resolveNestedSelector, () => {
 				}
 			}`;
 
-			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
 				'.b \\& + .a .c',
 			]);
 		});
@@ -297,7 +301,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '&:hover, & b')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '&:hover, & b')).toShallowEqualArray([
 				'.foo .bar:hover',
 				'.foo .bar b',
 			]);
@@ -316,7 +320,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '&.active')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '&.active')).toShallowEqualArray([
 				'.foo .bar.active',
 			]);
 		});
@@ -338,11 +342,11 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '& .baz')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '& .baz')).toShallowEqualArray([
 				'.foo .bar .baz',
 			]);
 
-			expect(resolveSelectorInContext(code, '& .bar')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '& .bar')).toShallowEqualArray([
 				'.foo .foo .bar',
 			]);
 		});
@@ -356,7 +360,7 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '&:hover:where(.foo--active, .foo-disabled)')).toStrictEqual([
+			expect(resolveSelectorInContext(code, '&:hover:where(.foo--active, .foo-disabled)')).toShallowEqualArray([
 				'.card:hover:where(.foo--active, .foo-disabled)',
 			]);
 		});
@@ -378,10 +382,10 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '&-value').sort()).toStrictEqual([
+			expect(resolveSelectorInContext(code, '&-value')).toShallowEqualArray([
 				'.the-component__element-value',
 				'.the-component--modifier-value',
-			].sort());
+			]);
 		});
 
 		it('Handles `@at-root` at-rule', () => {
@@ -395,10 +399,10 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '.baz &, &-c').sort()).toStrictEqual([
+			expect(resolveSelectorInContext(code, '.baz &, &-c')).toShallowEqualArray([
 				'.baz .bar .foo-b',
 				'.bar .foo-b-c',
-			].sort());
+			]);
 		});
 
 		it('Handles `@at-root` `with` and `without` entries', () => {
@@ -422,13 +426,13 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '&--mod').sort()).toStrictEqual([
+			expect(resolveSelectorInContext(code, '&--mod')).toShallowEqualArray([
 				'.page--mod',
-			].sort());
+			]);
 
-			expect(resolveSelectorInContext(code, '&--mod2').sort()).toStrictEqual([
+			expect(resolveSelectorInContext(code, '&--mod2')).toShallowEqualArray([
 				'.page--mod2',
-			].sort());
+			]);
 		});
 
 		it('Hoists simple `@at-root` case', () => {
@@ -440,9 +444,95 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '.bar').sort()).toStrictEqual([
+			expect(resolveSelectorInContext(code, '.bar')).toShallowEqualArray([
 				'.bar',
-			].sort());
+			]);
+		});
+	});
+
+	describe('Ampersand values', () => {
+		it('Returns empty array for a selector without `&` character', () => {
+			const code = `
+				.foo {
+					.bar {
+						.baz {}
+					}
+				}
+			`;
+
+			const result = resolveSelectorInContext(code, '.baz');
+
+			expect(result.ampersandValues).toShallowEqualArray([]);
+		});
+
+		it('Resolves single ampersand value without selector concatenation', () => {
+			const code = `
+				.foo {
+					.bar {
+						.baz & {}
+					}
+				}
+			`;
+
+			const result = resolveSelectorInContext(code, '.baz &');
+
+			expect(result.ampersandValues).toShallowEqualArray([
+				'.foo .bar',
+			]);
+		});
+
+		it('Resolves multiple ampersand values without selector concatenation', () => {
+			const code = `
+				.foo {
+					.bar, .baz {
+						.qwe & {}
+					}
+				}
+			`;
+
+			const result = resolveSelectorInContext(code, '.qwe &');
+
+			expect(result.ampersandValues).toShallowEqualArray([
+				'.foo .bar',
+				'.foo .baz',
+			]);
+		});
+
+		it('Resolves multiple ampersand values using SASS-style selector concatenation', () => {
+			const code = `
+				.foo {
+					&__el, &--mod, &--mod-value {
+						&-value {
+							&value {}
+						}
+					}
+				}
+			`;
+
+			const result = resolveSelectorInContext(code, '&value');
+
+			expect(result.ampersandValues).toShallowEqualArray([
+				'.foo__el-value',
+				'.foo--mod-value',
+				'.foo--mod-value-value',
+			]);
+		});
+
+		it('Resolves multiple ampersand values from compound selector', () => {
+			const code = `
+				.foo {
+					&__el, &__el2 {
+						&-title, &-subtitle {}
+					}
+				}
+			`;
+
+			const result = resolveSelectorInContext(code, '&-title, &-subtitle');
+
+			expect(result.ampersandValues).toShallowEqualArray([
+				'.foo__el',
+				'.foo__el2',
+			]);
 		});
 	});
 });

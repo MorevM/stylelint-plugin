@@ -90,7 +90,7 @@ export default createRule({
 		// Resolve any CSS or SASS nesting
 		// `&__element` -> `.the-component__element`
 		// `.the-component { .element {} }` -> `.the-component .element`
-		const resolvedSelector = resolveNestedSelector(rule.selector, rule as any)[0];
+		const resolvedSelector = resolveNestedSelector({ node: rule })[0];
 
 		parseSelectors(resolvedSelector).forEach((selectorNodes) => {
 			// Side effect selector, `.foo span`, `span .foo`
