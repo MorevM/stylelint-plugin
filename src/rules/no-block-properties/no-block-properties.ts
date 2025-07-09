@@ -1,7 +1,6 @@
 import { isEmpty } from '@morev/utils';
-import resolveNestedSelector from 'postcss-resolve-nested-selector';
 import * as v from 'valibot';
-import { addNamespace, createRule, getRuleDeclarations, getRuleUrl, isPseudoElementNode, mergeMessages, parseSelectors, resolveBemEntities, toRegExp } from '#utils';
+import { addNamespace, createRule, getRuleDeclarations, getRuleUrl, isPseudoElementNode, mergeMessages, parseSelectors, resolveBemEntities, resolveNestedSelector, toRegExp } from '#utils';
 import { vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#valibot';
 import { createPropertiesRegistry } from './utils';
 

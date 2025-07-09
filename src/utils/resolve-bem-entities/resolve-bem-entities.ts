@@ -1,6 +1,7 @@
 import { isEmpty, isString, isUndefined } from '@morev/utils';
 import resolveNestedSelector from 'postcss-resolve-nested-selector';
 import { parseSelectors } from '../parse-selectors/parse-selectors';
+import { resolveNestedSelector } from '../resolve-nested-selector/resolve-nested-selector';
 import type { AtRule, Rule } from 'postcss';
 
 type Separators = {
@@ -74,7 +75,7 @@ export const resolveBemEntities = (
 
 	const resolvedSelector = isString(ruleOrResolvedSelector)
 		? ruleOrResolvedSelector
-		: resolveNestedSelector(ruleSource, ruleOrResolvedSelector as any)[0];
+		: resolveNestedSelector(ruleSource, ruleOrResolvedSelector)[0];
 
 	const { elementSeparator, modifierSeparator, modifierValueSeparator } = separators;
 

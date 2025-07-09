@@ -11,6 +11,7 @@ export * from './merge-messages/merge-messages';
 export * from './parse-regexp-from-string/parse-regexp-from-string';
 export * from './parse-selectors/parse-selectors';
 export * from './resolve-bem-entities/resolve-bem-entities';
+export * from './resolve-nested-selector/resolve-nested-selector';
 export * from './to-case/to-case';
 export * from './to-regexp/to-regexp';
 export * from './validate-options/validate-options';
