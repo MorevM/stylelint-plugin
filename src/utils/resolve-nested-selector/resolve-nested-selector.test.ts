@@ -37,15 +37,15 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'a')).toShallowEqualArray([
-				{ raw: 'a', resolved: 'a', injects: [] },
+				{ raw: 'a', resolved: 'a', inject: null },
 			]);
 
 			expect(resolveSelectorInContext(code, 'b, c', 'b')).toShallowEqualArray([
-				{ raw: 'b', resolved: 'b', injects: [] },
+				{ raw: 'b', resolved: 'b', inject: null },
 			]);
 
 			expect(resolveSelectorInContext(code, 'b, c', 'c')).toShallowEqualArray([
-				{ raw: 'c', resolved: 'c', injects: [] },
+				{ raw: 'c', resolved: 'c', inject: null },
 			]);
 		});
 
@@ -53,7 +53,7 @@ describe(resolveNestedSelector, () => {
 			const code = `a { b { top: 0; c { d {}}}}`;
 
 			expect(resolveSelectorInContext(code, 'd')).toShallowEqualArray([
-				{ raw: 'd', resolved: 'a b c d', injects: [] },
+				{ raw: 'd', resolved: 'a b c d', inject: null },
 			]);
 		});
 
@@ -65,9 +65,9 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar &, a, & + &:hover')).toShallowEqualArray([
-				{ raw: '.bar &', resolved: '.bar .foo', injects: ['.foo'] },
-				{ raw: 'a', resolved: '.foo a', injects: [] },
-				{ raw: '& + &:hover', resolved: '.foo + .foo:hover', injects: ['.foo'] },
+				{ raw: '.bar &', resolved: '.bar .foo', inject: '.foo' },
+				{ raw: 'a', resolved: '.foo a', inject: null },
+				{ raw: '& + &:hover', resolved: '.foo + .foo:hover', inject: '.foo' },
 			]);
 		});
 
@@ -79,15 +79,15 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar &, a', '.bar &')).toShallowEqualArray([
-				{ raw: '.bar &', resolved: '.bar .foo', injects: ['.foo'] },
+				{ raw: '.bar &', resolved: '.bar .foo', inject: '.foo' },
 			]);
 
 			expect(resolveSelectorInContext(code, '.bar &, a', 'a')).toShallowEqualArray([
-				{ raw: 'a', resolved: '.foo a', injects: [] },
+				{ raw: 'a', resolved: '.foo a', inject: null },
 			]);
 
 			expect(resolveSelectorInContext(code, '.bar &, a', 'custom')).toShallowEqualArray([
-				{ raw: 'custom', resolved: '.foo custom', injects: [] },
+				{ raw: 'custom', resolved: '.foo custom', inject: null },
 			]);
 		});
 
@@ -101,8 +101,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'b')).toShallowEqualArray([
-				{ raw: 'b', resolved: '.bar .foo b', injects: [] },
-				{ raw: 'b', resolved: '.foo + .foo:hover b', injects: [] },
+				{ raw: 'b', resolved: '.bar .foo b', inject: null },
+				{ raw: 'b', resolved: '.foo + .foo:hover b', inject: null },
 			]);
 		});
 
@@ -116,8 +116,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'c > &')).toShallowEqualArray([
-				{ raw: 'c > &', resolved: 'c > .bar .foo', injects: ['.bar .foo', '.foo + .foo:hover'] },
-				{ raw: 'c > &', resolved: 'c > .foo + .foo:hover', injects: ['.bar .foo', '.foo + .foo:hover'] },
+				{ raw: 'c > &', resolved: 'c > .bar .foo', inject: '.bar .foo' },
+				{ raw: 'c > &', resolved: 'c > .foo + .foo:hover', inject: '.foo + .foo:hover' },
 			]);
 		});
 
@@ -131,8 +131,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'c > &')).toShallowEqualArray([
-				{ raw: 'c > &', resolved: 'c > .bar .foo', injects: ['.bar .foo', '.foo + .foo:hover'] },
-				{ raw: 'c > &', resolved: 'c > .foo + .foo:hover', injects: ['.bar .foo', '.foo + .foo:hover'] },
+				{ raw: 'c > &', resolved: 'c > .bar .foo', inject: '.bar .foo' },
+				{ raw: 'c > &', resolved: 'c > .foo + .foo:hover', inject: '.foo + .foo:hover' },
 			]);
 		});
 
@@ -146,8 +146,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '> b')).toShallowEqualArray([
-				{ raw: '> b', resolved: '.foo:hover > b', injects: [] },
-				{ raw: '> b', resolved: '.foo_bar > b', injects: [] },
+				{ raw: '> b', resolved: '.foo:hover > b', inject: null },
+				{ raw: '> b', resolved: '.foo_bar > b', inject: null },
 			]);
 		});
 
@@ -159,9 +159,9 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.b:is(:hover, :focus) &, b, b &')).toShallowEqualArray([
-				{ raw: '.b:is(:hover, :focus) &', resolved: '.b:is(:hover, :focus) .a', injects: ['.a'] },
-				{ raw: 'b', resolved: '.a b', injects: [] },
-				{ raw: 'b &', resolved: 'b .a', injects: ['.a'] },
+				{ raw: '.b:is(:hover, :focus) &', resolved: '.b:is(:hover, :focus) .a', inject: '.a' },
+				{ raw: 'b', resolved: '.a b', inject: null },
+				{ raw: 'b &', resolved: 'b .a', inject: '.a' },
 			]);
 		});
 
@@ -175,7 +175,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				{ raw: '& .c', resolved: '.b:is(:hover, :focus) .a .c', injects: ['.b:is(:hover, :focus) .a'] },
+				{ raw: '& .c', resolved: '.b:is(:hover, :focus) .a .c', inject: '.b:is(:hover, :focus) .a' },
 			]);
 		});
 
@@ -187,7 +187,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar:is(&, &.active)')).toShallowEqualArray([
-				{ raw: '.bar:is(&, &.active)', resolved: '.bar:is(.foo, .foo.active)', injects: ['.foo'] },
+				{ raw: '.bar:is(&, &.active)', resolved: '.bar:is(.foo, .foo.active)', inject: '.foo' },
 			]);
 		});
 
@@ -203,7 +203,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				{ raw: '& .c', resolved: '.b:not(:hover, :focus) .a .c', injects: ['.b:not(:hover, :focus) .a'] },
+				{ raw: '& .c', resolved: '.b:not(:hover, :focus) .a .c', inject: '.b:not(:hover, :focus) .a' },
 			]);
 		});
 
@@ -219,7 +219,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				{ raw: '& .c', resolved: '[a=,] .a .c', injects: ['[a=,] .a'] },
+				{ raw: '& .c', resolved: '[a=,] .a .c', inject: '[a=,] .a' },
 			]);
 		});
 
@@ -235,7 +235,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				{ raw: '& .c', resolved: 'a \\, .a .c', injects: ['a \\, .a'] },
+				{ raw: '& .c', resolved: 'a \\, .a .c', inject: 'a \\, .a' },
 			]);
 		});
 
@@ -251,7 +251,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				{ raw: '& .c', resolved: '[a=","] .a .c', injects: ['[a=","] .a'] },
+				{ raw: '& .c', resolved: '[a=","] .a .c', inject: '[a=","] .a' },
 			]);
 		});
 
@@ -267,9 +267,9 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .e')).toShallowEqualArray([
-				{ raw: '& .e', resolved: '.b .a .e', injects: ['.b .a', '.a .c', '.a .d .a'] },
-				{ raw: '& .e', resolved: '.a .c .e', injects: ['.b .a', '.a .c', '.a .d .a'] },
-				{ raw: '& .e', resolved: '.a .d .a .e', injects: ['.b .a', '.a .c', '.a .d .a'] },
+				{ raw: '& .e', resolved: '.b .a .e', inject: '.b .a' },
+				{ raw: '& .e', resolved: '.a .c .e', inject: '.a .c' },
+				{ raw: '& .e', resolved: '.a .d .a .e', inject: '.a .d .a' },
 			]);
 		});
 
@@ -281,7 +281,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.b [c="&"] &')).toShallowEqualArray([
-				{ raw: '.b [c="&"] &', resolved: '.b [c="&"] .a', injects: ['.a'] },
+				{ raw: '.b [c="&"] &', resolved: '.b [c="&"] .a', inject: '.a' },
 			]);
 		});
 
@@ -293,7 +293,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.b [c=&] &')).toShallowEqualArray([
-				{ raw: '.b [c=&] &', resolved: '.b [c=&] .a', injects: ['.a'] },
+				{ raw: '.b [c=&] &', resolved: '.b [c=&] .a', inject: '.a' },
 			]);
 		});
 
@@ -305,7 +305,7 @@ describe(resolveNestedSelector, () => {
 			}`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				{ raw: '& .c', resolved: '.b \\& + .a .c', injects: ['.b \\& + .a'] },
+				{ raw: '& .c', resolved: '.b \\& + .a .c', inject: '.b \\& + .a' },
 			]);
 		});
 
@@ -321,8 +321,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&:hover, & b')).toShallowEqualArray([
-				{ raw: '&:hover', resolved: '.foo .bar:hover', injects: ['.foo .bar'] },
-				{ raw: '& b', resolved: '.foo .bar b', injects: ['.foo .bar'] },
+				{ raw: '&:hover', resolved: '.foo .bar:hover', inject: '.foo .bar' },
+				{ raw: '& b', resolved: '.foo .bar b', inject: '.foo .bar' },
 			]);
 		});
 
@@ -340,7 +340,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&.active')).toShallowEqualArray([
-				{ raw: '&.active', resolved: '.foo .bar.active', injects: ['.foo .bar'] },
+				{ raw: '&.active', resolved: '.foo .bar.active', inject: '.foo .bar' },
 			]);
 		});
 
@@ -362,11 +362,11 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .baz')).toShallowEqualArray([
-				{ raw: '& .baz', resolved: '.foo .bar .baz', injects: ['.foo .bar'] },
+				{ raw: '& .baz', resolved: '.foo .bar .baz', inject: '.foo .bar' },
 			]);
 
 			expect(resolveSelectorInContext(code, '& .bar')).toShallowEqualArray([
-				{ raw: '& .bar', resolved: '.foo .foo .bar', injects: ['.foo .foo'] },
+				{ raw: '& .bar', resolved: '.foo .foo .bar', inject: '.foo .foo' },
 			]);
 		});
 
@@ -385,7 +385,7 @@ describe(resolveNestedSelector, () => {
 				{
 					raw: '&:hover:where(.foo--active, .foo-disabled)',
 					resolved: '.card:hover:where(.foo--active, .foo-disabled)',
-					injects: ['.card'],
+					inject: '.card',
 				},
 			]);
 		});
@@ -408,8 +408,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&-value')).toShallowEqualArray([
-				{ raw: '&-value', resolved: '.block__el-value', injects: ['.block__el', '.block--mod'] },
-				{ raw: '&-value', resolved: '.block--mod-value', injects: ['.block__el', '.block--mod'] },
+				{ raw: '&-value', resolved: '.block__el-value', inject: '.block__el' },
+				{ raw: '&-value', resolved: '.block--mod-value', inject: '.block--mod' },
 			]);
 		});
 
@@ -425,8 +425,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.baz &, &-c')).toShallowEqualArray([
-				{ raw: '.baz &', resolved: '.baz .bar .foo-b', injects: ['.bar .foo-b'] },
-				{ raw: '&-c', resolved: '.bar .foo-b-c', injects: ['.bar .foo-b'] },
+				{ raw: '.baz &', resolved: '.baz .bar .foo-b', inject: '.bar .foo-b' },
+				{ raw: '&-c', resolved: '.bar .foo-b-c', inject: '.bar .foo-b' },
 			]);
 		});
 
@@ -452,11 +452,11 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&--mod')).toShallowEqualArray([
-				{ raw: '&--mod', resolved: '.page--mod', injects: ['.page'] },
+				{ raw: '&--mod', resolved: '.page--mod', inject: '.page' },
 			]);
 
 			expect(resolveSelectorInContext(code, '&--mod2')).toShallowEqualArray([
-				{ raw: '&--mod2', resolved: '.page--mod2', injects: ['.page'] },
+				{ raw: '&--mod2', resolved: '.page--mod2', inject: '.page' },
 			]);
 		});
 
@@ -470,7 +470,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar')).toShallowEqualArray([
-				{ raw: '.bar', resolved: '.bar', injects: [] },
+				{ raw: '.bar', resolved: '.bar', inject: null },
 			]);
 		});
 
@@ -484,96 +484,10 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&--mod1, &--mod2')).toShallowEqualArray([
-				{ raw: '&--mod1', resolved: '.card__item--mod1', injects: ['.card__item', '.card__title'] },
-				{ raw: '&--mod1', resolved: '.card__title--mod1', injects: ['.card__item', '.card__title'] },
-				{ raw: '&--mod2', resolved: '.card__item--mod2', injects: ['.card__item', '.card__title'] },
-				{ raw: '&--mod2', resolved: '.card__title--mod2', injects: ['.card__item', '.card__title'] },
-			]);
-		});
-	});
-
-	describe('Ampersand values', () => {
-		it('Returns empty array for a selector without `&` character', () => {
-			const code = `
-				.foo {
-					.bar {
-						.baz {}
-					}
-				}
-			`;
-
-			const result = resolveSelectorInContext(code, '.baz');
-
-			expect(result.injects).toShallowEqualArray([]);
-		});
-
-		it('Resolves single ampersand value without selector concatenation', () => {
-			const code = `
-				.foo {
-					.bar {
-						.baz & {}
-					}
-				}
-			`;
-
-			const result = resolveSelectorInContext(code, '.baz &');
-
-			expect(result.injects).toShallowEqualArray([
-				'.foo .bar',
-			]);
-		});
-
-		it('Resolves multiple ampersand values without selector concatenation', () => {
-			const code = `
-				.foo {
-					.bar, .baz {
-						.qwe & {}
-					}
-				}
-			`;
-
-			const result = resolveSelectorInContext(code, '.qwe &');
-
-			expect(result.injects).toShallowEqualArray([
-				'.foo .bar',
-				'.foo .baz',
-			]);
-		});
-
-		it('Resolves multiple ampersand values using SASS-style selector concatenation', () => {
-			const code = `
-				.foo {
-					&__el, &--mod, &--mod-value {
-						&-value {
-							&value {}
-						}
-					}
-				}
-			`;
-
-			const result = resolveSelectorInContext(code, '&value');
-
-			expect(result.injects).toShallowEqualArray([
-				'.foo__el-value',
-				'.foo--mod-value',
-				'.foo--mod-value-value',
-			]);
-		});
-
-		it('Resolves multiple ampersand values from compound selector', () => {
-			const code = `
-				.foo {
-					&__el, &__el2 {
-						&-title, &-subtitle {}
-					}
-				}
-			`;
-
-			const result = resolveSelectorInContext(code, '&-title, &-subtitle');
-
-			expect(result.injects).toShallowEqualArray([
-				'.foo__el',
-				'.foo__el2',
+				{ raw: '&--mod1', resolved: '.card__item--mod1', inject: '.card__item' },
+				{ raw: '&--mod1', resolved: '.card__title--mod1', inject: '.card__title' },
+				{ raw: '&--mod2', resolved: '.card__item--mod2', inject: '.card__item' },
+				{ raw: '&--mod2', resolved: '.card__title--mod2', inject: '.card__title' },
 			]);
 		});
 	});

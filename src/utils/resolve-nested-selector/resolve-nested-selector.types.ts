@@ -17,8 +17,13 @@ export type ResolvedSelector = {
 	 * @example '.block--mod'
 	 */
 	resolved: string;
-};
 
+	/**
+	 * The value substituted in place of `&` during resolution,
+	 * or `null` if `&` was not present in the original selector.
+	 */
+	inject: string | null;
+};
 
 /**
  * Options for resolving a nested selector.
@@ -57,15 +62,4 @@ export type Options = {
 		 */
 		childSelector?: string;
 	};
-};
-
-/**
- * Extra metadata returned alongside resolved selectors,
- * containing the exact values that were substituted in place of `&`.
- */
-export type Injects = {
-	/**
-	 * Resolved values that were injected in place of `&`.
-	 */
-	injects: string[];
 };

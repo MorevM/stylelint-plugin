@@ -1,6 +1,6 @@
 import { split } from './utils';
 import type { AtRule, ChildNode, Node, Root, Rule } from 'postcss';
-import type { Injects, Options, ResolvedSelector } from './resolve-nested-selector.types';
+import type { Options, ResolvedSelector } from './resolve-nested-selector.types';
 
 /**
  * Checks whether the given node is an at-rule that affects selector resolution.
@@ -58,19 +58,12 @@ const getCacheKey = (selector: string, node: Node) => {
  *
  * @param   options   Resolver options.
  *
- * @returns           An array of fully resolved selector strings with all nesting and `&` references expanded.
+ * @returns           An array of fully resolved selector strings
+ *                    with all nesting and `&` references expanded.
  */
 export const resolveNestedSelector = (
 	options: Options,
-): ResolvedSelector[] & Injects => {
-	const injects: string[] = [];
-	const withInjects = (selectors: ResolvedSelector[]) => {
-		selectors.forEach((selector) => {
-			Object.assign(selector, { injects: selector.raw.includes('&') ? injects : [] });
-		});
-		return Object.assign(selectors, { injects });
-	};
-
+): ResolvedSelector[] => {
 	const { node } = options;
 
 	const selector = (() => {
@@ -88,7 +81,7 @@ export const resolveNestedSelector = (
 
 	const parent = node.parent as undefined | Root | ChildNode;
 	if (!parent || parent.type === 'root') {
-		return withInjects([{ raw: childSelector, resolved: selector }]);
+		return [{ raw: childSelector, resolved: selector, inject: null }];
 	}
 
 	const recurse = (
@@ -107,22 +100,16 @@ export const resolveNestedSelector = (
 	const key = getCacheKey(selector, node);
 	if (selector.includes(',') && !_seen.has(key)) {
 		_seen.add(key);
-		return withInjects(
-			split(selector, ',', false)
-				.map((selectorPart) => selectorPart.trim())
-				.filter(Boolean)
-				.flatMap((selectorPart, index) => {
-					const result = recurse(selectorPart, node);
-					index === 0 && injects.push(...result.injects);
-					return result;
-				}),
-		);
+		return split(selector, ',', false)
+			.map((selectorPart) => selectorPart.trim())
+			.filter(Boolean)
+			.flatMap((selectorPart, index) => {
+				return recurse(selectorPart, node);
+			});
 	}
 
 	if (parent.type !== 'rule' && !isAtRule(parent)) {
-		const parentResult = recurse(selector, parent);
-		node === initialNode && injects.push(...parentResult.injects);
-		return parentResult;
+		return recurse(selector, parent);
 	}
 
 	// `@at-root (with[out]: X)` should not be processed
@@ -137,45 +124,33 @@ export const resolveNestedSelector = (
 		? split(parent.params, ',', false).map((x) => x.trim())
 		: parent.selectors;
 
-	// Positive cases:
-	// 1. The current node is the one where resolution started;
-	// 2. The current node wraps the initial node through `@atrule`s only.
-	const shouldTrackInject = (currentNode: Node) => {
-		if (currentNode === initialNode) return true;
+	return parentSelectors.reduce<ResolvedSelector[]>((acc, parentSelector) => {
+		if (selector.includes('&')) {
+			const newlyResolvedSelectors = recurse(parentSelector, parent)
+				.map((resolvedParentSelector) => {
+					return {
+						raw: selector,
+						resolved: split(selector, '&', true).join(resolvedParentSelector.resolved),
+						inject: selector.includes('&') ? resolvedParentSelector.resolved : null,
+					};
+				});
 
-		let parentNode = initialNode.parent;
-		while (parentNode && parentNode !== currentNode) {
-			if (parentNode.type !== 'atrule') return false;
-			parentNode = parentNode.parent;
+			acc.push(...newlyResolvedSelectors);
+			return acc;
 		}
 
-		return true;
-	};
+		const combinedSelector = isAtRootContext(node)
+			? selector
+			: [parentSelector, selector].join(' ');
 
-	return withInjects(
-		parentSelectors.reduce<ResolvedSelector[]>((acc, parentSelector) => {
-			if (selector.includes('&')) {
-				const newlyResolvedSelectors = recurse(parentSelector, parent)
-					.map((resolvedParentSelector) => {
-						shouldTrackInject(node) && injects.push(resolvedParentSelector.resolved);
-						return {
-							raw: selector,
-							resolved: split(selector, '&', true).join(resolvedParentSelector.resolved),
-						};
-					});
-
-				acc.push(...newlyResolvedSelectors);
-				return acc;
+		const nestedRecurse = recurse(combinedSelector, parent);
+		if (node === initialNode) {
+			nestedRecurse[0].raw = selector;
+			if (!selector.includes('&')) {
+				nestedRecurse[0].inject = null;
 			}
-
-			const combinedSelector = isAtRootContext(node)
-				? selector
-				: [parentSelector, selector].join(' ');
-
-			const nestedRecurse = recurse(combinedSelector, parent);
-			if (node === initialNode) nestedRecurse[0].raw = selector;
-			acc.push(...nestedRecurse);
-			return acc;
-		}, []),
-	);
+		}
+		acc.push(...nestedRecurse);
+		return acc;
+	}, []);
 };
