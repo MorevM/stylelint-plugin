@@ -137,6 +137,9 @@ export const resolveNestedSelector = (
 		? split(parent.params, ',', false).map((x) => x.trim())
 		: parent.selectors;
 
+	// Positive cases:
+	// 1. The current node is the one where resolution started;
+	// 2. The current node wraps the initial node through `@atrule`s only.
 	const shouldTrackInject = (currentNode: Node) => {
 		if (currentNode === initialNode) return true;
 

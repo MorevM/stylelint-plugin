@@ -297,7 +297,7 @@ describe(resolveNestedSelector, () => {
 			]);
 		});
 
-		it('preserves escaped ampersand literal', () => {
+		it('Preserves escaped ampersand literal', () => {
 			const code = `.a {
 				.b \\& + & {
 					& .c {}
@@ -471,6 +471,23 @@ describe(resolveNestedSelector, () => {
 
 			expect(resolveSelectorInContext(code, '.bar')).toShallowEqualArray([
 				{ raw: '.bar', resolved: '.bar', injects: [] },
+			]);
+		});
+
+		it('Can resolve complex selectors at once', () => {
+			const code = `
+				.card {
+					&__item, &__title {
+						&--mod1, &--mod2 {}
+					}
+				}
+			`;
+
+			expect(resolveSelectorInContext(code, '&--mod1, &--mod2')).toShallowEqualArray([
+				{ raw: '&--mod1', resolved: '.card__item--mod1', injects: ['.card__item', '.card__title'] },
+				{ raw: '&--mod1', resolved: '.card__title--mod1', injects: ['.card__item', '.card__title'] },
+				{ raw: '&--mod2', resolved: '.card__item--mod2', injects: ['.card__item', '.card__title'] },
+				{ raw: '&--mod2', resolved: '.card__title--mod2', injects: ['.card__item', '.card__title'] },
 			]);
 		});
 	});
