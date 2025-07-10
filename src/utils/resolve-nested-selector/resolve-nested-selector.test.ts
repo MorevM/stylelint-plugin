@@ -30,11 +30,30 @@ const resolveSelectorInContext = (
 describe(resolveNestedSelector, () => {
 	// Tests from https://github.com/csstools/postcss-resolve-nested-selector/blob/main/test/api.test.mjs
 	describe('CSS features', () => {
+		it('Resolves top-level declarations', () => {
+			const code = `
+				a {}
+				b, c {}
+			`;
+
+			expect(resolveSelectorInContext(code, 'a')).toShallowEqualArray([
+				{ raw: 'a', resolved: 'a', injects: [] },
+			]);
+
+			expect(resolveSelectorInContext(code, 'b, c', 'b')).toShallowEqualArray([
+				{ raw: 'b', resolved: 'b', injects: [] },
+			]);
+
+			expect(resolveSelectorInContext(code, 'b, c', 'c')).toShallowEqualArray([
+				{ raw: 'c', resolved: 'c', injects: [] },
+			]);
+		});
+
 		it('Resolves deeply nested selectors', () => {
 			const code = `a { b { top: 0; c { d {}}}}`;
 
 			expect(resolveSelectorInContext(code, 'd')).toShallowEqualArray([
-				'a b c d',
+				{ raw: 'd', resolved: 'a b c d', injects: [] },
 			]);
 		});
 
@@ -46,9 +65,9 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar &, a, & + &:hover')).toShallowEqualArray([
-				'.bar .foo',
-				'.foo a',
-				'.foo + .foo:hover',
+				{ raw: '.bar &', resolved: '.bar .foo', injects: ['.foo'] },
+				{ raw: 'a', resolved: '.foo a', injects: [] },
+				{ raw: '& + &:hover', resolved: '.foo + .foo:hover', injects: ['.foo'] },
 			]);
 		});
 
@@ -60,15 +79,15 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar &, a', '.bar &')).toShallowEqualArray([
-				'.bar .foo',
+				{ raw: '.bar &', resolved: '.bar .foo', injects: ['.foo'] },
 			]);
 
 			expect(resolveSelectorInContext(code, '.bar &, a', 'a')).toShallowEqualArray([
-				'.foo a',
+				{ raw: 'a', resolved: '.foo a', injects: [] },
 			]);
 
 			expect(resolveSelectorInContext(code, '.bar &, a', 'custom')).toShallowEqualArray([
-				'.foo custom',
+				{ raw: 'custom', resolved: '.foo custom', injects: [] },
 			]);
 		});
 
@@ -82,8 +101,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'b')).toShallowEqualArray([
-				'.bar .foo b',
-				'.foo + .foo:hover b',
+				{ raw: 'b', resolved: '.bar .foo b', injects: [] },
+				{ raw: 'b', resolved: '.foo + .foo:hover b', injects: [] },
 			]);
 		});
 
@@ -97,8 +116,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'c > &')).toShallowEqualArray([
-				'c > .bar .foo',
-				'c > .foo + .foo:hover',
+				{ raw: 'c > &', resolved: 'c > .bar .foo', injects: ['.bar .foo', '.foo + .foo:hover'] },
+				{ raw: 'c > &', resolved: 'c > .foo + .foo:hover', injects: ['.bar .foo', '.foo + .foo:hover'] },
 			]);
 		});
 
@@ -112,8 +131,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'c > &')).toShallowEqualArray([
-				'c > .bar .foo',
-				'c > .foo + .foo:hover',
+				{ raw: 'c > &', resolved: 'c > .bar .foo', injects: ['.bar .foo', '.foo + .foo:hover'] },
+				{ raw: 'c > &', resolved: 'c > .foo + .foo:hover', injects: ['.bar .foo', '.foo + .foo:hover'] },
 			]);
 		});
 
@@ -127,8 +146,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '> b')).toShallowEqualArray([
-				'.foo:hover > b',
-				'.foo_bar > b',
+				{ raw: '> b', resolved: '.foo:hover > b', injects: [] },
+				{ raw: '> b', resolved: '.foo_bar > b', injects: [] },
 			]);
 		});
 
@@ -140,9 +159,9 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.b:is(:hover, :focus) &, b, b &')).toShallowEqualArray([
-				'.b:is(:hover, :focus) .a',
-				'.a b',
-				'b .a',
+				{ raw: '.b:is(:hover, :focus) &', resolved: '.b:is(:hover, :focus) .a', injects: ['.a'] },
+				{ raw: 'b', resolved: '.a b', injects: [] },
+				{ raw: 'b &', resolved: 'b .a', injects: ['.a'] },
 			]);
 		});
 
@@ -156,7 +175,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				'.b:is(:hover, :focus) .a .c',
+				{ raw: '& .c', resolved: '.b:is(:hover, :focus) .a .c', injects: ['.b:is(:hover, :focus) .a'] },
 			]);
 		});
 
@@ -168,7 +187,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar:is(&, &.active)')).toShallowEqualArray([
-				'.bar:is(.foo, .foo.active)',
+				{ raw: '.bar:is(&, &.active)', resolved: '.bar:is(.foo, .foo.active)', injects: ['.foo'] },
 			]);
 		});
 
@@ -184,7 +203,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				'.b:not(:hover, :focus) .a .c',
+				{ raw: '& .c', resolved: '.b:not(:hover, :focus) .a .c', injects: ['.b:not(:hover, :focus) .a'] },
 			]);
 		});
 
@@ -200,7 +219,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				'[a=,] .a .c',
+				{ raw: '& .c', resolved: '[a=,] .a .c', injects: ['[a=,] .a'] },
 			]);
 		});
 
@@ -216,7 +235,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				'a \\, .a .c',
+				{ raw: '& .c', resolved: 'a \\, .a .c', injects: ['a \\, .a'] },
 			]);
 		});
 
@@ -232,7 +251,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				'[a=","] .a .c',
+				{ raw: '& .c', resolved: '[a=","] .a .c', injects: ['[a=","] .a'] },
 			]);
 		});
 
@@ -248,9 +267,9 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .e')).toShallowEqualArray([
-				'.b .a .e',
-				'.a .c .e',
-				'.a .d .a .e',
+				{ raw: '& .e', resolved: '.b .a .e', injects: ['.b .a', '.a .c', '.a .d .a'] },
+				{ raw: '& .e', resolved: '.a .c .e', injects: ['.b .a', '.a .c', '.a .d .a'] },
+				{ raw: '& .e', resolved: '.a .d .a .e', injects: ['.b .a', '.a .c', '.a .d .a'] },
 			]);
 		});
 
@@ -262,11 +281,11 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.b [c="&"] &')).toShallowEqualArray([
-				'.b [c="&"] .a',
+				{ raw: '.b [c="&"] &', resolved: '.b [c="&"] .a', injects: ['.a'] },
 			]);
 		});
 
-		it('preserves ampersand inside unquoted attribute value', () => {
+		it('Preserves ampersand inside unquoted attribute value', () => {
 			const code = `
 				.a {
 					.b [c=&] & {}
@@ -274,7 +293,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.b [c=&] &')).toShallowEqualArray([
-				'.b [c=&] .a',
+				{ raw: '.b [c=&] &', resolved: '.b [c=&] .a', injects: ['.a'] },
 			]);
 		});
 
@@ -286,7 +305,7 @@ describe(resolveNestedSelector, () => {
 			}`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toShallowEqualArray([
-				'.b \\& + .a .c',
+				{ raw: '& .c', resolved: '.b \\& + .a .c', injects: ['.b \\& + .a'] },
 			]);
 		});
 
@@ -302,8 +321,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&:hover, & b')).toShallowEqualArray([
-				'.foo .bar:hover',
-				'.foo .bar b',
+				{ raw: '&:hover', resolved: '.foo .bar:hover', injects: ['.foo .bar'] },
+				{ raw: '& b', resolved: '.foo .bar b', injects: ['.foo .bar'] },
 			]);
 		});
 
@@ -321,7 +340,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&.active')).toShallowEqualArray([
-				'.foo .bar.active',
+				{ raw: '&.active', resolved: '.foo .bar.active', injects: ['.foo .bar'] },
 			]);
 		});
 
@@ -343,11 +362,11 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .baz')).toShallowEqualArray([
-				'.foo .bar .baz',
+				{ raw: '& .baz', resolved: '.foo .bar .baz', injects: ['.foo .bar'] },
 			]);
 
 			expect(resolveSelectorInContext(code, '& .bar')).toShallowEqualArray([
-				'.foo .foo .bar',
+				{ raw: '& .bar', resolved: '.foo .foo .bar', injects: ['.foo .foo'] },
 			]);
 		});
 
@@ -355,13 +374,19 @@ describe(resolveNestedSelector, () => {
 			const code = `
 				.card {
 					@media (hover: hover) {
-						&:hover:where(.foo--active, .foo-disabled) {}
+						@media (hover: hover) {
+							&:hover:where(.foo--active, .foo-disabled) {}
+						}
 					}
 				}
 			`;
 
 			expect(resolveSelectorInContext(code, '&:hover:where(.foo--active, .foo-disabled)')).toShallowEqualArray([
-				'.card:hover:where(.foo--active, .foo-disabled)',
+				{
+					raw: '&:hover:where(.foo--active, .foo-disabled)',
+					resolved: '.card:hover:where(.foo--active, .foo-disabled)',
+					injects: ['.card'],
+				},
 			]);
 		});
 	});
@@ -373,8 +398,8 @@ describe(resolveNestedSelector, () => {
 	describe('SCSS features', () => {
 		it('Resolves deeply nested selectors', () => {
 			const code = `
-				.the-component {
-					&__element, &--modifier {
+				.block {
+					&__el, &--mod {
 						@media (width > 360px) {
 							&-value {}
 						}
@@ -383,8 +408,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&-value')).toShallowEqualArray([
-				'.the-component__element-value',
-				'.the-component--modifier-value',
+				{ raw: '&-value', resolved: '.block__el-value', injects: ['.block__el', '.block--mod'] },
+				{ raw: '&-value', resolved: '.block--mod-value', injects: ['.block__el', '.block--mod'] },
 			]);
 		});
 
@@ -400,8 +425,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.baz &, &-c')).toShallowEqualArray([
-				'.baz .bar .foo-b',
-				'.bar .foo-b-c',
+				{ raw: '.baz &', resolved: '.baz .bar .foo-b', injects: ['.bar .foo-b'] },
+				{ raw: '&-c', resolved: '.bar .foo-b-c', injects: ['.bar .foo-b'] },
 			]);
 		});
 
@@ -427,11 +452,11 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&--mod')).toShallowEqualArray([
-				'.page--mod',
+				{ raw: '&--mod', resolved: '.page--mod', injects: ['.page'] },
 			]);
 
 			expect(resolveSelectorInContext(code, '&--mod2')).toShallowEqualArray([
-				'.page--mod2',
+				{ raw: '&--mod2', resolved: '.page--mod2', injects: ['.page'] },
 			]);
 		});
 
@@ -445,7 +470,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar')).toShallowEqualArray([
-				'.bar',
+				{ raw: '.bar', resolved: '.bar', injects: [] },
 			]);
 		});
 	});
@@ -462,7 +487,7 @@ describe(resolveNestedSelector, () => {
 
 			const result = resolveSelectorInContext(code, '.baz');
 
-			expect(result.ampersandValues).toShallowEqualArray([]);
+			expect(result.injects).toShallowEqualArray([]);
 		});
 
 		it('Resolves single ampersand value without selector concatenation', () => {
@@ -476,7 +501,7 @@ describe(resolveNestedSelector, () => {
 
 			const result = resolveSelectorInContext(code, '.baz &');
 
-			expect(result.ampersandValues).toShallowEqualArray([
+			expect(result.injects).toShallowEqualArray([
 				'.foo .bar',
 			]);
 		});
@@ -492,7 +517,7 @@ describe(resolveNestedSelector, () => {
 
 			const result = resolveSelectorInContext(code, '.qwe &');
 
-			expect(result.ampersandValues).toShallowEqualArray([
+			expect(result.injects).toShallowEqualArray([
 				'.foo .bar',
 				'.foo .baz',
 			]);
@@ -511,7 +536,7 @@ describe(resolveNestedSelector, () => {
 
 			const result = resolveSelectorInContext(code, '&value');
 
-			expect(result.ampersandValues).toShallowEqualArray([
+			expect(result.injects).toShallowEqualArray([
 				'.foo__el-value',
 				'.foo--mod-value',
 				'.foo--mod-value-value',
@@ -529,7 +554,7 @@ describe(resolveNestedSelector, () => {
 
 			const result = resolveSelectorInContext(code, '&-title, &-subtitle');
 
-			expect(result.ampersandValues).toShallowEqualArray([
+			expect(result.injects).toShallowEqualArray([
 				'.foo__el',
 				'.foo__el2',
 			]);

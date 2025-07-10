@@ -32,6 +32,6 @@ export default createRule({
 	if (!bemBlock) return;
 
 	root.walkRules((rule) => {
-		const resolvedSelector = resolveNestedSelector({ node: rule })[0];
+		const resolvedSelector = resolveNestedSelector({ node: rule })[0].resolved;
 	});
 });

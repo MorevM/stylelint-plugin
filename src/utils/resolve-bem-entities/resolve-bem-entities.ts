@@ -75,7 +75,7 @@ export const resolveBemEntities = (
 
 	const resolvedSelector = isString(ruleOrResolvedSelector)
 		? ruleOrResolvedSelector
-		: resolveNestedSelector(ruleSource, ruleOrResolvedSelector)[0];
+		: resolveNestedSelector({ selector: ruleSource, node: ruleOrResolvedSelector })[0].resolved;
 
 	const { elementSeparator, modifierSeparator, modifierValueSeparator } = separators;
 

@@ -92,7 +92,7 @@ export default createRule({
 		// `.the-component { .element {} }` -> `.the-component .element`
 		const resolvedSelector = resolveNestedSelector({ node: rule })[0];
 
-		parseSelectors(resolvedSelector).forEach((selectorNodes) => {
+		parseSelectors(resolvedSelector.resolved).forEach((selectorNodes) => {
 			// Side effect selector, `.foo span`, `span .foo`
 			if (selectorNodes.some((node) => node.type === 'combinator')) return;
 			// `.the-component::before` is allowed

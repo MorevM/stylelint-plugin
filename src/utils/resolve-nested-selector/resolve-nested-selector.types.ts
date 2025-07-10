@@ -1,6 +1,26 @@
 import type { Node } from 'postcss';
 
 /**
+ * Represents a fully resolved selector from a nested context.
+ */
+export type ResolvedSelector = {
+	/**
+	 * The original (unresolved) selector string.
+	 *
+	 * @example '&--mod'
+	 */
+	raw: string;
+
+	/**
+	 * The final resolved selector string.
+	 *
+	 * @example '.block--mod'
+	 */
+	resolved: string;
+};
+
+
+/**
  * Options for resolving a nested selector.
  */
 export type Options = {
@@ -30,6 +50,12 @@ export type Options = {
 		 * Used to determine which level is the "current" scope for resolving ampersands.
 		 */
 		initialNode?: Node;
+
+		/**
+		 * The child selector that originated the current resolution step.
+		 * Used to preserve the original unresolved form (`raw`) during recursive processing.
+		 */
+		childSelector?: string;
 	};
 };
 
@@ -37,10 +63,9 @@ export type Options = {
  * Extra metadata returned alongside resolved selectors,
  * containing the exact values that were substituted in place of `&`.
  */
-export type AmpersandValues = {
+export type Injects = {
 	/**
-	 * All unique values that replaced the `&` symbol
-	 * at the level of the originally resolved node.
+	 * Resolved values that were injected in place of `&`.
 	 */
-	ampersandValues: string[];
+	injects: string[];
 };

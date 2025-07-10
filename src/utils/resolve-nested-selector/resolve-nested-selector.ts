@@ -1,6 +1,6 @@
 import { split } from './utils';
 import type { AtRule, ChildNode, Node, Root, Rule } from 'postcss';
-import type { AmpersandValues, Options } from './resolve-nested-selector.types';
+import type { Injects, Options, ResolvedSelector } from './resolve-nested-selector.types';
 
 /**
  * Checks whether the given node is an at-rule that affects selector resolution.
@@ -39,6 +39,21 @@ const isAtRootContext = (node: Node) => {
 };
 
 /**
+ * Returns a unique key for a selector-node pair based on node source position.
+ *
+ * @param   selector   Selector being resolved.
+ * @param   node       Associated PostCSS node.
+ *
+ * @returns            Cache key string.
+ */
+const getCacheKey = (selector: string, node: Node) => {
+	const start = [node.source?.start?.line, node.source?.start?.column].join(':');
+	const end = [node.source?.end?.line, node.source?.end?.column].join(':');
+
+	return `${selector}@${start}|${end}`;
+};
+
+/**
  * Recursively resolves a nested selector to its fully expanded form.
  *
  * @param   options   Resolver options.
@@ -47,11 +62,13 @@ const isAtRootContext = (node: Node) => {
  */
 export const resolveNestedSelector = (
 	options: Options,
-): string[] & AmpersandValues => {
-	const ampersandValues: string[] = [];
-	const withAmpersandValues = (selectors: string[]) => {
-		selectors.forEach((selector) => Object.assign(selector, { ampersandValues }));
-		return Object.assign(selectors, { ampersandValues });
+): ResolvedSelector[] & Injects => {
+	const injects: string[] = [];
+	const withInjects = (selectors: ResolvedSelector[]) => {
+		selectors.forEach((selector) => {
+			Object.assign(selector, { injects: selector.raw.includes('&') ? injects : [] });
+		});
+		return Object.assign(selectors, { injects });
 	};
 
 	const { node } = options;
@@ -66,10 +83,13 @@ export const resolveNestedSelector = (
 	const {
 		_seen = new Set<string>(),
 		initialNode = node,
+		childSelector = selector,
 	} = options._internal ?? {};
 
 	const parent = node.parent as undefined | Root | ChildNode;
-	if (!parent || parent.type === 'root') return withAmpersandValues([selector]);
+	if (!parent || parent.type === 'root') {
+		return withInjects([{ raw: childSelector, resolved: selector }]);
+	}
 
 	const recurse = (
 		recurseSelector: string,
@@ -78,29 +98,31 @@ export const resolveNestedSelector = (
 		return resolveNestedSelector({
 			selector: recurseSelector,
 			node: recurseNode,
-			_internal: { _seen, initialNode },
+			_internal: { _seen, initialNode, childSelector: selector },
 		});
 	};
 
 	// Prevent infinite recursion for complex selectors like
 	// `.b:is(:hover, :focus) &`
-	const key = selector + node.source?.start?.column + node.source?.end?.column;
+	const key = getCacheKey(selector, node);
 	if (selector.includes(',') && !_seen.has(key)) {
 		_seen.add(key);
-		return withAmpersandValues(
+		return withInjects(
 			split(selector, ',', false)
 				.map((selectorPart) => selectorPart.trim())
 				.filter(Boolean)
 				.flatMap((selectorPart, index) => {
 					const result = recurse(selectorPart, node);
-					index === 0 && ampersandValues.push(...result.ampersandValues);
+					index === 0 && injects.push(...result.injects);
 					return result;
 				}),
 		);
 	}
 
 	if (parent.type !== 'rule' && !isAtRule(parent)) {
-		return recurse(selector, parent);
+		const parentResult = recurse(selector, parent);
+		node === initialNode && injects.push(...parentResult.injects);
+		return parentResult;
 	}
 
 	// `@at-root (with[out]: X)` should not be processed
@@ -115,13 +137,28 @@ export const resolveNestedSelector = (
 		? split(parent.params, ',', false).map((x) => x.trim())
 		: parent.selectors;
 
-	return withAmpersandValues(
-		parentSelectors.reduce<string[]>((acc, parentSelector) => {
+	const shouldTrackInject = (currentNode: Node) => {
+		if (currentNode === initialNode) return true;
+
+		let parentNode = initialNode.parent;
+		while (parentNode && parentNode !== currentNode) {
+			if (parentNode.type !== 'atrule') return false;
+			parentNode = parentNode.parent;
+		}
+
+		return true;
+	};
+
+	return withInjects(
+		parentSelectors.reduce<ResolvedSelector[]>((acc, parentSelector) => {
 			if (selector.includes('&')) {
 				const newlyResolvedSelectors = recurse(parentSelector, parent)
 					.map((resolvedParentSelector) => {
-						initialNode === node && ampersandValues.push(resolvedParentSelector);
-						return split(selector, '&', true).join(resolvedParentSelector);
+						shouldTrackInject(node) && injects.push(resolvedParentSelector.resolved);
+						return {
+							raw: selector,
+							resolved: split(selector, '&', true).join(resolvedParentSelector.resolved),
+						};
 					});
 
 				acc.push(...newlyResolvedSelectors);
@@ -132,7 +169,9 @@ export const resolveNestedSelector = (
 				? selector
 				: [parentSelector, selector].join(' ');
 
-			acc.push(...recurse(combinedSelector, parent));
+			const nestedRecurse = recurse(combinedSelector, parent);
+			if (node === initialNode) nestedRecurse[0].raw = selector;
+			acc.push(...nestedRecurse);
 			return acc;
 		}, []),
 	);
