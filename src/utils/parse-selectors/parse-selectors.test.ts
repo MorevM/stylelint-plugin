@@ -31,4 +31,22 @@ describe(parseSelectors, () => {
 		expect(typeof result[1].toString).toBe('function');
 		expect(result[1].toString()).toBe(' .bar span::before');
 	});
+
+	it('Preserves `#{&}` interpolation in complex selector', () => {
+		const result = parseSelectors('&--foo#{&}--mod#{&}')[0];
+
+		expect(result.toString()).toBe('&--foo#{&}--mod#{&}');
+
+		expect(result[0].toString()).toBe('&');
+		expect(result[2].toString()).toBe('#{&}');
+		expect(result[4].toString()).toBe('#{&}');
+		expect(result[5]).toBeUndefined();
+	});
+
+	it('Does not alter non-interpolated selectors', () => {
+		const selector = '&--type--mod';
+		const nodes = parseSelectors(selector)[0];
+
+		expect(nodes.toString()).toBe('&--type--mod');
+	});
 });
