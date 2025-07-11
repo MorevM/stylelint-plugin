@@ -54,6 +54,21 @@ const getCacheKey = (selector: string, node: Node) => {
 };
 
 /**
+ * Converts `#{&}` Sass interpolations to plain `&` in a selector string.
+ *
+ * This is useful for normalizing selectors before further resolution,
+ * since `#{&}` behaves identically to `&` in Sass nesting but is not recognized
+ * by standard selector parsers as a nesting reference.
+ *
+ * @param   selector   The selector to process.
+ *
+ * @returns            The selector with `#{&}` interpolations replaced by `&`.
+ */
+const unwrapInterpolatedNesting = (selector: string) => {
+	return selector.replaceAll('#{&}', '&');
+};
+
+/**
  * Recursively resolves a nested selector to its fully expanded form.
  *
  * @param   options   Resolver options.
@@ -128,9 +143,10 @@ export const resolveNestedSelector = (
 		if (selector.includes('&')) {
 			const newlyResolvedSelectors = recurse(parentSelector, parent)
 				.map((resolvedParentSelector) => {
+					const unwrappedSelector = unwrapInterpolatedNesting(selector);
 					return {
 						raw: selector,
-						resolved: split(selector, '&', true).join(resolvedParentSelector.resolved),
+						resolved: split(unwrappedSelector, '&', true).join(resolvedParentSelector.resolved),
 						inject: selector.includes('&') ? resolvedParentSelector.resolved : null,
 					};
 				});

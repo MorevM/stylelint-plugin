@@ -490,5 +490,22 @@ describe(resolveNestedSelector, () => {
 				{ raw: '&--mod2', resolved: '.card__title--mod2', inject: '.card__title' },
 			]);
 		});
+
+		it('Works with SASS interpolated `&` character', () => {
+			const code = `
+				.card {
+					&__item #{&}__foo {}
+					&--mod#{&}--mod2 {}
+				}
+			`;
+
+			expect(resolveSelectorInContext(code, '&__item #{&}__foo')).toShallowEqualArray([
+				{ raw: '&__item #{&}__foo', resolved: '.card__item .card__foo', inject: '.card' },
+			]);
+
+			expect(resolveSelectorInContext(code, '&--mod#{&}--mod2')).toShallowEqualArray([
+				{ raw: '&--mod#{&}--mod2', resolved: '.card--mod.card--mod2', inject: '.card' },
+			]);
+		});
 	});
 });
