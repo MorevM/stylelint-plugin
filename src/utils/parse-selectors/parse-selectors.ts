@@ -2,6 +2,17 @@ import { arrayRemoveMutable, isEmpty } from '@morev/utils';
 import parser from 'postcss-selector-parser';
 import type { Node, Root, Selector } from 'postcss-selector-parser';
 
+/**
+ * Adds a custom `.toString()` implementation to an array of selector nodes.
+ *
+ * By default, an array of PostCSS selector nodes does not produce a useful string
+ * when converted via `.toString()`. This helper attaches a method that joins
+ * the string representations of each node for easier use in comparisons and testing.
+ *
+ * @param   nodes   Array of `Node` objects.
+ *
+ * @returns         The same array with an overridden `.toString()` method.
+ */
 const setCustomToString = (nodes: Node[]) => {
 	nodes.toString = function () {
 		return this.reduce((acc, node) => {
@@ -81,6 +92,19 @@ const fixSassNestingNodes = (nodes: Node[]) => {
 	return nodes;
 };
 
+/**
+ * Parses a CSS selector string into an array of selector node arrays.
+ *
+ * Each top-level selector (e.g. `.foo, .bar`) becomes a separate array of nodes.
+ * Also applies internal patching for SASS interpolation (`#{&}`) and attaches
+ * `.toString()` for convenience on each selector part.
+ *
+ * If the selector is invalid, returns an empty array.
+ *
+ * @param   selector   Raw selector string to parse.
+ *
+ * @returns            Array of selector parts, each represented as an array of `Node`s.
+ */
 export const parseSelectors = (selector: string): Node[][] => {
 	try {
 		let nodes: Node[][] = [];
