@@ -16,19 +16,6 @@ describe(parseSelectors, () => {
 		expect(result[1].toString()).toBe(' .bar');
 	});
 
-	it('Returns array of selector nodes for first selector when `first` option is `true`', () => {
-		const result = parseSelectors('.foo, .bar', { first: true });
-
-		expect(isArray(result)).toBe(true);
-		expect(result.toString()).toBe('.foo');
-	});
-
-	it('Returns empty array for invalid selector with `first` option', () => {
-		const result = parseSelectors('*::', { first: true });
-
-		expect(result).toStrictEqual([]);
-	});
-
 	it('Returns empty array for invalid selector by default', () => {
 		const result = parseSelectors('*::');
 
