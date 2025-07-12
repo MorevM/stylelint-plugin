@@ -23,6 +23,13 @@ export type ResolvedSelector = {
 	 * or `null` if `&` was not present in the original selector.
 	 */
 	inject: string | null;
+
+	/**
+	 * The character offset of the `raw` selector relative to the
+	 * original input string (typically a comma-separated selector group).
+	 * Useful for mapping resolved selectors back to source positions.
+	 */
+	offset: number;
 };
 
 /**
@@ -61,5 +68,17 @@ export type Options = {
 		 * Used to preserve the original unresolved form (`raw`) during recursive processing.
 		 */
 		childSelector?: string;
+
+		/**
+		 * The full original selector passed to the resolver, prior to any
+		 * comma-splitting or recursion. Used for calculating position offsets.
+		 */
+		initialSelector?: string;
+
+		/**
+		 * 1-based index of the current selector within a comma-separated group.
+		 * Used together with `initialSelector` to compute relative offsets.
+		 */
+		index?: number;
 	};
 };

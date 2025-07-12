@@ -69,6 +69,34 @@ const unwrapInterpolatedNesting = (selector: string) => {
 };
 
 /**
+ * Calculates the character offset of a specific selector part within
+ * a comma-separated selector string.
+ *
+ * This is useful for mapping resolved selectors back to their original
+ * location within a multi-selector source (e.g., for diagnostics or error reporting).
+ *
+ * @param   initialSelector   The full, comma-separated selector string.
+ * @param   index             1-based index of the current selector part being resolved.
+ *
+ * @returns                   The character offset (in code units) from the beginning of the string
+ *                            to the start of the selector part at the given index.
+ */
+const getOffset = (initialSelector: string, index: number) => {
+	if (index === 1) return 0;
+
+	const selectorParts = split(initialSelector, ',', false);
+	const prevPartsLength = selectorParts.slice(0, index - 1)
+		.reduce((acc, current) => acc + current.length, 0);
+
+	// Account for leading spaces stripped during parsing.
+	const currentPartLeadingSpacesLength = selectorParts[index - 1]
+		.match(/^(\s+)/)?.[1].length ?? 0;
+
+	// `(index - 1)` to consider commas offset
+	return prevPartsLength + currentPartLeadingSpacesLength + (index - 1);
+};
+
+/**
  * Recursively resolves a nested selector to its fully expanded form.
  *
  * @param   options   Resolver options.
@@ -92,21 +120,24 @@ export const resolveNestedSelector = (
 		_seen = new Set<string>(),
 		initialNode = node,
 		childSelector = selector,
+		initialSelector = selector,
+		index = 1,
 	} = options._internal ?? {};
 
 	const parent = node.parent as undefined | Root | ChildNode;
 	if (!parent || parent.type === 'root') {
-		return [{ raw: childSelector, resolved: selector, inject: null }];
+		return [{ raw: childSelector, resolved: selector, inject: null, offset: getOffset(initialSelector, index) }];
 	}
 
 	const recurse = (
 		recurseSelector: string,
 		recurseNode: Node,
+		increaseIndex: number = 0,
 	) => {
 		return resolveNestedSelector({
 			selector: recurseSelector,
 			node: recurseNode,
-			_internal: { _seen, initialNode, childSelector: selector },
+			_internal: { _seen, initialNode, childSelector: selector, initialSelector, index: index + increaseIndex },
 		});
 	};
 
@@ -118,8 +149,8 @@ export const resolveNestedSelector = (
 		return split(selector, ',', false)
 			.map((selectorPart) => selectorPart.trim())
 			.filter(Boolean)
-			.flatMap((selectorPart, index) => {
-				return recurse(selectorPart, node);
+			.flatMap((selectorPart, selectorIndex) => {
+				return recurse(selectorPart, node, selectorIndex);
 			});
 	}
 
@@ -148,6 +179,7 @@ export const resolveNestedSelector = (
 						raw: selector,
 						resolved: split(unwrappedSelector, '&', true).join(resolvedParentSelector.resolved),
 						inject: selector.includes('&') ? resolvedParentSelector.resolved : null,
+						offset: getOffset(initialSelector, index),
 					};
 				});
 
