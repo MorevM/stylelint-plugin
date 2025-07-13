@@ -43,6 +43,23 @@ describe(parseSelectors, () => {
 		expect(result[5]).toBeUndefined();
 	});
 
+	it('Preserves `#{&}` interpolation within nested `pseudo` tags', () => {
+		const result = parseSelectors('&:not(#{&}--foo#{&}--bar):is(.active)')[0] as any;
+
+		expect(result.toString()).toBe('&:not(#{&}--foo#{&}--bar):is(.active)');
+
+		expect(result[0].toString()).toBe('&');
+		expect(result[1].toString()).toBe(':not(#{&}--foo#{&}--bar)');
+		expect(result[2].toString()).toBe(':is(.active)');
+
+		const nested = result[1].nodes[0].nodes;
+
+		expect(nested[0].toString()).toBe('#{&}');
+		expect(nested[1].toString()).toBe('--foo');
+		expect(nested[2].toString()).toBe('#{&}');
+		expect(nested[3].toString()).toBe('--bar');
+	});
+
 	it('Does not alter non-interpolated selectors', () => {
 		const selector = '&--type--mod';
 		const nodes = parseSelectors(selector)[0];

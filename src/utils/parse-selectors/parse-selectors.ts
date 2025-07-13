@@ -43,10 +43,17 @@ const setCustomToString = (nodes: Node[]) => {
  * @returns         Same array, with corrected interpolation nodes where needed.
  */
 const fixSassNestingNodes = (nodes: Node[]) => {
-	const nestingNodes = nodes.filter((node) => node.type === 'nesting');
-	if (isEmpty(nestingNodes)) return nodes;
+	const nodesToFix = nodes.filter(
+		(node) => node.type === 'nesting' || node.type === 'pseudo' || node.type === 'selector',
+	);
+	if (isEmpty(nodesToFix)) return nodes;
 
-	nestingNodes.forEach((node) => {
+	nodesToFix.forEach((node) => {
+		if (node.type === 'pseudo' || node.type === 'selector') {
+			fixSassNestingNodes(node.nodes);
+			return;
+		}
+
 		const prevNode = node.prev();
 		const nextNode = node.next();
 
@@ -82,7 +89,10 @@ const fixSassNestingNodes = (nodes: Node[]) => {
 				nextNode.source.end.column += 1;
 			}
 
-			// Remove next node if it became empty
+			// Remove nodes that became empty
+			if (!prevNode.value) {
+				arrayRemoveMutable(nodes, prevNode);
+			}
 			if (!nextNode.value) {
 				arrayRemoveMutable(nodes, nextNode);
 			}
