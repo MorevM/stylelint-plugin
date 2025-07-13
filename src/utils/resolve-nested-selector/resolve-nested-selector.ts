@@ -119,15 +119,9 @@ export const resolveNestedSelector = (
 	const {
 		_seen = new Set<string>(),
 		initialNode = node,
-		childSelector = selector,
 		initialSelector = selector,
 		index = 1,
 	} = options._internal ?? {};
-
-	const parent = node.parent as undefined | Root | ChildNode;
-	if (!parent || parent.type === 'root') {
-		return [{ raw: childSelector, resolved: selector, inject: null, offset: getOffset(initialSelector, index) }];
-	}
 
 	const recurse = (
 		recurseSelector: string,
@@ -137,7 +131,7 @@ export const resolveNestedSelector = (
 		return resolveNestedSelector({
 			selector: recurseSelector,
 			node: recurseNode,
-			_internal: { _seen, initialNode, childSelector: selector, initialSelector, index: index + increaseIndex },
+			_internal: { _seen, initialNode, initialSelector, index: index + increaseIndex },
 		});
 	};
 
@@ -152,6 +146,11 @@ export const resolveNestedSelector = (
 			.flatMap((selectorPart, selectorIndex) => {
 				return recurse(selectorPart, node, selectorIndex);
 			});
+	}
+
+	const parent = node.parent as undefined | Root | ChildNode;
+	if (!parent || parent.type === 'root') {
+		return [{ raw: selector, resolved: selector, inject: null, offset: getOffset(initialSelector, index) }];
 	}
 
 	if (parent.type !== 'rule' && !isAtRule(parent)) {

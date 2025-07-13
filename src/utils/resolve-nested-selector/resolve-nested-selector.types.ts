@@ -64,12 +64,6 @@ export type Options = {
 		initialNode?: Node;
 
 		/**
-		 * The child selector that originated the current resolution step.
-		 * Used to preserve the original unresolved form (`raw`) during recursive processing.
-		 */
-		childSelector?: string;
-
-		/**
 		 * The full original selector passed to the resolver, prior to any
 		 * comma-splitting or recursion. Used for calculating position offsets.
 		 */

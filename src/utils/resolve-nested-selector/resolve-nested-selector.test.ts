@@ -40,6 +40,11 @@ describe(resolveNestedSelector, () => {
 				{ raw: 'a', resolved: 'a', inject: null, offset: 0 },
 			]);
 
+			expect(resolveSelectorInContext(code, 'b, c')).toShallowEqualArray([
+				{ raw: 'b', resolved: 'b', inject: null, offset: 0 },
+				{ raw: 'c', resolved: 'c', inject: null, offset: 3 },
+			]);
+
 			expect(resolveSelectorInContext(code, 'b, c', 'b')).toShallowEqualArray([
 				{ raw: 'b', resolved: 'b', inject: null, offset: 0 },
 			]);
