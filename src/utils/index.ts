@@ -4,6 +4,7 @@ export * from './get-bem-block/get-bem-block';
 export * from './get-first-rule/get-first-rule';
 export * from './get-rule-declarations/get-rule-declarations';
 export * from './get-rule-url/get-rule-url';
+export * from './is-at-rule/is-at-rule';
 export * from './is-css-file/is-css-file';
 export * from './is-keyframes-rule/is-keyframes-rule';
 export * from './is-pseudo-element-node/is-pseudo-element-node';
