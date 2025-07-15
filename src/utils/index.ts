@@ -8,6 +8,7 @@ export * from './is-at-rule/is-at-rule';
 export * from './is-css-file/is-css-file';
 export * from './is-keyframes-rule/is-keyframes-rule';
 export * from './is-pseudo-element-node/is-pseudo-element-node';
+export * from './is-rule/is-rule';
 export * from './merge-messages/merge-messages';
 export * from './parse-regexp-from-string/parse-regexp-from-string';
 export * from './parse-selectors/parse-selectors';
