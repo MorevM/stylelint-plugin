@@ -98,7 +98,7 @@ const getTrees = (
 				// If `@at-root` doesn't contain `&`, further resolution is pointless,
 				// as following selectors won't affect the result.
 				if (type === 'at-root' && !part.includes('&')) {
-					results.push(path);
+					results.push([{ type: 'at-root', value: part }, ...path]);
 					return;
 				}
 				// Continue walking up the tree with meaningful `@nest` or `@at-root` value.

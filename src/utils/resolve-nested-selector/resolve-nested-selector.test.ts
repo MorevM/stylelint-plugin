@@ -499,6 +499,20 @@ describe(resolveNestedSelector, () => {
 			]);
 		});
 
+		it('Hoists complex `@at-root` case (@at-root with value)', () => {
+			const code = `
+				.foo {
+					@at-root .bar {
+						&__item {}
+					}
+				}
+			`;
+
+			expect(resolveSelectorInContext(code, '&__item')).toStrictEqual([
+				{ raw: '&__item', resolved: '.bar__item', inject: '.bar', offset: 0 },
+			]);
+		});
+
 		it('Can resolve complex selectors at once', () => {
 			const code = `
 				.card {
