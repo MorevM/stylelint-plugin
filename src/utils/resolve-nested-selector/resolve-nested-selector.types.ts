@@ -1,4 +1,24 @@
-import type { Node } from 'postcss';
+import type { AtRule, Rule } from 'postcss';
+
+/**
+ * Part of the nesting path from a selector node to the root.
+ */
+export type PathItem = {
+	/**
+	 * Whether this part comes from a rule (`.foo`), `@nest`, or `@at-root`.
+	 */
+	type: 'rule' | 'nest' | 'at-root';
+
+	/**
+	 * The raw value of the selector or at-rule parameter.
+	 */
+	value: string;
+
+	/**
+	 * The character index within the original selector string (only for the final node).
+	 */
+	offset?: number;
+};
 
 /**
  * Represents a fully resolved selector from a nested context.
@@ -21,12 +41,14 @@ export type ResolvedSelector = {
 	/**
 	 * The value substituted in place of `&` during resolution,
 	 * or `null` if `&` was not present in the original selector.
+	 *
+	 * @example '.block'
 	 */
-	inject: string | null;
+	inject: string;
 
 	/**
 	 * The character offset of the `raw` selector relative to the
-	 * original input string (typically a comma-separated selector group).
+	 * original input string. \
 	 * Useful for mapping resolved selectors back to source positions.
 	 */
 	offset: number;
@@ -37,42 +59,13 @@ export type ResolvedSelector = {
  */
 export type Options = {
 	/**
+	 * The PostCSS node at which resolution begins.
+	 */
+	node: Rule | AtRule;
+
+	/**
 	 * The selector to resolve. If not provided, will be inferred from the given `node`
 	 * (`Rule.selector` or `AtRule.params`).
 	 */
 	selector?: string;
-
-	/**
-	 * The PostCSS node at which resolution begins.
-	 */
-	node: Node;
-
-	/**
-	 * Internal metadata used during recursive resolution.
-	 * Not intended for external use.
-	 */
-	_internal?: {
-		/**
-		 * Set of visited selector + node combinations to prevent infinite recursion.
-		 */
-		_seen?: Set<string>;
-
-		/**
-		 * The original node being resolved (remains the same across recursion).
-		 * Used to determine which level is the "current" scope for resolving ampersands.
-		 */
-		initialNode?: Node;
-
-		/**
-		 * The full original selector passed to the resolver, prior to any
-		 * comma-splitting or recursion. Used for calculating position offsets.
-		 */
-		initialSelector?: string;
-
-		/**
-		 * 1-based index of the current selector within a comma-separated group.
-		 * Used together with `initialSelector` to compute relative offsets.
-		 */
-		index?: number;
-	};
 };

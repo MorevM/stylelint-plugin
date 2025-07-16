@@ -1,57 +1,9 @@
+import { assert } from '@morev/utils';
+import { isAtRule } from '~utils/is-at-rule/is-at-rule';
+import { isRule } from '~utils/is-rule/is-rule';
 import { split } from './utils';
-import type { AtRule, ChildNode, Node, Root, Rule } from 'postcss';
-import type { Options, ResolvedSelector } from './resolve-nested-selector.types';
-
-/**
- * Checks whether the given node is an at-rule that affects selector resolution.
- *
- * @param   node   Node to check.
- *
- * @returns        Whether the ChildNote is AtRule instance named `nest` or `@at-root`
- */
-const isAtRule = (node: ChildNode): node is AtRule => {
-	return node.type === 'atrule'
-		&& (node.name === 'nest' || node.name === 'at-root');
-};
-
-/**
- * Checks whether the given node is inside an `@at-root` context.
- *
- * This includes the node itself being an `@at-root` at-rule,
- * or being nested anywhere within an `@at-root` block up the AST.
- *
- * @param   node   The PostCSS node to check.
- *
- * @returns        `true` if the node is inside an `@at-root` context, otherwise `false`.
- */
-const isAtRootContext = (node: Node) => {
-	if (node.type === 'atrule' && (node as AtRule).name === 'at-root') return true;
-	let parent = node.parent as undefined | Root | ChildNode;
-
-	while (parent) {
-		if (parent.type === 'atrule' && parent.name === 'at-root') {
-			return true;
-		}
-		parent = parent.parent as any;
-	}
-
-	return false;
-};
-
-/**
- * Returns a unique key for a selector-node pair based on node source position.
- *
- * @param   selector   Selector being resolved.
- * @param   node       Associated PostCSS node.
- *
- * @returns            Cache key string.
- */
-const getCacheKey = (selector: string, node: Node) => {
-	const start = [node.source?.start?.line, node.source?.start?.column].join(':');
-	const end = [node.source?.end?.line, node.source?.end?.column].join(':');
-
-	return `${selector}@${start}|${end}`;
-};
+import type { AtRule, Node, Rule } from 'postcss';
+import type { Options, PathItem, ResolvedSelector } from './resolve-nested-selector.types';
 
 /**
  * Converts `#{&}` Sass interpolations to plain `&` in a selector string.
@@ -75,129 +27,159 @@ const unwrapInterpolatedNesting = (selector: string) => {
  * This is useful for mapping resolved selectors back to their original
  * location within a multi-selector source (e.g., for diagnostics or error reporting).
  *
- * @param   initialSelector   The full, comma-separated selector string.
- * @param   index             1-based index of the current selector part being resolved.
+ * @param   selectorParts   The list of selectors split by commas.
+ * @param   index           The index of the current selector part.
  *
- * @returns                   The character offset (in code units) from the beginning of the string
- *                            to the start of the selector part at the given index.
+ * @returns                 The character offset of the selector part in the original selector string.
  */
-const getOffset = (initialSelector: string, index: number) => {
-	if (index === 1) return 0;
+const getOffset = (selectorParts: string[], index: number) => {
+	if (selectorParts.length === 1) return 0;
+	if (index === 0) return 0;
 
-	const selectorParts = split(initialSelector, ',', false);
-	const prevPartsLength = selectorParts.slice(0, index - 1)
-		.reduce((acc, current) => acc + current.length, 0);
+	const prevPartsLength = selectorParts.slice(0, index)
+		.reduce((acc, selector) => acc + selector.length, 0);
 
-	// Account for leading spaces stripped during parsing.
-	const currentPartLeadingSpacesLength = selectorParts[index - 1]
+	// Account for leading spaces that will be stripped during parsing.
+	const currentPartLeadingSpacesLength = selectorParts[index]
 		.match(/^(\s+)/)?.[1].length ?? 0;
 
-	// `(index - 1)` to consider commas offset
-	return prevPartsLength + currentPartLeadingSpacesLength + (index - 1);
+	// `+ index` to consider stripped commas offset.
+	return prevPartsLength + currentPartLeadingSpacesLength + index;
 };
 
 /**
- * Recursively resolves a nested selector to its fully expanded form.
+ * Builds a tree of nesting contexts (rules and at-rules) for a given PostCSS node.
  *
- * @param   options   Resolver options.
+ * Each returned path represents a chain of `rule`, `@nest`, or `@at-root` constructs
+ * that apply to the node. \
+ * This is useful for resolving the fully qualified selector,
+ * including all intermediate nesting constructs.
  *
- * @returns           An array of fully resolved selector strings
- *                    with all nesting and `&` references expanded.
+ * @param   node           The PostCSS rule or at-rule whose nesting tree is being built.
+ * @param   nodeSelector   Optional selector string to override the node's own selector.
+ *
+ * @returns                An array of `PathItem[]`, where each inner array represents a complete
+ *                         nesting path from a base selector up to the root.
  */
-export const resolveNestedSelector = (
-	options: Options,
-): ResolvedSelector[] => {
-	const { node } = options;
+const getTrees = (
+	node: Rule | AtRule,
+	nodeSelector?: string,
+): PathItem[][] => {
+	const results: PathItem[][] = [];
 
-	const selector = (() => {
-		if (options.selector) return options.selector;
-		return node.type === 'rule'
-			? (node as Rule).selector
-			: (node as AtRule).params;
-	})();
+	const walk = (current: Node, path: PathItem[]) => {
+		const { parent } = current;
 
-	const {
-		_seen = new Set<string>(),
-		initialNode = node,
-		initialSelector = selector,
-		index = 1,
-	} = options._internal ?? {};
+		if (!parent || parent.type === 'root') {
+			results.push(path);
+			return;
+		}
 
-	const recurse = (
-		recurseSelector: string,
-		recurseNode: Node,
-		increaseIndex: number = 0,
-	) => {
-		return resolveNestedSelector({
-			selector: recurseSelector,
-			node: recurseNode,
-			_internal: { _seen, initialNode, initialSelector, index: index + increaseIndex },
-		});
+		if (isRule(parent)) {
+			for (const selector of parent.selectors) {
+				walk(parent, [{ type: 'rule', value: selector }, ...path]);
+			}
+			return;
+		}
+
+		if (isAtRule(parent, ['nest', 'at-root'])) {
+			// Skip `@at-root (with[out]: media)` declarations -
+			// they don't impact the tree structure.
+			if (parent.name === 'at-root' && parent.params.match(/\(\s*with(?:out)?:/)) {
+				return walk(parent, path);
+			}
+
+			const parts = split(parent.params, ',', false)
+				.map((s) => s.trim());
+
+			const type = parent.name === 'nest' ? 'nest' : 'at-root';
+
+			for (const part of parts) {
+				// If `@at-root` doesn't contain `&`, further resolution is pointless,
+				// as following selectors won't affect the result.
+				if (type === 'at-root' && !part.includes('&')) {
+					results.push(path);
+					return;
+				}
+				// Continue walking up the tree with meaningful `@nest` or `@at-root` value.
+				walk(parent, [{ type, value: part }, ...path]);
+			}
+			return;
+		}
+
+		// Process other `AtRule`s except `nest` and `at-root`.
+		walk(parent, path);
 	};
 
-	// Prevent infinite recursion for complex selectors like
-	// `.b:is(:hover, :focus) &`
-	const key = getCacheKey(selector, node);
-	if (selector.includes(',') && !_seen.has(key)) {
-		_seen.add(key);
-		return split(selector, ',', false)
-			.map((selectorPart) => selectorPart.trim())
-			.filter(Boolean)
-			.flatMap((selectorPart, selectorIndex) => {
-				return recurse(selectorPart, node, selectorIndex);
-			});
+	nodeSelector ??= isAtRule(node) ? node.params : node.selector;
+	const initialSelectors = split(nodeSelector, ',', false);
+
+	for (let i = 0, l = initialSelectors.length; i < l; i++) {
+		const selector = initialSelectors[i];
+		const offset = getOffset(initialSelectors, i);
+		walk(node, [{ offset, type: 'rule', value: selector.trim() }]);
 	}
 
-	const parent = node.parent as undefined | Root | ChildNode;
-	if (!parent || parent.type === 'root') {
-		return [{ raw: selector, resolved: selector, inject: null, offset: getOffset(initialSelector, index) }];
-	}
+	return results;
+};
 
-	if (parent.type !== 'rule' && !isAtRule(parent)) {
-		return recurse(selector, parent);
-	}
+/**
+ * Converts a list of selector trees (paths of nesting) into resolved selectors.
+ *
+ * @param   trees   An array of nesting paths.
+ *
+ * @returns         An array of `ResolvedSelector` objects.
+ */
+const resolveSelectorTrees = (trees: PathItem[][]): ResolvedSelector[] => {
+	return trees.map((tree) => {
+		const { offset, value: raw } = tree.at(-1)!;
+		assert(offset, '`getTrees` ensures that the last element includes `offset`');
 
-	// `@at-root (with[out]: X)` should not be processed
-	if (
-		isAtRule(parent) && parent.name === 'at-root'
-		&& parent.params.match(/\(\s*with(?:out)?:/)
-	) {
-		return recurse(selector, parent);
-	}
+		let context = '';
 
-	const parentSelectors = isAtRule(parent)
-		? split(parent.params, ',', false).map((x) => x.trim())
-		: parent.selectors;
+		// Traverse all nodes except the last one (which holds the raw selector).
+		for (let i = 0, l = tree.length; i < l; i++) {
+			const item = tree[i];
+			const isLast = i === tree.length - 1;
 
-	return parentSelectors.reduce<ResolvedSelector[]>((acc, parentSelector) => {
-		if (selector.includes('&')) {
-			const newlyResolvedSelectors = recurse(parentSelector, parent)
-				.map((resolvedParentSelector) => {
-					const unwrappedSelector = unwrapInterpolatedNesting(selector);
-					return {
-						raw: selector,
-						resolved: split(unwrappedSelector, '&', true).join(resolvedParentSelector.resolved),
-						inject: selector.includes('&') ? resolvedParentSelector.resolved : null,
-						offset: getOffset(initialSelector, index),
-					};
-				});
+			if (isLast) continue;
 
-			acc.push(...newlyResolvedSelectors);
-			return acc;
+			// If the value contains `&`, replace it with the current context.
+			// Otherwise, concatenate the value as a descendant selector.
+			context = item.value.includes('&')
+				? split(item.value, '&', true).join(context).trim()
+				: context.length ? `${context} ${item.value}` : item.value;
 		}
 
-		const combinedSelector = isAtRootContext(node)
-			? selector
-			: [parentSelector, selector].join(' ');
+		if (raw.includes('&')) {
+			// If the raw selector contains `&`, replace it with the accumulated context.
+			const resolved = split(unwrapInterpolatedNesting(raw), '&', true)
+				.join(context);
 
-		const nestedRecurse = recurse(combinedSelector, parent);
-		if (node === initialNode) {
-			nestedRecurse[0].raw = selector;
-			if (!selector.includes('&')) {
-				nestedRecurse[0].inject = null;
-			}
+			return { raw, resolved, inject: context, offset };
 		}
-		acc.push(...nestedRecurse);
-		return acc;
-	}, []);
+
+		// If there's no `&`, treat the raw selector as an additional descendant.
+		const inject = context ? `${context} ` : '';
+		return { raw, resolved: inject + raw, inject, offset };
+	});
+};
+
+/**
+ * Recursively resolves a nested selector to its fully expanded form
+ * by analyzing its ancestry and applying all nesting contexts.
+ *
+ * Supports resolving selectors from:
+ * * Rules inside other rules
+ * * `@nest` at-rules
+ * * `@at-root` at-rules (including their context-resetting behavior)
+ *
+ * @param   options   Object containing the PostCSS node and optionally an override selector string.
+ *
+ * @returns           An array of `ResolvedSelector` objects, where each represents a complete flattened selector.
+ */
+export const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
+	const trees = getTrees(options.node, options.selector);
+
+	return resolveSelectorTrees(trees);
 };
