@@ -46,7 +46,7 @@
 	"scripts": {
 		"prepare": "lefthook install",
 		"test": "vitest",
-		"test:dev": "vitest --watch",
+		"test:dev": "vitest --watch --reporter=dot",
 		"lint": "yarn lint:eslint && yarn lint:stylelint",
 		"lint:fix": "yarn lint:eslint:fix && yarn lint:stylelint:fix",
 		"lint:eslint": "eslint \"**/*.{js,ts,vue,json,json5,jsonc,yml,yaml,md}\"",
