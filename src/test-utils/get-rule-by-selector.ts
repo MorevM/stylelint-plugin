@@ -1,7 +1,7 @@
 import { isString } from '@morev/utils';
 import postcss from 'postcss';
 import postcssScss from 'postcss-scss';
-import { isAtRule, isRule, parseSelectors } from '#utils';
+import { isAtRule, isRule } from '#utils';
 
 /**
  * Parses the given source (as a string or PostCSS root) and returns
@@ -43,16 +43,3 @@ export const getRuleBySelector = (
 
 	return found;
 };
-
-/**
- * Thin wrapper around `parseSelectors` for the common case of a single (non-comma-separated) selector.
- *
- * Assumes the input is a single selector without commas (e.g., `.block__element--modifier`),
- * and returns the first parsed `Selector` node.
- *
- * @param   selector   A simple, single CSS selector string.
- *
- * @returns            The first (and only) parsed selector node.
- */
-export const parseSelector = (selector: string) =>
-	parseSelectors(selector)[0];

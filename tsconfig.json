@@ -15,7 +15,8 @@
 		"baseUrl": ".",
 		"types": ["node", "vitest/globals"],
 		"paths": {
-			"#test-utils": ["./src/test-utils.ts"],
+			"#types": ["./src/types/index.ts"],
+			"#test-utils": ["./src/test-utils/index.ts"],
 			"#constants": ["./src/constants/index.ts"],
 			"#utils": ["./src/utils/index.ts"],
 			"#valibot": ["./src/valibot-extensions.ts"],
