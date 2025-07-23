@@ -1,29 +1,14 @@
-import postcss from 'postcss';
-import postcssScss from 'postcss-scss';
+import { getRuleBySelector } from '#test-utils';
 import { resolveNestedSelector } from './resolve-nested-selector';
-import type { AtRule, Rule } from 'postcss';
 
 const resolveSelectorInContext = (
 	code: string,
 	selector: string,
 	customSelector?: string,
 ) => {
-	const { root } = postcss().process(code, { syntax: postcssScss });
-
-	let found: Rule | AtRule | null = null;
-	let source: string | null = null;
-	root.walk((rule) => {
-		if (found || (rule.type !== 'rule' && rule.type !== 'atrule')) return;
-		source = rule.type === 'rule' ? rule.selector : rule.params;
-		if (source === selector) {
-			found = rule;
-		}
-	});
-	if (!found) throw new Error(`Rule not found: ${selector}`);
-
 	return resolveNestedSelector({
-		selector: customSelector ?? source!,
-		node: found,
+		selector: customSelector,
+		node: getRuleBySelector(code, selector),
 	});
 };
 

@@ -1,17 +1,5 @@
-import { parseSelectors } from '#utils';
+import { parseSelector, stringifySelectorNodes } from '#test-utils';
 import { getBemCandidateSegments } from './get-bem-candidate-segments';
-
-const parseSelector = (selector: string) => parseSelectors(selector)[0];
-
-/**
- * Utility to convert array of Node[] to array of string[] for easier comparison in tests.
- *
- * @param   segments   Result of `getBemCandidateSegments`.
- *
- * @returns            An array of string arrays representing selector fragments.
- */
-const segmentsToStrings = (segments: ReturnType<typeof getBemCandidateSegments>) =>
-	segments.map((segment) => segment.map((node) => node.toString()));
 
 describe(getBemCandidateSegments, () => {
 	it('Returns empty array for empty input', () => {
@@ -24,21 +12,21 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('h1 > header nav span');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([]);
+		expect(stringifySelectorNodes(segments)).toStrictEqual([]);
 	});
 
 	it('Ignores segments without any class placed in pseudo-class', () => {
 		const nodes = parseSelector('h1 > header nav span:not(h1 > header nav span)');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([]);
+		expect(stringifySelectorNodes(segments)).toStrictEqual([]);
 	});
 
 	it('Includes nesting selector with pseudo-element and class', () => {
 		const nodes = parseSelector('&__element::after');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['&', '__element', '::after'],
 		]);
 	});
@@ -47,7 +35,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('&.is-active');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['&', '.is-active'],
 		]);
 	});
@@ -56,7 +44,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('.block > #id .element + .modifier ~ span.label');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['.block'],
 			['.element'],
 			['.modifier'],
@@ -68,7 +56,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('h3.section-title');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['h3', '.section-title'],
 		]);
 	});
@@ -77,7 +65,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('.block--element.is-active section + section h3.section-title');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['.block--element', '.is-active'],
 			['h3', '.section-title'],
 		]);
@@ -87,7 +75,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('input[type="text"].field');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['input', '[type="text"]', '.field'],
 		]);
 	});
@@ -96,7 +84,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector(':not(.is-disabled)');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['.is-disabled'],
 		]);
 	});
@@ -105,7 +93,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('div:has(.is-disabled, .foo, header, header.foo)');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['.is-disabled'],
 			[' .foo'],
 			[' header', '.foo'],
@@ -116,7 +104,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('.card:has(header .card__title.is-active).is-active');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['.card', ':has(header .card__title.is-active)', '.is-active'],
 			['.card__title', '.is-active'],
 		]);
@@ -126,7 +114,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('.button:not(.is-disabled).is-active');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['.button', ':not(.is-disabled)', '.is-active'],
 			['.is-disabled'],
 		]);
@@ -136,7 +124,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('&__item:not(.is-disabled:not(&__foo.is-active)).is-active');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['&', '__item', ':not(.is-disabled:not(&__foo.is-active))', '.is-active'],
 			['.is-disabled', ':not(&__foo.is-active)'],
 			['&', '__foo', '.is-active'],
@@ -147,7 +135,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('.card:not(:has(section .card__title.is-active)).is-active');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['.card', ':not(:has(section .card__title.is-active))', '.is-active'],
 			['.card__title', '.is-active'],
 		]);
@@ -157,7 +145,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('&--type#{&}--size#{&}--theme');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['&', '--type', '#{&}', '--size', '#{&}', '--theme'],
 		]);
 	});
@@ -166,7 +154,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('@at-root .block__element.is-active');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['.block__element', '.is-active'],
 		]);
 	});
@@ -175,7 +163,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('@nest .block__element.is-active');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['.block__element', '.is-active'],
 		]);
 	});
@@ -184,7 +172,7 @@ describe(getBemCandidateSegments, () => {
 		const nodes = parseSelector('.foo#{&}');
 		const segments = getBemCandidateSegments(nodes);
 
-		expect(segmentsToStrings(segments)).toStrictEqual([
+		expect(stringifySelectorNodes(segments)).toStrictEqual([
 			['.foo'],
 			['#{&}'],
 		]);
