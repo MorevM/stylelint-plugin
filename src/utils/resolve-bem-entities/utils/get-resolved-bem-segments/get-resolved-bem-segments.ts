@@ -5,7 +5,7 @@ import { extractSelectorSegment } from '../extract-selector-segment/extract-sele
 import { getBemCandidateSegments } from '../get-bem-candidate-segments/get-bem-candidate-segments';
 import type postcss from 'postcss';
 import type parser from 'postcss-selector-parser';
-import type { BemNode } from '../../resolve-bem-entities-next.types';
+import type { BemNode } from '../../resolve-bem-entities.types';
 
 
 /**

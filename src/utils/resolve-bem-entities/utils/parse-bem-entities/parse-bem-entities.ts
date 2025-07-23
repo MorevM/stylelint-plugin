@@ -2,7 +2,7 @@ import { isEmpty, rangesIntersection } from '@morev/utils';
 import type { AtRule, Rule } from 'postcss';
 import type { ClassName } from 'postcss-selector-parser';
 import type { Separators } from '#types';
-import type { BemEntity, BemEntityPart, BemNode, EntityType } from '~utils/resolve-bem-entities-next/resolve-bem-entities-next.types';
+import type { BemEntity, BemEntityPart, BemNode, EntityType } from '../../resolve-bem-entities.types';
 
 /**
  * Parameters for parsing a BEM class node into structured entity parts.

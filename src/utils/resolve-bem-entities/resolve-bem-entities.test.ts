@@ -1,39 +1,23 @@
-import { parse } from 'postcss';
+import postcss from 'postcss';
+import postcssScss from 'postcss-scss';
+import { getRuleBySelector } from '#test-utils';
 import { resolveBemEntities } from './resolve-bem-entities';
 import type { Rule } from 'postcss';
 
-const getFirstNode = (sourceCss: string) => {
-	const root = parse(sourceCss);
-
-	return root.nodes[0] as Rule;
+const separators = {
+	elementSeparator: '__',
+	modifierSeparator: '--',
+	modifierValueSeparator: '--',
 };
 
-const styles = {
-	TWO_DASH: {
-		elementSeparator: '__',
-		modifierSeparator: '--',
-		modifierValueSeparator: '--',
-	},
-	TRADITIONAL: {
-		elementSeparator: '__',
-		modifierSeparator: '_',
-		modifierValueSeparator: '_',
-	},
-	REACT: {
-		elementSeparator: '-',
-		modifierSeparator: '_',
-		modifierValueSeparator: '_',
-	},
-};
+const resolveWith = (source: string, ruleSelector?: string, customSeparators?: typeof separators) => {
+	const { root } = postcss().process(source.trim(), { syntax: postcssScss });
 
-const resolveWith = (
-	sourceCss: string,
-	style: keyof (typeof styles) = 'TWO_DASH',
-) => {
-	return resolveBemEntities(
-		getFirstNode(sourceCss),
-		styles[style],
-	);
+	const rule = ruleSelector
+		? getRuleBySelector(root, ruleSelector)
+		: root.nodes[0] as Rule;
+
+	return resolveBemEntities({ rule, separators: customSeparators ?? separators });
 };
 
 describe(resolveBemEntities, () => {
@@ -42,241 +26,389 @@ describe(resolveBemEntities, () => {
 			expect(resolveWith(`a {}`)).toStrictEqual([]);
 			expect(resolveWith(`#id {}`)).toStrictEqual([]);
 			expect(resolveWith(`a[class="qwe"] {}`)).toStrictEqual([]);
-			expect(resolveWith(`div.class {}`)).toStrictEqual([]);
-			expect(resolveWith(`[class="qwe"].qwe {}`)).toStrictEqual([]);
-			expect(resolveWith(`a:hover.qwe {}`)).toStrictEqual([]);
-			expect(resolveWith(`a::focus.qwe {}`)).toStrictEqual([]);
+			expect(resolveWith(`::where(section h3) {}`)).toStrictEqual([]);
+			expect(resolveWith(`section::has(h1)::before {}`)).toStrictEqual([]);
 		});
 
 		it(`The number of resolved entities is equal to the number of potential BEM blocks in the selector`, () => {
 			expect(resolveWith(`a {}`)).toHaveLength(0);
 			expect(resolveWith(`.the-component {}`)).toHaveLength(1);
-			expect(resolveWith(`.the-component .another-one {}`)).toHaveLength(2);
-			expect(resolveWith(`.the-component, .another-one.is-active {}`)).toHaveLength(2);
-			expect(resolveWith(`.the-component, .another-one.is-active + .another-one {}`)).toHaveLength(3);
-			expect(resolveWith(`html #wrapper .the-component, .another-one.is-active + .another-one {}`)).toHaveLength(3);
+			expect(resolveWith(`.the-component:is(.the-component--active) {}`)).toHaveLength(2);
+			expect(resolveWith(`.the-component.another-one {}`)).toHaveLength(2);
+			expect(resolveWith(`.the-component, .another-one.another-one--active {}`)).toHaveLength(3);
+			expect(resolveWith(`.the-component, .another-one.foo-component + .another-one {}`)).toHaveLength(4);
+			expect(resolveWith(`html #wrapper .the-component, .another-one.is-active:has(.bar, .baz) {}`)).toHaveLength(5);
 			expect(resolveWith(`@at-root .foo-component {}`)).toHaveLength(1);
-			expect(resolveWith(`@at-root .foo-component, .bar-component {}`)).toHaveLength(2);
+			expect(resolveWith(`@at-root section.foo-component, [data-test].bar-component {}`)).toHaveLength(2);
 		});
 	});
 
 	describe('Structure tests', () => {
-		it('Resolves full structure for complex selector without nesting', () => {
-			const rule = parse(`.block__el--mod--val.util-1.util-2 {}`).nodes[0] as Rule;
-			const entity = resolveBemEntities(rule, styles.TWO_DASH)[0];
+		describe('Plain selector', () => {
+			it('Resolves BEM block, element, modifier name / value pairs from a plain selector', () => {
+				const entity = resolveWith(`
+					.block__element--modifier-name--modifier-value {}
+				`)[0];
 
-			expect(entity.rule).toBe(rule);
+				expect(entity.block.value).toBe('block');
+				expect(entity.element?.value).toBe('element');
+				expect(entity.modifierName?.value).toBe('modifier-name');
+				expect(entity.modifierValue?.value).toBe('modifier-value');
+			});
 
-			expect(entity.originalSelector).toBe('.block__el--mod--val.util-1.util-2');
-			expect(entity.resolvedSelector).toBe('.block__el--mod--val.util-1.util-2');
+			it('Resolves BEM entities from root-level pseudo and nested pseudos as well', () => {
+				const result = resolveWith(`
+					:is(.block__element--modifier-name--modifier-value:is(.foo)) {}
+				`);
 
-			expect(entity.selector.value).toBe('.block__el--mod--val.util-1.util-2');
-			expect(entity.selector.separator).toBe('');
-			expect(entity.selector.startIndex).toBe(0);
-			expect(entity.selector.endIndex).toBe(entity.selector.value.length);
+				expect(result).toHaveLength(2);
 
-			expect(entity.block?.value).toBe('block');
-			expect(entity.block?.separator).toBe('.');
-			expect(entity.block?.selector).toBe('.block');
-			expect(entity.element?.value).toBe('el');
-			expect(entity.element?.separator).toBe('__');
-			expect(entity.element?.selector).toBe('__el');
-			expect(entity.modifierName?.value).toBe('mod');
-			expect(entity.modifierName?.separator).toBe('--');
-			expect(entity.modifierName?.selector).toBe('--mod');
-			expect(entity.modifierValue?.value).toBe('val');
-			expect(entity.modifierValue?.separator).toBe('--');
-			expect(entity.modifierValue?.selector).toBe('--val');
-			expect(entity.utility?.map((u) => u.value)).toStrictEqual(['util-1', 'util-2']);
-			expect(entity.utility?.map((u) => u.separator)).toStrictEqual(['.', '.']);
-			expect(entity.utility?.map((u) => u.selector)).toStrictEqual(['.util-1', '.util-2']);
+				expect(result[0].block.value).toBe('block');
+				expect(result[0].element?.value).toBe('element');
+				expect(result[0].modifierName?.value).toBe('modifier-name');
+				expect(result[0].modifierValue?.value).toBe('modifier-value');
+
+				expect(result[1].block.value).toBe('foo');
+				expect(result[1].element?.value).toBeUndefined();
+				expect(result[1].modifierName?.value).toBeUndefined();
+				expect(result[1].modifierValue?.value).toBeUndefined();
+			});
+
+			it('Set entity parts to `undefined` if they are not presented', () => {
+				const entity = resolveWith(`
+					.block--modifier {}
+				`)[0];
+
+				expect(entity.block.value).toBe('block');
+				expect(entity.element?.value).toBeUndefined();
+				expect(entity.modifierName?.value).toBe('modifier');
+				expect(entity.modifierValue?.value).toBeUndefined();
+			});
+
+			it('Resolves compound selector at once', () => {
+				const result = resolveWith(`
+					.block__foo, .block__bar {}
+				`);
+
+				expect(result).toHaveLength(2);
+
+				expect(result[0].block.value).toBe('block');
+				expect(result[0].element?.value).toBe('foo');
+
+				expect(result[1].block.value).toBe('block');
+				expect(result[1].element?.value).toBe('bar');
+			});
 		});
 
-		it('Resolves full structure for complex compound selector without nesting', () => {
-			const entity = resolveWith(`
-				.block__el--mod--val.util-1.util-2, .foo--mod {}
-			`)[1];
-
-			expect(entity.originalSelector).toBe('.block__el--mod--val.util-1.util-2, .foo--mod');
-			expect(entity.resolvedSelector).toBe('.block__el--mod--val.util-1.util-2, .foo--mod');
-
-			expect(entity.selector.value).toBe('.foo--mod');
-			expect(entity.selector.startIndex).toBe(36);
-			expect(entity.selector.endIndex).toBe(36 + entity.selector.value.length);
-
-			expect(entity.block?.value).toBe('foo');
-			expect(entity.element).toBeUndefined();
-			expect(entity.modifierName?.value).toBe('mod');
-			expect(entity.modifierValue).toBeUndefined();
-			expect(entity.utility).toBeUndefined();
-		});
-
-		it('Resolves full structure for complex selector using nesting', () => {
-			const root = parse(`
-				.block {
-					&__el {
-						&--mod--value.is-active {}
+		describe('Nested selector', () => {
+			it('Resolves BEM block, element, modifier name / value pairs from a nested selector', () => {
+				const entity = resolveWith(`
+					.block {
+						&__element {
+							&--modifier-name {
+								&--modifier-value {}
+							}
+						}
 					}
-				}
-			`);
+				`, `&--modifier-value`)[0];
 
-			// @ts-expect-error -- Trust me it exists
-			const entity = resolveBemEntities(root.nodes[0].nodes[0].nodes[0], styles.TWO_DASH)[0];
+				expect(entity.block.value).toBe('block');
+				expect(entity.element?.value).toBe('element');
+				expect(entity.modifierName?.value).toBe('modifier-name');
+				expect(entity.modifierValue?.value).toBe('modifier-value');
+			});
 
-			expect(entity.originalSelector).toBe('&--mod--value.is-active');
-			expect(entity.resolvedSelector).toBe('.block__el--mod--value.is-active');
+			it('Resolves only parts that are relevant to the given selector', () => {
+				const result = resolveWith(`
+					.foo .bar .block {
+						&__element {}
+					}
+				`, `&__element`);
 
+				expect(result).toHaveLength(1);
 
-			expect(entity.selector.value).toBe('.block__el--mod--value.is-active');
-			expect(entity.selector.startIndex).toBe(0);
-			expect(entity.selector.endIndex).toBe(entity.selector.value.length);
+				const entity = result[0];
 
-			expect(entity.block?.value).toBe('block');
-			expect(entity.element?.value).toBe('el');
-			expect(entity.modifierName?.value).toBe('mod');
-			expect(entity.modifierValue?.value).toBe('value');
-			expect(entity.utility?.[0].value).toBe('is-active');
+				expect(entity.block.value).toBe('block');
+				expect(entity.element?.value).toBe('element');
+			});
+
+			it('Resolves compound selector at once', () => {
+				const result = resolveWith(`
+					.block {
+						&__foo, &__bar {}
+					}
+				`, `&__foo, &__bar`);
+
+				expect(result).toHaveLength(2);
+
+				expect(result[0].block.value).toBe('block');
+				expect(result[0].element?.value).toBe('foo');
+
+				expect(result[1].block.value).toBe('block');
+				expect(result[1].element?.value).toBe('bar');
+			});
+
+			it('Resolves entities from `@at-root` directive using nesting in the middle of selector', () => {
+				const result = resolveWith(`
+					.foo__item {
+						@at-root .bar__item:not(.block) & .baz__item {}
+					}
+				`, `.bar__item:not(.block) & .baz__item`);
+
+				expect(result).toHaveLength(4);
+
+				expect(result[0].block.value).toBe('bar');
+				expect(result[0].block.sourceRange).toStrictEqual([10, 13]);
+				expect(result[0].element?.value).toBe('item');
+				expect(result[0].element?.sourceRange).toStrictEqual([15, 19]);
+
+				expect(result[1].block.value).toBe('block');
+				expect(result[1].block.sourceRange).toStrictEqual([25, 30]);
+				expect(result[1].element?.value).toBeUndefined();
+				expect(result[1].element?.sourceRange).toBeUndefined();
+
+				expect(result[2].block.value).toBe('foo');
+				expect(result[2].block.sourceRange).toBeUndefined();
+				expect(result[2].element?.value).toBe('item');
+				expect(result[2].element?.sourceRange).toBeUndefined();
+
+				expect(result[3].block.value).toBe('baz');
+				expect(result[3].block.sourceRange).toStrictEqual([35, 38]);
+				expect(result[3].element?.value).toBe('item');
+				expect(result[3].element?.sourceRange).toStrictEqual([40, 44]);
+			});
+
+			it('Resolves entities from `@nest` directive', () => {
+				const result = resolveWith(`
+					.foo {
+						@nest .bar & {}
+					}
+				`, `.bar &`);
+
+				expect(result).toHaveLength(2);
+
+				expect(result[0].block.value).toBe('bar');
+				expect(result[0].block.sourceRange).toStrictEqual([7, 10]);
+
+				expect(result[1].block.value).toBe('foo');
+				expect(result[1].block.sourceRange).toBeUndefined();
+			});
 		});
 
-		it('Resolves entities by selector, not a `Rule` or `AtRule`', () => {
-			const entity = resolveBemEntities(`.block__el--mod--val.util-1.util-2`, styles.TWO_DASH)[0];
+		describe('Custom source', () => {
+			it('Resolves entities by `source`, not `Rule` or `AtRule`', () => {
+				const result = resolveBemEntities({
+					source: '.block__element--modifier',
+					separators,
+				});
 
-			expect(entity.rule).toBeUndefined();
-			expect(entity.originalSelector).toBe('.block__el--mod--val.util-1.util-2');
-			expect(entity.resolvedSelector).toBe('.block__el--mod--val.util-1.util-2');
+				expect(result).toHaveLength(1);
 
-			expect(entity.selector.value).toBe('.block__el--mod--val.util-1.util-2');
-			expect(entity.selector.startIndex).toBe(0);
-			expect(entity.selector.endIndex).toBe(entity.selector.value.length);
+				expect(result[0].block.value).toBe('block');
+				expect(result[0].element?.value).toBe('element');
+				expect(result[0].modifierName?.value).toBe('modifier');
+				expect(result[0].modifierValue?.value).toBeUndefined();
+			});
 
-			expect(entity.block?.value).toBe('block');
-			expect(entity.element?.value).toBe('el');
-			expect(entity.modifierName?.value).toBe('mod');
-			expect(entity.modifierValue?.value).toBe('val');
-			expect(entity.utility?.map((u) => u.value)).toStrictEqual(['util-1', 'util-2']);
-		});
+			it('Prefers `source` over rule.selector even if they conflict', () => {
+				const { root } = postcss().process(`
+					.block {
+						&--mod {}
+					}
+				`, { syntax: postcssScss });
 
-		it('Resolves entities by a partial selector using `source` option', () => {
-			const root = parse(`
-				.block {
-					&__el, &__el2 {}
+				// @ts-expect-error — trust me, it's a Rule
+				const rule = root.nodes[0].nodes[0];
+
+				const result = resolveBemEntities({ rule, source: '&__element--alt-mod', separators });
+
+				expect(result).toHaveLength(1);
+				expect(result[0].block.value).toBe('block');
+				expect(result[0].element?.value).toBe('element');
+				expect(result[0].modifierName?.value).toBe('alt-mod');
+			});
+
+			it('Resolves entities by custom `source`', () => {
+				const { root } = postcss().process(`
+				.foo {
+					&__bar {}
 				}
-			`);
+			`, { syntax: postcssScss });
 
-			// @ts-expect-error -- Trust me it exists
-			const compoundRule = root.nodes[0].nodes[0] as Rule;
+				// @ts-expect-error -- Trust me it exists
+				const rule = root.nodes[0].nodes[0];
 
-			expect(compoundRule.selector).toBe('&__el, &__el2');
-			expect(resolveBemEntities(compoundRule, styles.TWO_DASH)).toHaveLength(2);
+				const result = resolveBemEntities({ rule, separators, source: '&__baz, &__qwe' });
 
-			const singleSelectorEntities = resolveBemEntities(compoundRule, styles.TWO_DASH, { source: '&__el' });
+				expect(result).toHaveLength(2);
 
-			expect(singleSelectorEntities).toHaveLength(1);
+				expect(result[0].block.value).toBe('foo');
+				expect(result[0].element?.value).toBe('baz');
 
-			const entity = singleSelectorEntities[0];
+				expect(result[1].block.value).toBe('foo');
+				expect(result[1].element?.value).toBe('qwe');
+			});
 
-			expect(entity.originalSelector).toBe('&__el');
-			expect(entity.resolvedSelector).toBe('.block__el');
+			it('Resolves entity from invalid-looking but syntactically correct BEM class', () => {
+				const result = resolveWith(`.block_______element {}`);
 
-			expect(entity.selector.value).toBe('.block__el');
-			expect(entity.selector.startIndex).toBe(0);
-			expect(entity.selector.endIndex).toBe(entity.selector.value.length);
+				expect(result).toHaveLength(1);
+				expect(result[0].block.value).toBe('block');
+				expect(result[0].element?.value).toBe('_____element');
+			});
 
-			expect(entity.block?.value).toBe('block');
-			expect(entity.element?.value).toBe('el');
-			expect(entity.modifierName?.value).toBeUndefined();
-			expect(entity.modifierValue?.value).toBeUndefined();
-			expect(entity.utility).toBeUndefined();
+			it('Returns empty array for empty selector string', () => {
+				expect(resolveBemEntities({ separators, source: '' })).toStrictEqual([]);
+			});
 		});
 	});
 
 	describe('Indices', () => {
-		it('Resolves entity indices for complex selector without nesting', () => {
-			const entity = resolveWith(`.block__el--mod--val.util-1.util-2 {}`)[0];
+		it('Resolves proper indices with plain selector', () => {
+			const result = resolveWith(`
+				.block__element--modifier-name--modifier-value {}
+			`);
 
-			expect(entity.selector?.value).toBe('.block__el--mod--val.util-1.util-2');
-			expect(entity.selector?.startIndex).toBe(0);
-			expect(entity.selector?.endIndex).toBe(entity.selector?.value.length);
-
-			expect(entity.block?.value).toBe('block');
-			expect(entity.block?.startIndex).toBe(1);
-
-			expect(entity.element?.value).toBe('el');
-			expect(entity.element?.startIndex).toBe(8);
-			expect(entity.element?.endIndex).toBe(10);
-
-			expect(entity.modifierName?.value).toBe('mod');
-			expect(entity.modifierName?.startIndex).toBe(12);
-			expect(entity.modifierName?.endIndex).toBe(15);
-
-			expect(entity.modifierValue?.value).toBe('val');
-			expect(entity.modifierValue?.startIndex).toBe(17);
-			expect(entity.modifierValue?.endIndex).toBe(20);
-
-			expect(entity.utility?.[0].value).toBe('util-1');
-			expect(entity.utility?.[0].startIndex).toBe(21);
-			expect(entity.utility?.[0].endIndex).toBe(27);
-
-			expect(entity.utility?.[1].value).toBe('util-2');
-			expect(entity.utility?.[1].startIndex).toBe(28);
-			expect(entity.utility?.[1].endIndex).toBe(34);
+			expect(result[0].block.sourceRange).toStrictEqual([1, 6]);
+			expect(result[0].element?.sourceRange).toStrictEqual([8, 15]);
+			expect(result[0].modifierName?.sourceRange).toStrictEqual([17, 30]);
+			expect(result[0].modifierValue?.sourceRange).toStrictEqual([32, 46]);
 		});
 
-		it('Resolves entity indices for complex compound selector without nesting', () => {
-			const entity = resolveWith(`
-				.block__el--mod--val.util-1.util-2,
-				.foo-bar__el.util-1 {}
-			`)[1];
+		it('Resolves proper indices with consecutive classes', () => {
+			const result = resolveWith(`
+				.block.foo-block {}
+			`);
 
-			expect(entity.selector?.value).toBe('.foo-bar__el.util-1');
-			expect(entity.selector?.startIndex).toBe(40);
-			expect(entity.selector?.endIndex).toBe(40 + entity.selector?.value.length);
-
-			expect(entity.block?.value).toBe('foo-bar');
-			expect(entity.block?.startIndex).toBe(1);
-			expect(entity.block?.endIndex).toBe(8);
-
-			expect(entity.element?.value).toBe('el');
-			expect(entity.element?.startIndex).toBe(10);
-			expect(entity.element?.endIndex).toBe(12);
-
-			expect(entity.utility?.[0].value).toBe('util-1');
-			expect(entity.utility?.[0].startIndex).toBe(13);
-			expect(entity.utility?.[0].endIndex).toBe(19);
+			expect(result[1].block.sourceRange).toStrictEqual([7, 16]);
 		});
 
-		it('Resolves entity indices for complex compound selector using nesting', () => {
-			const root = parse(`
-				.block {
-					&__el {
-						&--mod, .foo-bar__el.util-1.util-2 {}
+		it('Resolves proper indices with plain selector in root-level pseudo', () => {
+			const result = resolveWith(`
+				:is(.block__element--modifier-name--modifier-value) {}
+			`);
+
+			expect(result[0].block.sourceRange).toStrictEqual([5, 10]);
+			expect(result[0].element?.sourceRange).toStrictEqual([12, 19]);
+			expect(result[0].modifierName?.sourceRange).toStrictEqual([21, 34]);
+			expect(result[0].modifierValue?.sourceRange).toStrictEqual([36, 50]);
+		});
+
+		it('Resolves proper indices using CSS nesting', () => {
+			const result = resolveWith(`
+				.foo {
+					.block__element--modifier-name--modifier-value {}
+				}
+			`, `.block__element--modifier-name--modifier-value`);
+
+			expect(result[0].block.sourceRange).toStrictEqual([1, 6]);
+			expect(result[0].element?.sourceRange).toStrictEqual([8, 15]);
+			expect(result[0].modifierName?.sourceRange).toStrictEqual([17, 30]);
+			expect(result[0].modifierValue?.sourceRange).toStrictEqual([32, 46]);
+		});
+
+		it('Resolves proper indices using CSS nesting with pseudo', () => {
+			const result = resolveWith(`
+				.foo {
+					&:has(.card--active) {}
+				}
+			`, `&:has(.card--active)`);
+
+			expect(result).toHaveLength(2); // .foo  .card--active
+
+			expect(result[1].block.sourceRange).toStrictEqual([7, 11]);
+			expect(result[1].element?.sourceRange).toBeUndefined();
+			expect(result[1].modifierName?.sourceRange).toStrictEqual([13, 19]);
+			expect(result[1].modifierValue?.sourceRange).toBeUndefined();
+		});
+
+		it('Resolves proper indices using SCSS nesting', () => {
+			const result = resolveWith(`
+				.foo {
+					&__item--modifier {}
+				}
+			`, `&__item--modifier`);
+
+			expect(result).toHaveLength(1);
+
+			expect(result[0].block.sourceRange).toBeUndefined();
+			expect(result[0].element?.sourceRange).toStrictEqual([3, 7]);
+			expect(result[0].modifierName?.sourceRange).toStrictEqual([9, 17]);
+			expect(result[0].modifierValue?.sourceRange).toBeUndefined();
+		});
+
+		it('Resolves proper indices using SCSS nesting if the block name is splitted', () => {
+			const result = resolveWith(`
+				.foo {
+					&-bar__item--modifier {}
+				}
+			`, `&-bar__item--modifier`);
+
+			expect(result).toHaveLength(1);
+
+			expect(result[0].block.sourceRange).toStrictEqual([0, 5]);
+			expect(result[0].element?.sourceRange).toStrictEqual([7, 11]);
+			expect(result[0].modifierName?.sourceRange).toStrictEqual([13, 21]);
+			expect(result[0].modifierValue?.sourceRange).toBeUndefined();
+		});
+
+		it('Resolves proper indices using SCSS nesting if the element is splitted', () => {
+			const result = resolveWith(`
+				.foo {
+					&__item {
+						&-title {
+							&-icon--icon {}
+						}
 					}
 				}
-			`);
-			// .block__el--mod, .foo-bar__el--mod.util-1.util-2
+			`, `&-icon--icon`);
 
-			// @ts-expect-error -- Trust me it exists
-			const entity = resolveBemEntities(root.nodes[0].nodes[0].nodes[0], styles.TWO_DASH)[1];
+			expect(result).toHaveLength(1);
 
-			expect(entity.selector?.value).toBe('.foo-bar__el.util-1.util-2');
-			expect(entity.selector?.startIndex).toBe(17);
-			expect(entity.selector?.endIndex).toBe(43);
+			expect(result[0].block.sourceRange).toBeUndefined();
+			expect(result[0].element?.sourceRange).toStrictEqual([0, 6]);
+			expect(result[0].modifierName?.sourceRange).toStrictEqual([8, 12]);
+			expect(result[0].modifierValue?.sourceRange).toBeUndefined();
+		});
 
-			expect(entity.block?.value).toBe('foo-bar');
-			expect(entity.block?.startIndex).toBe(1);
-			expect(entity.block?.endIndex).toBe(8);
+		it('Resolves proper indices using SCSS nesting if the modifier value is deeply splitted', () => {
+			const result = resolveWith(`
+				.foo {
+					&__item {
+						&--modifier {
+							&--name {
+								&-surname {
+									&-patronymic {}
+								}
+							}
+						}
+					}
+				}
+			`, `&-patronymic`);
 
-			expect(entity.element?.value).toBe('el');
-			expect(entity.element?.startIndex).toBe(10);
-			expect(entity.element?.endIndex).toBe(12);
+			expect(result).toHaveLength(1);
 
-			expect(entity.utility?.[0].value).toBe('util-1');
-			expect(entity.utility?.[0].startIndex).toBe(13);
-			expect(entity.utility?.[0].endIndex).toBe(19);
+			expect(result[0].block.sourceRange).toBeUndefined();
+			expect(result[0].element?.sourceRange).toBeUndefined();
+			expect(result[0].modifierName?.sourceRange).toBeUndefined();
+			expect(result[0].modifierValue?.value).toBe('name-surname-patronymic');
+			expect(result[0].modifierValue?.sourceRange).toStrictEqual([0, 12]);
+		});
 
-			expect(entity.utility?.[1].value).toBe('util-2');
-			expect(entity.utility?.[1].startIndex).toBe(20);
-			expect(entity.utility?.[1].endIndex).toBe(26);
+		it('Resolves proper indices if BEM entity is placed within pseudo and uses nesting', () => {
+			const result = resolveWith(`
+				.foo {
+					&__item--mod:has(#{&}-block--mod) {}
+				}
+			`, `&__item--mod:has(#{&}-block--mod)`);
+
+			expect(result).toHaveLength(2);
+
+			expect(result[1].block.value).toBe('foo-block');
+			expect(result[1].block.sourceRange).toStrictEqual([17, 27]);
+			expect(result[1].element?.value).toBeUndefined();
+			expect(result[1].modifierName?.value).toBe('mod');
 		});
 	});
 
@@ -289,11 +421,10 @@ describe(resolveBemEntities, () => {
 				expect(resolveWith(`.компонент {}`)[0].block.value).toBe('компонент');
 			});
 
-			it(`Resolves a BEM block followed by utilities or pseudo-classes/pseudo-elements`, () => {
+			it(`Resolves a BEM block followed by another BEM entities or pseudo-classes/pseudo-elements`, () => {
 				expect(resolveWith(`.the-component:hover {}`)[0].block.value).toBe('the-component');
 				expect(resolveWith(`.the-component::placeholder {}`)[0].block.value).toBe('the-component');
-				expect(resolveWith(`.the-component.is-active {}`)[0].block.value).toBe('the-component');
-				expect(resolveWith(`.the-component.is-active.is-disabled {}`)[0].block.value).toBe('the-component');
+				expect(resolveWith(`.the-component.bar-component {}`)[0].block.value).toBe('the-component');
 				expect(resolveWith(`.the-component#id.is-active.is-disabled {}`)[0].block.value).toBe('the-component');
 			});
 
@@ -437,39 +568,6 @@ describe(resolveBemEntities, () => {
 			});
 		});
 
-		describe('Utilities', () => {
-			it(`Returns undefined when no utilities are present`, () => {
-				expect(resolveWith(`.the-component {}`)[0].utility).toBeUndefined();
-				expect(resolveWith(`.the-component__element {}`)[0].utility).toBeUndefined();
-				expect(resolveWith(`.the-component--modifier {}`)[0].utility).toBeUndefined();
-				expect(resolveWith(`.the-component--modifier--value {}`)[0].utility).toBeUndefined();
-				expect(resolveWith(`.the-component:hover {}`)[0].utility).toBeUndefined();
-				expect(resolveWith(`.the-component::placeholder {}`)[0].utility).toBeUndefined();
-			});
-
-			it(`Resolves single utility after block`, () => {
-				expect(resolveWith(`.the-component.is-active {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['is-active']);
-				expect(resolveWith(`.the-component__element.is-active {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['is-active']);
-				expect(resolveWith(`.the-component--modifier.is-active {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['is-active']);
-				expect(resolveWith(`.the-component--modifier--value.is-active {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['is-active']);
-				expect(resolveWith(`.the-component--modifier--value.--active {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['--active']);
-			});
-
-			it(`Resolves multiple utilities after block`, () => {
-				expect(resolveWith(`.the-component.is-active.is-disabled {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['is-active', 'is-disabled']);
-				expect(resolveWith(`.the-component__element.is-active.is-disabled {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['is-active', 'is-disabled']);
-				expect(resolveWith(`.the-component--modifier.is-active.is-disabled {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['is-active', 'is-disabled']);
-				expect(resolveWith(`.the-component--modifier--value.-active.--disabled {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['-active', '--disabled']);
-			});
-
-			it(`Ignores pseudo-classes and pseudo-elements when extracting utilities`, () => {
-				expect(resolveWith(`.the-component.is-active:hover {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['is-active']);
-				expect(resolveWith(`.the-component__element.is-active::placeholder {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['is-active']);
-				expect(resolveWith(`.the-component--modifier.is-active:hover {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['is-active']);
-				expect(resolveWith(`.the-component--modifier--value.is-active::placeholder {}`)[0].utility?.map((u) => u.value)).toStrictEqual(['is-active']);
-			});
-		});
-
 		describe('Compound selectors', () => {
 			it(`Resolves multiple BEM blocks`, () => {
 				const resolved = resolveWith(`
@@ -517,101 +615,60 @@ describe(resolveBemEntities, () => {
 				expect(resolved[2].modifierName?.value).toBe('mod3');
 				expect(resolved[3].modifierName?.value).toBeUndefined();
 			});
-
-			it(`Resolves multiple utilities within a compound selector`, () => {
-				const resolved = resolveWith(`
-					.the-component.is-active .the-component__element.is-disabled.is-visible,
-					.the-component.js-modal .bar-component {}
-				`);
-
-				expect(resolved[0].utility?.map((u) => u.value)).toStrictEqual(['is-active']);
-				expect(resolved[1].utility?.map((u) => u.value)).toStrictEqual(['is-disabled', 'is-visible']);
-				expect(resolved[2].utility?.map((u) => u.value)).toStrictEqual(['js-modal']);
-				expect(resolved[3].utility).toBeUndefined();
-			});
 		});
 	});
 
-	describe('React style', () => {
+	describe('Custom separators (react style for instance)', () => {
+		const customSeparators = {
+			elementSeparator: '-',
+			modifierSeparator: '_',
+			modifierValueSeparator: '_',
+		};
+
 		describe('Block', () => {
 			it(`Resolves BEM block followed by element`, () => {
-				expect(resolveWith(`.theComponent-element {}`, 'REACT')[0].block?.value).toBe('theComponent');
-				expect(resolveWith(`.TheComponent-element {}`, 'REACT')[0].block?.value).toBe('TheComponent');
+				expect(resolveWith(`.theComponent-element {}`, undefined, customSeparators)[0].block?.value).toBe('theComponent');
+				expect(resolveWith(`.TheComponent-element {}`, undefined, customSeparators)[0].block?.value).toBe('TheComponent');
 			});
 
 			it(`Resolves BEM block followed by modifier`, () => {
-				expect(resolveWith(`.theComponent_modifier {}`, 'REACT')[0].block?.value).toBe('theComponent');
-				expect(resolveWith(`.TheComponent_modifier_value {}`, 'REACT')[0].block?.value).toBe('TheComponent');
+				expect(resolveWith(`.theComponent_modifier {}`, undefined, customSeparators)[0].block?.value).toBe('theComponent');
+				expect(resolveWith(`.TheComponent_modifier_value {}`, undefined, customSeparators)[0].block?.value).toBe('TheComponent');
 			});
 		});
 
 		describe('Element', () => {
 			it(`Resolves BEM element`, () => {
-				expect(resolveWith(`.theComponent-element {}`, 'REACT')[0].element?.value).toBe('element');
-				expect(resolveWith(`.theComponent-elementFoo {}`, 'REACT')[0].element?.value).toBe('elementFoo');
-				expect(resolveWith(`.theComponent-ElementFoo {}`, 'REACT')[0].element?.value).toBe('ElementFoo');
-				expect(resolveWith(`.theComponent-ElementFoo_modifier {}`, 'REACT')[0].element?.value).toBe('ElementFoo');
-				expect(resolveWith(`.theComponent-ElementFoo_modifier_value {}`, 'REACT')[0].element?.value).toBe('ElementFoo');
+				expect(resolveWith(`.theComponent-element {}`, undefined, customSeparators)[0].element?.value).toBe('element');
+				expect(resolveWith(`.theComponent-elementFoo {}`, undefined, customSeparators)[0].element?.value).toBe('elementFoo');
+				expect(resolveWith(`.theComponent-ElementFoo {}`, undefined, customSeparators)[0].element?.value).toBe('ElementFoo');
+				expect(resolveWith(`.theComponent-ElementFoo_modifier {}`, undefined, customSeparators)[0].element?.value).toBe('ElementFoo');
+				expect(resolveWith(`.theComponent-ElementFoo_modifier_value {}`, undefined, customSeparators)[0].element?.value).toBe('ElementFoo');
 			});
 		});
 
 		describe('Modifier Name', () => {
 			it(`Resolves BEM modifier for block`, () => {
-				expect(resolveWith(`.theComponent_modifier {}`, 'REACT')[0].modifierName?.value).toBe('modifier');
-				expect(resolveWith(`.theComponent_modifierFoo {}`, 'REACT')[0].modifierName?.value).toBe('modifierFoo');
-				expect(resolveWith(`.theComponent_modifier-foo {}`, 'REACT')[0].modifierName?.value).toBe('modifier-foo');
+				expect(resolveWith(`.theComponent_modifier {}`, undefined, customSeparators)[0].modifierName?.value).toBe('modifier');
+				expect(resolveWith(`.theComponent_modifierFoo {}`, undefined, customSeparators)[0].modifierName?.value).toBe('modifierFoo');
+				expect(resolveWith(`.theComponent_modifier-foo {}`, undefined, customSeparators)[0].modifierName?.value).toBe('modifier-foo');
 			});
 
 			it(`Resolves BEM modifier for element`, () => {
-				expect(resolveWith(`.theComponent-element_modifier {}`, 'REACT')[0].modifierName?.value).toBe('modifier');
-				expect(resolveWith(`.theComponent-elementFoo_modifierFoo {}`, 'REACT')[0].modifierName?.value).toBe('modifierFoo');
+				expect(resolveWith(`.theComponent-element_modifier {}`, undefined, customSeparators)[0].modifierName?.value).toBe('modifier');
+				expect(resolveWith(`.theComponent-elementFoo_modifierFoo {}`, undefined, customSeparators)[0].modifierName?.value).toBe('modifierFoo');
 			});
 		});
 
 		describe('Modifier Value', () => {
 			it(`Resolves BEM modifier value for block`, () => {
-				expect(resolveWith(`.theComponent_modifier_value {}`, 'REACT')[0].modifierValue?.value).toBe('value');
-				expect(resolveWith(`.theComponent_modifier_value-foo {}`, 'REACT')[0].modifierValue?.value).toBe('value-foo');
+				expect(resolveWith(`.theComponent_modifier_value {}`, undefined, customSeparators)[0].modifierValue?.value).toBe('value');
+				expect(resolveWith(`.theComponent_modifier_value-foo {}`, undefined, customSeparators)[0].modifierValue?.value).toBe('value-foo');
 			});
 
 			it(`Resolves BEM modifier value for element`, () => {
-				expect(resolveWith(`.theComponent-element_modifier_value {}`, 'REACT')[0].modifierValue?.value).toBe('value');
-				expect(resolveWith(`.theComponent-element-foo_modifier_valueFoo {}`, 'REACT')[0].modifierValue?.value).toBe('valueFoo');
-			});
-		});
-	});
-
-	describe('Traditional style', () => {
-		describe('Block', () => {
-			it(`Resolves BEM block followed by modifier`, () => {
-				expect(resolveWith(`.the-component_modifier {}`, 'TRADITIONAL')[0].block?.value).toBe('the-component');
-				expect(resolveWith(`.the-component_modifier_value {}`, 'TRADITIONAL')[0].block?.value).toBe('the-component');
-			});
-		});
-
-		describe('Modifier Name', () => {
-			it(`Resolves BEM modifier for block`, () => {
-				expect(resolveWith(`.the-component_modifier {}`, 'TRADITIONAL')[0].modifierName?.value).toBe('modifier');
-				expect(resolveWith(`.the-component_modifierFoo {}`, 'TRADITIONAL')[0].modifierName?.value).toBe('modifierFoo');
-				expect(resolveWith(`.the-component_modifier-foo {}`, 'TRADITIONAL')[0].modifierName?.value).toBe('modifier-foo');
-			});
-
-			it(`Resolves BEM modifier for element`, () => {
-				expect(resolveWith(`.the-component__element_modifier {}`, 'TRADITIONAL')[0].modifierName?.value).toBe('modifier');
-				expect(resolveWith(`.the-component__elementFoo_modifierFoo {}`, 'TRADITIONAL')[0].modifierName?.value).toBe('modifierFoo');
-				expect(resolveWith(`.the-component__elementFoo_modifier-foo {}`, 'TRADITIONAL')[0].modifierName?.value).toBe('modifier-foo');
-			});
-		});
-
-		describe('Modifier Value', () => {
-			it(`Resolves BEM modifier value for block`, () => {
-				expect(resolveWith(`.the-component_modifier_value {}`, 'TRADITIONAL')[0].modifierValue?.value).toBe('value');
-				expect(resolveWith(`.the-component_modifier_value-foo {}`, 'TRADITIONAL')[0].modifierValue?.value).toBe('value-foo');
-			});
-
-			it(`Resolves BEM modifier value for element`, () => {
-				expect(resolveWith(`.the-component__element_modifier_value {}`, 'TRADITIONAL')[0].modifierValue?.value).toBe('value');
-				expect(resolveWith(`.the-component__element-foo_modifier_valueFoo {}`, 'TRADITIONAL')[0].modifierValue?.value).toBe('valueFoo');
+				expect(resolveWith(`.theComponent-element_modifier_value {}`, undefined, customSeparators)[0].modifierValue?.value).toBe('value');
+				expect(resolveWith(`.theComponent-element-foo_modifier_valueFoo {}`, undefined, customSeparators)[0].modifierValue?.value).toBe('valueFoo');
 			});
 		});
 	});

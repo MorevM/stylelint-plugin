@@ -1,5 +1,3 @@
-/* eslint-disable unicorn/no-empty-file */
-
 /**
  * This file is intentionally left without dedicated tests.
  *
@@ -11,3 +9,9 @@
  * Separate unit tests for this function would either duplicate existing coverage
  * or require artificial setup that does not reflect real usage.
  */
+
+describe('parseBemEntities', () => {
+	it('Intentionally empty', () => {
+		expect(true).toBe(true);
+	});
+});
