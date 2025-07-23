@@ -51,7 +51,7 @@ const attachOriginMetadata = (
 		const resolvedStart = node.sourceIndex;
 		const resolvedEnd = resolvedStart + nodeValue.length;
 
-		const matchingRanges = originalNodeRanges
+		enrichedNode.sourceMatches = originalNodeRanges
 			.map(({ value, adjustedRange: [start, end], sourceRange, offset }) => {
 				if (resolvedStart >= end || resolvedEnd <= start) return null;
 
@@ -62,12 +62,6 @@ const attachOriginMetadata = (
 				return { value, sourceRange, resolvedRange, offset };
 			})
 			.filter(Boolean);
-
-		enrichedNode.origin = {
-			sourceMatched: matchingRanges.length > 0,
-			sourceFullyMatched: matchingRanges.some((m) => m.value === nodeValue),
-			originalMatches: matchingRanges,
-		};
 
 		return enrichedNode;
 	});

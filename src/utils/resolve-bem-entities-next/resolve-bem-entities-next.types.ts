@@ -47,48 +47,33 @@ export type BemNode<Base = parser.Node> = Base & {
 	 * Metadata linking a resolved selector node back to its source
 	 * in the original (potentially nested) selector.
 	 */
-	origin: {
+	sourceMatches: Array<{
 		/**
-		 * Whether this node overlaps with any part of the source selector.
+		 * The string value of the matched source node.
+		 *
+		 * @example '__item'
 		 */
-		sourceMatched: boolean;
-
-		/**
-		 * Whether this node exactly matches the full value of a source node.
-		 */
-		sourceFullyMatched: boolean;
+		value: string;
 
 		/**
-		 * Source fragments this node corresponds to (can be partial overlaps).
+		 * Index range in the original source string (raw selector).
+		 *
+		 * @example [1, 7]
 		 */
-		originalMatches: Array<{
-			/**
-			 * The string value of the matched source node.
-			 *
-			 * @example '__item'
-			 */
-			value: string;
+		sourceRange: [number, number];
 
-			/**
-			 * Index range in the original source string (raw selector).
-			 *
-			 * @example [1, 7]
-			 */
-			sourceRange: [number, number];
+		/**
+		 * Index range in the resolved source string (with any `&` resolved).
+		 *
+		 * @example [11, 17]
+		 */
+		resolvedRange: [number, number];
 
-			/**
-			 * Index range in the resolved source string (with any `&` resolved).
-			 *
-			 * @example [11, 17]
-			 */
-			resolvedRange: [number, number];
-
-			/**
-			 * Offset applied due to surrounding context (e.g., from `@at-root` or `@nest`).
-			 */
-			offset: number;
-		}>;
-	};
+		/**
+		 * Offset applied due to surrounding context (e.g., from `@at-root` or `@nest`).
+		 */
+		offset: number;
+	}>;
 };
 
 /**
