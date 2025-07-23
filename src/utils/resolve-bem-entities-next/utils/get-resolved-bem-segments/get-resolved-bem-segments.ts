@@ -5,14 +5,8 @@ import { extractSelectorSegment } from '../extract-selector-segment/extract-sele
 import { getBemCandidateSegments } from '../get-bem-candidate-segments/get-bem-candidate-segments';
 import type postcss from 'postcss';
 import type parser from 'postcss-selector-parser';
-import type { NodeOrigin } from '~utils/resolve-bem-entities-next/resolve-bem-entities-next.types';
+import type { BemNode } from '../../resolve-bem-entities-next.types';
 
-type NodeWithOrigin = parser.Node & NodeOrigin;
-
-type AdjustedNode = parser.Node & {
-	adjustedSourceIndex?: number;
-	offset?: number;
-};
 
 /**
  * Checks whether two selector node segments are identical by reference,
@@ -36,9 +30,9 @@ const isSameSegment = (a: parser.Node[], b: parser.Node[]) =>
  * @returns                 An array of resolved nodes with `.origin` metadata.
  */
 const attachOriginMetadata = (
-	originalNodes: AdjustedNode[],
+	originalNodes: BemNode[],
 	resolvedNodes: parser.Node[],
-): NodeWithOrigin[] => {
+): BemNode[] => {
 	const originalNodeRanges = originalNodes.map((node) => {
 		const value = node.toString();
 		const baseIndex = node.adjustedSourceIndex ?? node.sourceIndex;
@@ -52,7 +46,7 @@ const attachOriginMetadata = (
 	});
 
 	return resolvedNodes.map((node) => {
-		const enrichedNode = node as NodeWithOrigin;
+		const enrichedNode = node as BemNode;
 		const nodeValue = node.toString();
 		const resolvedStart = node.sourceIndex;
 		const resolvedEnd = resolvedStart + nodeValue.length;
@@ -88,8 +82,8 @@ const adjustNodeSource = (
 	node: parser.Node,
 	sourceShift: number = 0,
 	contextOffset: number = 0,
-): AdjustedNode => {
-	const adjustedNode = node as AdjustedNode;
+): BemNode => {
+	const adjustedNode = node as BemNode;
 
 	if ('nodes' in adjustedNode) {
 		/* @ts-expect-error -- parser.Container doesn't expose `.nodes` in a way TS can verify */
@@ -132,7 +126,7 @@ export const getResolvedBemSegments = (
 	sourceSelectorNodes: parser.Node[],
 	resolvedSelectorNodes: parser.Node[],
 	rule: postcss.Rule | postcss.AtRule,
-): AdjustedNode[][] => {
+): BemNode[][] => {
 	const relevantSourceSegments = getBemCandidateSegments(sourceSelectorNodes);
 
 	const isAtRoot = isAtRule(rule, ['at-root', 'nest']);
@@ -143,7 +137,7 @@ export const getResolvedBemSegments = (
 	let sourceShift = 0;
 
 	const adjustedSourceSegments = relevantSourceSegments
-		.reduce<AdjustedNode[][]>((acc, segment) => {
+		.reduce<BemNode[][]>((acc, segment) => {
 			const { inject } = resolveNestedSelector({
 				node: rule,
 				selector: segment[0].value,
@@ -173,7 +167,7 @@ export const getResolvedBemSegments = (
 		}, []);
 
 	const enrichedSegments = adjustedSourceSegments
-		.reduce<AdjustedNode[][]>((acc, adjustedSegment) => {
+		.reduce<BemNode[][]>((acc, adjustedSegment) => {
 			const { adjustedSourceIndex, sourceIndex } = adjustedSegment[0];
 			const nodeStringIndex = adjustedSourceIndex ?? sourceIndex;
 
