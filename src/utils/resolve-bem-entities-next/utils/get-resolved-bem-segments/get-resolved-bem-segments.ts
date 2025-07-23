@@ -55,7 +55,11 @@ const attachOriginMetadata = (
 			.map(({ value, adjustedRange: [start, end], sourceRange, offset }) => {
 				if (resolvedStart >= end || resolvedEnd <= start) return null;
 
-				return { value, sourceRange, offset };
+				const index = nodeValue.indexOf(value);
+				const lastIndex = index + value.length;
+				const resolvedRange = [index - 1, lastIndex] as [number, number];
+
+				return { value, sourceRange, resolvedRange, offset };
 			})
 			.filter(Boolean);
 

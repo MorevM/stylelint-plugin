@@ -77,6 +77,13 @@ export type BemNode<Base = parser.Node> = Base & {
 			sourceRange: [number, number];
 
 			/**
+			 * Index range in the resolved source string (with any `&` resolved).
+			 *
+			 * @example [11, 17]
+			 */
+			resolvedRange: [number, number];
+
+			/**
 			 * Offset applied due to surrounding context (e.g., from `@at-root` or `@nest`).
 			 */
 			offset: number;
@@ -128,7 +135,7 @@ export type BemEntityPart = {
 	 *
 	 * @example [1, 10]
 	 */
-	sourceIndices: [number, number] | undefined;
+	sourceRange: [number, number] | undefined;
 };
 
 /**
