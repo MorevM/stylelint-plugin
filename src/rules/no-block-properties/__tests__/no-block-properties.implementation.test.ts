@@ -27,6 +27,7 @@ testRule({
 			code: `
 				.the-component a { margin-block-start: 16px; }
 				.the-component .another-component { margin-block-start: 16px; }
+				.the-component * { margin-block-start: 16px; }
 			`,
 		},
 		{
@@ -50,6 +51,13 @@ testRule({
 			code: `
 				.the-component::before { margin-block-start: 16px; }
 				.the-component--modifier::before { margin-block-start: 16px; }
+			`,
+		},
+		{
+			description: 'Multiple blocks without disallowed properties',
+			code: `
+				.foo-component { color: red; }
+				.bar-component--modifier { color: red; }
 			`,
 		},
 	],
@@ -99,6 +107,34 @@ testRule({
 		},
 					line: 2, column: 2,
 					endLine: 2, endColumn: 20,
+				},
+			],
+		},
+		{
+			description: 'Multiple blocks have a disallowed property (plain)',
+			code: `
+				.foo {
+					margin-block-start: 16px;
+				}
+
+				.bar {
+					margin-block-start: 16px;
+
+					.item {
+						margin-block-start: 16px; // this is side-effect
+					}
+				}
+			`,
+			warnings: [
+				{
+					message: messages.unexpected('margin-block-start', '.foo', 'block', 'EXTERNAL_GEOMETRY'),
+					line: 2, column: 2,
+					endLine: 2, endColumn: 20,
+				},
+				{
+					message: messages.unexpected('margin-block-start', '.bar', 'block', 'EXTERNAL_GEOMETRY'),
+					line: 6, column: 2,
+					endLine: 6, endColumn: 20,
 				},
 			],
 		},
