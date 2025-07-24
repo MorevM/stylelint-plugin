@@ -6,5 +6,5 @@ export const BEM_ENTITIES = ['block', 'element', 'modifierName', 'modifierValue'
 export const DEFAULT_SEPARATORS: Separators = {
 	elementSeparator: '__',
 	modifierSeparator: '--',
-	modifierValueSeparator: '---',
+	modifierValueSeparator: '--',
 };
