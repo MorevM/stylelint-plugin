@@ -70,7 +70,7 @@ testRule({
 		{
 			description: 'Multiple blocks have a disallowed property using compound selector',
 			code: `
-				.foo, .foo.is-active, .foo--modifier, .foo--modifier.utility {
+				.foo, .foo--modifier, .bar.bar--modifier {
 					margin-block-start: 16px;
 				}
 			`,
@@ -81,17 +81,22 @@ testRule({
 					endLine: 2, endColumn: 20,
 				},
 				{
-					message: messages.unexpected('margin-block-start', '.foo.is-active', 'utility', 'EXTERNAL_GEOMETRY'),
-					line: 2, column: 2,
-					endLine: 2, endColumn: 20,
-				},
-				{
 					message: messages.unexpected('margin-block-start', '.foo--modifier', 'modifier', 'EXTERNAL_GEOMETRY'),
 					line: 2, column: 2,
 					endLine: 2, endColumn: 20,
 				},
 				{
-					message: messages.unexpected('margin-block-start', '.foo--modifier.utility', 'utility', 'EXTERNAL_GEOMETRY'),
+					message: messages.unexpected('margin-block-start', '.bar', 'block', 'EXTERNAL_GEOMETRY'),
+					line: 2, column: 2,
+					endLine: 2, endColumn: 20,
+				},
+				{
+					message: messages.unexpected('margin-block-start', '.bar--modifier', 'modifier', 'EXTERNAL_GEOMETRY'),
+					line: 2, column: 2,
+					endLine: 2, endColumn: 20,
+				},
+			],
+		},
 					line: 2, column: 2,
 					endLine: 2, endColumn: 20,
 				},
@@ -128,23 +133,6 @@ testRule({
 			warnings: [
 				{
 					message: messages.unexpected('margin-block-start', '.the-component--modifier', 'modifier', 'EXTERNAL_GEOMETRY'),
-					line: 3, column: 3,
-					endLine: 3, endColumn: 21,
-				},
-			],
-		},
-		{
-			description: 'Block modifier nested inside another selector with disallowed property',
-			code: `
-				.the-component {
-					&--modifier.is-active {
-						margin-block-start: 16px;
-					}
-				}
-			`,
-			warnings: [
-				{
-					message: messages.unexpected('margin-block-start', '.the-component--modifier.is-active', 'utility', 'EXTERNAL_GEOMETRY'),
 					line: 3, column: 3,
 					endLine: 3, endColumn: 21,
 				},
@@ -218,7 +206,6 @@ testRule({
 			description: 'Reports with user-defined message',
 			code: `
 				.the-component { margin-block-start: 16px; }
-				.the-component.is-active { color: red; }
 				.the-component--modifier { width: 16px; }
 			`,
 			warnings: [
@@ -228,14 +215,9 @@ testRule({
 					endLine: 1, endColumn: 36,
 				},
 				{
-					message: 'color:.the-component.is-active:utility:FOO',
+					message: 'width:.the-component--modifier:modifier',
 					line: 2, column: 28,
 					endLine: 2, endColumn: 33,
-				},
-				{
-					message: 'width:.the-component--modifier:modifier',
-					line: 3, column: 28,
-					endLine: 3, endColumn: 33,
 				},
 			],
 		},

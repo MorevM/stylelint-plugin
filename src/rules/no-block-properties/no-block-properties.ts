@@ -20,7 +20,7 @@ export default createRule({
 		unexpected: (
 			propertyName: string,
 			selector: string,
-			context: 'block' | 'modifier' | 'utility',
+			context: 'block' | 'modifier',
 			presetName: string | undefined,
 		) => {
 			const propertyType = (() => {
@@ -63,11 +63,6 @@ export default createRule({
 							allowProperties: v.optional(v.array(v.string())),
 							disallowProperties: v.optional(v.array(v.string())),
 						})),
-						utility: v.optional(v.object({
-							presets: v.optional(v.array(v.string())),
-							allowProperties: v.optional(v.array(v.string())),
-							disallowProperties: v.optional(v.array(v.string())),
-						})),
 					}),
 				),
 				ignoreBlocks: v.optional(v.array(vStringOrRegExpSchema), []),
@@ -91,10 +86,7 @@ export default createRule({
 		.map((value) => toRegExp(value, { allowWildcard: true }));
 
 	root.walkRules((rule) => {
-		// Resolve any CSS or SASS nesting
-		// `&__element` -> `.the-component__element`
-		// `.the-component { .element {} }` -> `.the-component .element`
-		const resolvedSelector = resolveNestedSelector({ node: rule })[0];
+		const [resolvedSelector] = resolveNestedSelector({ node: rule });
 
 		parseSelectors(resolvedSelector.resolved).forEach((selectorNodes) => {
 			// Side effect selector, `.foo span`, `span .foo`
@@ -116,21 +108,17 @@ export default createRule({
 			if (isEmpty(entitiesToReport)) return;
 
 			entitiesToReport.forEach((bemEntity) => {
-				const bemEntityContext = (() => {
-					if (bemEntity.utility) return 'utility';
-					if (bemEntity.modifierName) return 'modifier';
-					return 'block';
-				})();
+				const context = bemEntity.modifierName ? 'modifier' : 'block';
 
 				const declarationsToReport = getRuleDeclarations(rule, { onlyDirectChildren: true })
-					.filter((declaration) => disallowedProperties[bemEntityContext].has(declaration.prop));
+					.filter((declaration) => disallowedProperties[context].has(declaration.prop));
 
 				declarationsToReport.forEach((declaration) => {
 					report({
 						message: messages.unexpected(
 							declaration.prop,
 							bemEntity.bemSelector,
-							bemEntityContext,
+							context,
 							propertyToPresetMap.get(declaration.prop),
 						),
 						node: declaration,
