@@ -1,6 +1,6 @@
 import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
-import { resolveBemEntities } from '#modules/bem';
+import { BEM_ENTITIES, resolveBemEntities } from '#modules/bem';
 import { addNamespace, createRule, getRuleUrl, mergeMessages, vArrayable, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { KEBAB_CASE_REGEXP, toRegExp } from '#modules/shared';
 import { createMessage, createViolationsRegistry, normalizePattern } from './utils';
@@ -12,9 +12,6 @@ import type { ProcessedPattern } from './selector-pattern.types';
  */
 
 const RULE_NAME = 'selector-pattern';
-
-// Defines processing order for BEM entities to respect parent-child dependency
-const ENTITIES_IN_ORDER = ['block', 'element', 'modifierName', 'modifierValue'] as const;
 
 export default createRule({
 	name: addNamespace(RULE_NAME),
@@ -95,7 +92,7 @@ export default createRule({
 	const ignoreBlocks = toArray(secondary.ignoreBlocks)
 		.map((entry) => toRegExp(entry, { allowWildcard: true }));
 
-	const { violations, hasParentViolation } = createViolationsRegistry(ENTITIES_IN_ORDER);
+	const { violations, hasParentViolation } = createViolationsRegistry(BEM_ENTITIES);
 
 	root.walk((rule) => {
 		if (rule.type !== 'atrule' && rule.type !== 'rule') return;
@@ -105,25 +102,25 @@ export default createRule({
 			if (!bemEntity.block) return;
 			if (ignoreBlocks.some((pattern) => pattern.test(bemEntity.block.value))) return;
 
-			ENTITIES_IN_ORDER.forEach((entityName) => {
-				const bemEntityData = bemEntity[entityName];
-				if (!bemEntityData) return;
+			BEM_ENTITIES.forEach((entityType) => {
+				const bemEntityPart = bemEntity[entityType];
+				if (!bemEntityPart) return;
 
-				const bemEntities = toArray(bemEntityData);
-				if (isEmpty(bemEntities)) return;
+				const bemEntityParts = toArray(bemEntityPart);
+				if (isEmpty(bemEntityParts)) return;
 
-				bemEntities.forEach((entityPart) => {
-					const entityPatterns = patterns[entityName];
+				bemEntityParts.forEach((entityPart) => {
+					const entityPatterns = patterns[entityType];
 
 					// Special case: modifier values can be completely forbidden via `false`
 					const isDisallowedEntity = entityPatterns === false
-						&& entityName === 'modifierValue';
+						&& entityType === 'modifierValue';
 
 					// Determine whether this entity violates the configured patterns
 					const shouldReport = isDisallowedEntity || (
 						entityPatterns
 						&& entityPatterns.every((pattern) => !pattern.regexp.test(entityPart.value))
-						&& !hasParentViolation(rule, entityName, entityPart)
+						&& !hasParentViolation(rule, entityType, entityPart)
 					);
 
 					shouldReport && violations.push({
@@ -131,7 +128,7 @@ export default createRule({
 						entityPart,
 						value: entityPart.value,
 						// Intentionally loosened type for modifier values scenario (might be `false`)
-						message: messages[entityName](entityPart.value, bemEntity.bemSelector, entityPatterns as any),
+						message: messages[entityType](entityPart.value, bemEntity.bemSelector, entityPatterns as any),
 					});
 				});
 			});
