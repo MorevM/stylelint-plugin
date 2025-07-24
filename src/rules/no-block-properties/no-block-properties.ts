@@ -2,7 +2,7 @@ import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
 import { resolveBemEntities } from '#modules/bem';
 import { getRuleDeclarations, isPseudoElementNode } from '#modules/postcss';
-import { addNamespace, createRule, getRuleUrl, mergeMessages, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { addNamespace, createRule, extractSeparators, getRuleUrl, mergeMessages, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { parseSelectors, resolveNestedSelector } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
 import { createPropertiesRegistry } from './utils';
@@ -80,6 +80,7 @@ export default createRule({
 	},
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	const messages = mergeMessages(ruleMessages, secondary.messages);
+	const separators = extractSeparators(secondary);
 
 	const {
 		disallowedProperties,
@@ -101,8 +102,7 @@ export default createRule({
 			// `.the-component::before` is allowed
 			if (isPseudoElementNode(selectorNodes.at(-1))) return;
 
-			const compoundSelectorPart = selectorNodes.toString();
-			const selectorBemEntities = resolveBemEntities(compoundSelectorPart, secondary);
+			const selectorBemEntities = resolveBemEntities({ rule, separators });
 
 			const entitiesToReport = selectorBemEntities
 				// We are looking only for BEM blocks or its modifiers in the rule
@@ -129,7 +129,7 @@ export default createRule({
 					report({
 						message: messages.unexpected(
 							declaration.prop,
-							bemEntity.selector.value,
+							bemEntity.bemSelector,
 							bemEntityContext,
 							propertyToPresetMap.get(declaration.prop),
 						),

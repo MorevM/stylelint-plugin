@@ -1,7 +1,7 @@
 import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
 import { BEM_ENTITIES, resolveBemEntities } from '#modules/bem';
-import { addNamespace, createRule, getRuleUrl, mergeMessages, vArrayable, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { addNamespace, createRule, extractSeparators, getRuleUrl, mergeMessages, vArrayable, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { KEBAB_CASE_REGEXP, toRegExp } from '#modules/shared';
 import { createMessage, createViolationsRegistry, normalizePattern } from './utils';
 import type { ProcessedPattern } from './selector-pattern.types';
@@ -80,12 +80,7 @@ export default createRule({
 		modifierValue: normalizePattern(secondary.modifierValuePattern),
 	};
 
-	const separators = {
-		elementSeparator: secondary.elementSeparator,
-		modifierSeparator: secondary.modifierSeparator,
-		modifierValueSeparator: secondary.modifierValueSeparator,
-	};
-
+	const separators = extractSeparators(secondary);
 	const messages = mergeMessages(ruleMessages, secondary.messages);
 
 	// Precompile ignore list for block names
