@@ -1,16 +1,14 @@
 import postcss from 'postcss';
 import postcssScss from 'postcss-scss';
+import { DEFAULT_SEPARATORS } from '#modules/bem';
 import { getRuleBySelector } from '#modules/test-utils';
 import { resolveBemEntities } from './resolve-bem-entities';
 import type { Rule } from 'postcss';
+import type { Separators } from '#modules/shared';
 
-const separators = {
-	elementSeparator: '__',
-	modifierSeparator: '--',
-	modifierValueSeparator: '--',
-};
+const separators = DEFAULT_SEPARATORS;
 
-const resolveWith = (source: string, ruleSelector?: string, customSeparators?: typeof separators) => {
+const resolveWith = (source: string, ruleSelector?: string, customSeparators?: Separators) => {
 	const { root } = postcss().process(source.trim(), { syntax: postcssScss });
 
 	const rule = ruleSelector
