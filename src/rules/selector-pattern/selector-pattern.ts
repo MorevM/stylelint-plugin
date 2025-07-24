@@ -14,7 +14,7 @@ import type { ProcessedPattern } from './selector-pattern.types';
 const RULE_NAME = 'selector-pattern';
 
 // Defines processing order for BEM entities to respect parent-child dependency
-const ENTITIES_IN_ORDER = ['block', 'element', 'modifierName', 'modifierValue', 'utility'] as const;
+const ENTITIES_IN_ORDER = ['block', 'element', 'modifierName', 'modifierValue'] as const;
 
 export default createRule({
 	name: addNamespace(RULE_NAME),
@@ -24,20 +24,18 @@ export default createRule({
 		fixable: false,
 	},
 	messages: {
-		block: (name: string, patterns: ProcessedPattern[]) =>
-			createMessage('block', name, patterns),
-		element: (name: string, patterns: ProcessedPattern[]) =>
-			createMessage('element', name, patterns),
-		modifierName: (name: string, patterns: ProcessedPattern[]) =>
-			createMessage('modifier name', name, patterns),
-		modifierValue: (name: string, patterns: ProcessedPattern[]) =>
-			createMessage('modifier value', name, patterns),
-		utility: (name: string, patterns: false | ProcessedPattern[]) => {
+		block: (entityValue: string, fullSelector: string, patterns: ProcessedPattern[]) =>
+			createMessage('block', entityValue, fullSelector, patterns),
+		element: (entityValue: string, fullSelector: string, patterns: ProcessedPattern[]) =>
+			createMessage('element', entityValue, fullSelector, patterns),
+		modifierName: (name: string, fullSelector: string, patterns: ProcessedPattern[]) =>
+			createMessage('modifier name', name, fullSelector, patterns),
+		modifierValue: (entityValue: string, fullSelector: string, patterns: ProcessedPattern[] | false) => {
 			if (patterns === false) {
-				return 'Utility classes are not allowed according to the configuration';
+				return 'Modifier values are not allowed according to the configuration';
 			}
 
-			return createMessage('utility class', name, patterns);
+			return createMessage('modifier value', entityValue, fullSelector, patterns);
 		},
 	},
 	schema: {
@@ -45,11 +43,11 @@ export default createRule({
 		secondary: v.optional(
 			v.strictObject({
 				messages: vMessagesSchema({
-					block: [v.string(), v.any()],
-					element: [v.string(), v.any()],
-					modifierName: [v.string(), v.any()],
-					modifierValue: [v.string(), v.any()],
-					utility: [v.string(), v.any()],
+					block: [v.string(), v.string(), v.any()],
+					element: [v.string(), v.string(), v.any()],
+					modifierName: [v.string(), v.string(), v.any()],
+					modifierValue: [v.string(), v.string(), v.any()],
+					utility: [v.string(), v.string(), v.any()],
 				}),
 				blockPattern: v.optional(
 					vArrayable(vStringOrRegExpSchema),
@@ -64,12 +62,8 @@ export default createRule({
 					KEBAB_CASE_REGEXP,
 				),
 				modifierValuePattern: v.optional(
-					vArrayable(vStringOrRegExpSchema),
-					KEBAB_CASE_REGEXP,
-				),
-				utilityPattern: v.optional(
 					v.union([v.literal(false), vArrayable(vStringOrRegExpSchema)]),
-					['is-*', 'has-*', 'js-*', '-*'],
+					KEBAB_CASE_REGEXP,
 				),
 				ignoreBlocks: v.optional(
 					v.array(vStringOrRegExpSchema),
@@ -121,20 +115,22 @@ export default createRule({
 				bemEntities.forEach((entityPart) => {
 					const entityPatterns = patterns[entityName];
 
-					// Special case: utility classes can be completely forbidden via `false`
-					const isDisallowedEntity = entityPatterns === false && entityName === 'utility';
+					// Special case: modifier values can be completely forbidden via `false`
+					const isDisallowedEntity = entityPatterns === false
+						&& entityName === 'modifierValue';
 
 					// Determine whether this entity violates the configured patterns
 					const shouldReport = isDisallowedEntity || (
-						entityPatterns?.every((pattern) => !pattern.regexp.test(entity.value))
-						&& !hasParentViolation(rule, entityName, entity)
+						entityPatterns
+						&& entityPatterns.every((pattern) => !pattern.regexp.test(entityPart.value))
+						&& !hasParentViolation(rule, entityName, entityPart)
 					);
 
 					shouldReport && violations.push({
 						rule,
 						entityPart,
 						value: entityPart.value,
-						// Intentionally loosened type for utility scenario (might be `false`)
+						// Intentionally loosened type for modifier values scenario (might be `false`)
 						message: messages[entityName](entityPart.value, bemEntity.bemSelector, entityPatterns as any),
 					});
 				});

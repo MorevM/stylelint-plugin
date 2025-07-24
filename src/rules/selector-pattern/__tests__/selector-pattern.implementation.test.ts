@@ -7,7 +7,6 @@ const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 
 const KEBAB_CASE_PATTERN = normalizePattern(KEBAB_CASE_REGEXP) as ProcessedPattern[];
-const UTILITY_PATTERN = normalizePattern(['is-*', 'has-*', 'js-*', '-*']) as ProcessedPattern[];
 
 testRule({
 	description: 'Default options',
@@ -27,12 +26,10 @@ testRule({
 						}
 					}
 					&__foo {
-						&.is-active{
-							&.has-siblings.js-foo {}
-						}
-
-						&--mod.has-siblings{
-							&--value.-error {}
+						&--mod{
+							&-v {
+								&-v {}
+							}
 						}
 					}
 
@@ -62,34 +59,47 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.block('TheComponent', KEBAB_CASE_PATTERN),
+					message: messages.block('TheComponent', '.TheComponent', KEBAB_CASE_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 14,
 				},
 				{
-					message: messages.block('TheComponent', KEBAB_CASE_PATTERN),
+					message: messages.block('TheComponent', '.TheComponent', KEBAB_CASE_PATTERN),
 					line: 2, column: 2,
 					endLine: 2, endColumn: 14,
 				},
 				{
-					message: messages.block('AnotherComponent', KEBAB_CASE_PATTERN),
+					message: messages.block('AnotherComponent', '.AnotherComponent', KEBAB_CASE_PATTERN),
 					line: 3, column: 10,
 					endLine: 3, endColumn: 26,
 				},
 				{
-					message: messages.block('BazComponent', KEBAB_CASE_PATTERN),
+					message: messages.block('BazComponent', '.BazComponent', KEBAB_CASE_PATTERN),
 					line: 4, column: 4,
 					endLine: 4, endColumn: 16,
 				},
 				{
-					message: messages.block('FooComponent', KEBAB_CASE_PATTERN),
+					message: messages.block('FooComponent', '.FooComponent', KEBAB_CASE_PATTERN),
 					line: 6, column: 12,
 					endLine: 6, endColumn: 24,
 				},
 				{
-					message: messages.block('BarComponent', KEBAB_CASE_PATTERN),
+					message: messages.block('BarComponent', '.BarComponent__element', KEBAB_CASE_PATTERN),
 					line: 7, column: 11,
 					endLine: 7, endColumn: 23,
+				},
+			],
+		},
+		{
+			description: 'Reports consecutive classes',
+			code: `
+				.the-component.FooComponent {}
+			`,
+			warnings: [
+				{
+					message: messages.block('FooComponent', '.FooComponent', KEBAB_CASE_PATTERN),
+					line: 1, column: 16,
+					endLine: 1, endColumn: 28,
 				},
 			],
 		},
@@ -111,27 +121,27 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.element('fooBar', KEBAB_CASE_PATTERN),
+					message: messages.element('fooBar', '.the-component__fooBar', KEBAB_CASE_PATTERN),
 					line: 2, column: 5,
 					endLine: 2, endColumn: 11,
 				},
 				{
-					message: messages.element('foo__bar', KEBAB_CASE_PATTERN),
+					message: messages.element('foo__bar', '.the-component__foo__bar', KEBAB_CASE_PATTERN),
 					line: 3, column: 5,
 					endLine: 3, endColumn: 13,
 				},
 				{
-					message: messages.element('FooBar', KEBAB_CASE_PATTERN),
+					message: messages.element('FooBar', '.the-component__FooBar', KEBAB_CASE_PATTERN),
 					line: 4, column: 5,
 					endLine: 4, endColumn: 11,
 				},
 				{
-					message: messages.element('fooBar', KEBAB_CASE_PATTERN),
+					message: messages.element('fooBar', '.the-component__fooBar', KEBAB_CASE_PATTERN),
 					line: 6, column: 3,
 					endLine: 6, endColumn: 7,
 				},
 				{
-					message: messages.element('foo__bar', KEBAB_CASE_PATTERN),
+					message: messages.element('foo__bar', '.the-component__foo__bar', KEBAB_CASE_PATTERN),
 					line: 9, column: 4,
 					endLine: 9, endColumn: 10,
 				},
@@ -148,7 +158,7 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.modifierName('modName', KEBAB_CASE_PATTERN),
+					message: messages.modifierName('modName', '.the-component__foo--modName', KEBAB_CASE_PATTERN),
 					line: 3, column: 6,
 					endLine: 3, endColumn: 13,
 				},
@@ -167,51 +177,9 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.modifierValue('modValue', KEBAB_CASE_PATTERN),
+					message: messages.modifierValue('modValue', '.the-component__foo--mod-name--modValue', KEBAB_CASE_PATTERN),
 					line: 4, column: 7,
 					endLine: 4, endColumn: 15,
-				},
-			],
-		},
-		{
-			description: 'Warns of an utility classes written out of pattern',
-			code: `
-				.the-component {
-					&.foo {}
-					&__foo {
-						&.foo {}
-						&--mod-name {
-							&.foo {}
-							&.foo.is-active.bar.js-baz {}
-						}
-					}
-				}
-			`,
-			warnings: [
-				{
-					message: messages.utility('foo', UTILITY_PATTERN),
-					line: 2, column: 4,
-					endLine: 2, endColumn: 7,
-				},
-				{
-					message: messages.utility('foo', UTILITY_PATTERN),
-					line: 4, column: 5,
-					endLine: 4, endColumn: 8,
-				},
-				{
-					message: messages.utility('foo', UTILITY_PATTERN),
-					line: 6, column: 6,
-					endLine: 6, endColumn: 9,
-				},
-				{
-					message: messages.utility('foo', UTILITY_PATTERN),
-					line: 7, column: 6,
-					endLine: 7, endColumn: 9,
-				},
-				{
-					message: messages.utility('bar', UTILITY_PATTERN),
-					line: 7, column: 20,
-					endLine: 7, endColumn: 23,
 				},
 			],
 		},
@@ -222,43 +190,63 @@ testRule({
 					&__foo, &__fooBar {
 						&--mod-name, &--MODNAME {
 							&--mod-value,
-							&--ModValue{}
+							&--ModValue {}
 						}
 					}
 				}
 			`,
 			warnings: [
 				{
-					message: messages.element('fooBar', KEBAB_CASE_PATTERN),
+					message: messages.element('fooBar', '.the-component__fooBar', KEBAB_CASE_PATTERN),
 					line: 2, column: 13,
 					endLine: 2, endColumn: 19,
 				},
 				{
-					message: messages.modifierName('MODNAME', KEBAB_CASE_PATTERN),
+					message: messages.modifierName('MODNAME', '.the-component__foo--MODNAME', KEBAB_CASE_PATTERN),
 					line: 3, column: 19,
 					endLine: 3, endColumn: 26,
 				},
 				{
-					message: messages.modifierValue('ModValue', KEBAB_CASE_PATTERN),
+					message: messages.modifierName('MODNAME', '.the-component__fooBar--MODNAME', KEBAB_CASE_PATTERN),
+					line: 3, column: 19,
+					endLine: 3, endColumn: 26,
+				},
+				{
+					message: messages.modifierValue('ModValue', '.the-component__foo--mod-name--ModValue', KEBAB_CASE_PATTERN),
+					line: 5, column: 7,
+					endLine: 5, endColumn: 15,
+				},
+				{
+					message: messages.modifierValue('ModValue', '.the-component__fooBar--mod-name--ModValue', KEBAB_CASE_PATTERN),
+					line: 5, column: 7,
+					endLine: 5, endColumn: 15,
+				},
+				{
+					message: messages.modifierValue('ModValue', '.the-component__foo--MODNAME--ModValue', KEBAB_CASE_PATTERN),
+					line: 5, column: 7,
+					endLine: 5, endColumn: 15,
+				},
+				{
+					message: messages.modifierValue('ModValue', '.the-component__fooBar--MODNAME--ModValue', KEBAB_CASE_PATTERN),
 					line: 5, column: 7,
 					endLine: 5, endColumn: 15,
 				},
 			],
 		},
 		{
-			description: 'Warns whole selector if an entity occurs multiple times',
+			description: 'Warns only needed selector part if an entity occurs multiple times',
 			code: `
 				.the-component__El--El {}
 			`,
 			warnings: [
 				{
-					message: messages.element('El', KEBAB_CASE_PATTERN),
-					line: 1, column: 1,
-					endLine: 1, endColumn: 23,
+					message: messages.element('El', '.the-component__El--El', KEBAB_CASE_PATTERN),
+					line: 1, column: 17,
+					endLine: 1, endColumn: 19,
 				},
 				{
-					message: messages.modifierName('El', KEBAB_CASE_PATTERN),
-					line: 1, column: 1,
+					message: messages.modifierName('El', '.the-component__El--El', KEBAB_CASE_PATTERN),
+					line: 1, column: 21,
 					endLine: 1, endColumn: 23,
 				},
 			],
@@ -281,7 +269,7 @@ testRule({
 			code: '.my-block {}',
 			warnings: [
 				{
-					message: messages.block('my-block', KEYWORD_PASCAL_PATTERN),
+					message: messages.block('my-block', '.my-block', KEYWORD_PASCAL_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 10,
 				},
@@ -291,7 +279,7 @@ testRule({
 			code: '.123Block {}',
 			warnings: [
 				{
-					message: messages.block('123Block', KEYWORD_PASCAL_PATTERN),
+					message: messages.block('123Block', '.123Block', KEYWORD_PASCAL_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 10,
 				},
@@ -314,7 +302,7 @@ testRule({
 			code: '.my-block {}',
 			warnings: [
 				{
-					message: messages.block('my-block', FOO_PATTERN),
+					message: messages.block('my-block', '.my-block', FOO_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 10,
 				},
@@ -338,7 +326,7 @@ testRule({
 			code: '.bar-foo {}',
 			warnings: [
 				{
-					message: messages.block('bar-foo', FOO_STRING_REGEX_PATTERN),
+					message: messages.block('bar-foo', '.bar-foo', FOO_STRING_REGEX_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 9,
 				},
@@ -362,7 +350,7 @@ testRule({
 			code: '.bar-foo {}',
 			warnings: [
 				{
-					message: messages.block('bar-foo', FOO_REGEX_PATTERN),
+					message: messages.block('bar-foo', '.bar-foo', FOO_REGEX_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 9,
 				},
@@ -387,7 +375,7 @@ testRule({
 			code: '._bar_foo {}',
 			warnings: [
 				{
-					message: messages.block('_bar_foo', MIXED_PATTERN),
+					message: messages.block('_bar_foo', '._bar_foo', MIXED_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 10,
 				},
@@ -397,7 +385,7 @@ testRule({
 			code: '.my-foo {}',
 			warnings: [
 				{
-					message: messages.block('my-foo', MIXED_PATTERN),
+					message: messages.block('my-foo', '.my-foo', MIXED_PATTERN),
 					line: 1, column: 2,
 					endLine: 1, endColumn: 8,
 				},
@@ -406,21 +394,21 @@ testRule({
 	],
 });
 
-// Pattern is false (disable utility classes)
+// Pattern is false (disable modifier value classes)
 testRule({
 	description: 'Pattern as a false (only for utility)',
-	config: [true, { utilityPattern: false }],
+	config: [true, { modifierValuePattern: false }],
 	accept: [
 		{ code: '.foo-test {}' },
 	],
 	reject: [
 		{
-			code: '.foo-test.is-active {}',
+			code: '.foo-test--theme--dark {}',
 			warnings: [
 				{
-					message: messages.utility('is-active', false),
-					line: 1, column: 11,
-					endLine: 1, endColumn: 20,
+					message: messages.modifierValue('theme--dark', '.foo-test--theme--dark', false),
+					line: 1, column: 19,
+					endLine: 1, endColumn: 23,
 				},
 			],
 		},
@@ -428,15 +416,15 @@ testRule({
 			code: `
 				.foo-test {
 					&__element {
-						&.is-active {}
+						&--is--active {}
 					}
 				}
 			`,
 			warnings: [
 				{
-					message: messages.utility('is-active', false),
-					line: 3, column: 5,
-					endLine: 3, endColumn: 14,
+					message: messages.modifierValue('is--active', '.foo-test__element--is--active', false),
+					line: 3, column: 10,
+					endLine: 3, endColumn: 16,
 				},
 			],
 		},
@@ -445,7 +433,7 @@ testRule({
 
 // `ignoredBlocks` option
 testRule({
-	description: 'Pattern as a false (only for utility)',
+	description: '`ignoredBlocks` option',
 	config: [true, { ignoreBlocks: ['FOO', 'swiper-*', /^tippy.*/, '/d\\d+.*/'] }],
 	accept: [
 		{ code: '.FOO {}' },
@@ -474,14 +462,13 @@ testRule({
 			description: 'Still warns rest selectors',
 			code: `
 				.FOOBAR {}
-				.non-swiper-BLOCK__ELEMENT {}
+				.non-swiper-BLOCK__element {}
 				.dB {}
 			`,
 			warnings: [
-				{ message: messages.block('FOOBAR', KEBAB_CASE_PATTERN) },
-				{ message: messages.block('non-swiper-BLOCK', KEBAB_CASE_PATTERN) },
-				{ message: messages.element('ELEMENT', KEBAB_CASE_PATTERN) },
-				{ message: messages.block('dB', KEBAB_CASE_PATTERN) },
+				{ message: messages.block('FOOBAR', '.FOOBAR', KEBAB_CASE_PATTERN) },
+				{ message: messages.block('non-swiper-BLOCK', '.non-swiper-BLOCK__element', KEBAB_CASE_PATTERN) },
+				{ message: messages.block('dB', '.dB', KEBAB_CASE_PATTERN) },
 			],
 		},
 	],
@@ -492,11 +479,10 @@ testRule({
 	description: 'Pattern as a false (only for utility)',
 	config: [true, {
 		messages: {
-			block: (name: string, patterns: ProcessedPattern[]) => `Block ${name}`,
-			element: (name: string, patterns: ProcessedPattern[]) => `Element ${name}`,
-			modifierName: (name: string, patterns: ProcessedPattern[]) => `Modifier name ${name}`,
-			modifierValue: (name: string, patterns: ProcessedPattern[]) => `Modifier value ${name}`,
-			utility: (name: string, patterns: false | ProcessedPattern[]) => `Utility ${name}`,
+			block: (name: string, selector: string, patterns: ProcessedPattern[]) => `Block ${name} ${selector}`,
+			element: (name: string, selector: string, patterns: ProcessedPattern[]) => `Element ${name} ${selector}`,
+			modifierName: (name: string, selector: string, patterns: ProcessedPattern[]) => `Modifier name ${name} ${selector}`,
+			modifierValue: (name: string, selector: string, patterns: ProcessedPattern[]) => `Modifier value ${name} ${selector}`,
 		},
 	}],
 	reject: [
@@ -507,18 +493,17 @@ testRule({
 					&__ELEMENT {
 						&--MODIFIER {
 							&--VALUE {
-								&.foo-bar:hover {}
+								&:hover {}
 							}
 						}
 					}
 				}
 			`,
 			warnings: [
-				{ message: `Block FOOBAR` },
-				{ message: `Element ELEMENT` },
-				{ message: `Modifier name MODIFIER` },
-				{ message: `Modifier value VALUE` },
-				{ message: `Utility foo-bar` },
+				{ message: `Block FOOBAR .FOOBAR` },
+				{ message: `Element ELEMENT .FOOBAR__ELEMENT` },
+				{ message: `Modifier name MODIFIER .FOOBAR__ELEMENT--MODIFIER` },
+				{ message: `Modifier value VALUE .FOOBAR__ELEMENT--MODIFIER--VALUE` },
 			],
 		},
 	],

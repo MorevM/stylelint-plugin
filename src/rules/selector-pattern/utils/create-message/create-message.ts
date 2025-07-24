@@ -1,9 +1,10 @@
-import { quote } from '@morev/utils';
+import { quote, stripIndent } from '@morev/utils';
 import type { ProcessedPattern } from '../../selector-pattern.types';
 
 export const createMessage = (
 	bemEntity: string,
 	entityValue: string,
+	fullSelector: string,
 	patterns: ProcessedPattern[],
 ) => {
 	const patternsString = patterns
@@ -14,5 +15,8 @@ export const createMessage = (
 		? `to match pattern ${patternsString}`
 		: `to match one of the following [${patternsString}]`;
 
-	return `Expected BEM ${bemEntity} \`${entityValue}\` ${suffix}`;
+	return stripIndent(`
+		Expected BEM ${bemEntity} \`${entityValue}\` ${suffix}.
+		Full selector: \`${fullSelector}\`
+	`);
 };
