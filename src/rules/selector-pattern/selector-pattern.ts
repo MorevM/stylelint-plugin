@@ -1,8 +1,8 @@
 import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
-import { KEBAB_CASE_REGEXP } from '#constants';
-import { addNamespace, createRule, getRuleUrl, resolveBemEntities, toRegExp } from '#utils';
-import { vArrayable, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#valibot';
+import { resolveBemEntities } from '#modules/bem';
+import { addNamespace, createRule, getRuleUrl, mergeMessages, vArrayable, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { KEBAB_CASE_REGEXP, toRegExp } from '#modules/shared';
 import { createMessage, createViolationsRegistry, normalizePattern } from './utils';
 import type { ProcessedPattern } from './selector-pattern.types';
 

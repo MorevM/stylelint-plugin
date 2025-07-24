@@ -1,6 +1,5 @@
 import { isString, toArray } from '@morev/utils';
-import { CAMEL_CASE_REGEXP, KEBAB_CASE_REGEXP, PASCAL_CASE_REGEXP, SNAKE_CASE_REGEXP } from '#constants';
-import { toRegExp } from '#utils';
+import { CAMEL_CASE_REGEXP, KEBAB_CASE_REGEXP, PASCAL_CASE_REGEXP, SNAKE_CASE_REGEXP, toRegExp } from '#modules/shared';
 import type { Arrayable } from '@morev/utils';
 import type { ProcessedPattern } from '../../selector-pattern.types';
 

@@ -1,7 +1,8 @@
 import path from 'node:path';
 import { kebabCase } from '@morev/utils';
 import * as v from 'valibot';
-import { addNamespace, createRule, getBemBlock, getRuleUrl } from '#utils';
+import { getBemBlock } from '#modules/bem';
+import { addNamespace, createRule, getRuleUrl } from '#modules/rule-utils';
 
 const RULE_NAME = 'match-file-name';
 

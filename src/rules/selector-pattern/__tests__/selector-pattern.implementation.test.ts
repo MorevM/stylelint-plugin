@@ -1,4 +1,4 @@
-import { KEBAB_CASE_REGEXP } from '#constants';
+import { KEBAB_CASE_REGEXP } from '#modules/shared';
 import rule from '../selector-pattern';
 import { normalizePattern } from '../utils';
 import type { ProcessedPattern } from '../selector-pattern.types';

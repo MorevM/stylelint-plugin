@@ -1,7 +1,10 @@
 import { quote } from '@morev/utils';
 import { Declaration } from 'postcss';
 import * as v from 'valibot';
-import { addNamespace, createRule, getBemBlock, getRuleDeclarations, getRuleUrl, isCssFile, parseSelectors } from '#utils';
+import { getBemBlock } from '#modules/bem';
+import { getRuleDeclarations } from '#modules/postcss';
+import { addNamespace, createRule, getRuleUrl, isCssFile } from '#modules/rule-utils';
+import { parseSelectors } from '#modules/selectors';
 import type { Rule } from 'postcss';
 
 const RULE_NAME = 'block-variable';

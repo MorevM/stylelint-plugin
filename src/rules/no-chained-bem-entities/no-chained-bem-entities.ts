@@ -1,8 +1,13 @@
-import { arrayUnique, isEmpty } from '@morev/utils';
+import { arrayUnique, assert, isEmpty } from '@morev/utils';
 import * as v from 'valibot';
-import { addNamespace, createRule, getRuleUrl, isCssFile, parseSelectors, resolveBemEntities } from '#utils';
-import { vSeparatorsSchema } from '#valibot';
-import { resolveMostSpecificEntity } from './utils';
+import { resolveBemEntities } from '#modules/bem';
+import { isAtRule, isRule } from '#modules/postcss';
+import { addNamespace, createRule, getRuleUrl, isCssFile, vSeparatorsSchema } from '#modules/rule-utils';
+import { parseSelectors } from '#modules/selectors';
+import { getMostSpecificEntityPart } from './utils';
+import { resolveBemChain } from './utils/resolve-bem-chain/resolve-bem-chain';
+import type { AtRule, Rule } from 'postcss';
+import type { BemEntity } from '#modules/bem';
 
 const RULE_NAME = 'no-chained-bem-entities';
 

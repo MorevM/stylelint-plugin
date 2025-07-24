@@ -1,7 +1,7 @@
 import { toArray, tsObject } from '@morev/utils';
 import * as v from 'valibot';
-import { addNamespace, createRule, getRuleUrl, toRegExp } from '#utils';
-import { vStringOrRegExpSchema } from '#valibot';
+import { addNamespace, createRule, getRuleUrl, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { toRegExp } from '#modules/shared';
 
 const RULE_NAME = 'no-selectors-in-at-rules';
 

@@ -1,7 +1,10 @@
 import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
-import { addNamespace, createRule, getRuleDeclarations, getRuleUrl, isPseudoElementNode, mergeMessages, parseSelectors, resolveBemEntities, resolveNestedSelector, toRegExp } from '#utils';
-import { vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#valibot';
+import { resolveBemEntities } from '#modules/bem';
+import { getRuleDeclarations, isPseudoElementNode } from '#modules/postcss';
+import { addNamespace, createRule, getRuleUrl, mergeMessages, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { parseSelectors, resolveNestedSelector } from '#modules/selectors';
+import { toRegExp } from '#modules/shared';
 import { createPropertiesRegistry } from './utils';
 
 const RULE_NAME = 'no-block-properties';

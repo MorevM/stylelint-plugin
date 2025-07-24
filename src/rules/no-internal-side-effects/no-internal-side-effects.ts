@@ -1,6 +1,7 @@
 import * as v from 'valibot';
-import { addNamespace, createRule, getBemBlock, getFirstRule, getRuleUrl, isCssFile, resolveNestedSelector } from '#utils';
-import { vStringOrRegExpSchema } from '#valibot';
+import { getBemBlock } from '#modules/bem';
+import { addNamespace, createRule, getRuleUrl, isCssFile, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { resolveNestedSelector } from '#modules/selectors';
 
 const RULE_NAME = 'no-internal-side-effects';
 
