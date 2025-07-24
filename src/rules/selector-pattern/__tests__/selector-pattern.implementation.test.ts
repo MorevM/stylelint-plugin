@@ -406,7 +406,7 @@ testRule({
 			code: '.foo-test--theme--dark {}',
 			warnings: [
 				{
-					message: messages.modifierValue('theme--dark', '.foo-test--theme--dark', false),
+					message: messages.modifierValue('dark', '.foo-test--theme--dark', false),
 					line: 1, column: 19,
 					endLine: 1, endColumn: 23,
 				},
@@ -422,7 +422,7 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.modifierValue('is--active', '.foo-test__element--is--active', false),
+					message: messages.modifierValue('active', '.foo-test__element--is--active', false),
 					line: 3, column: 10,
 					endLine: 3, endColumn: 16,
 				},

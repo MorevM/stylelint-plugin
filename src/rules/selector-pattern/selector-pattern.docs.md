@@ -1,27 +1,26 @@
 # @morev/bem/selector-pattern
 
-Enforces naming patterns for BEM entities and utility classes.
+Enforces naming patterns for BEM entities.
 
 ## Overview
 
-This rule allows you to enforce naming conventions for different parts of BEM-based selectors and utility classes.
+This rule allows you to enforce naming conventions for different parts of BEM-based selectors.
 
 **You can define specific patterns for:**
 
-| Entity             | Example                                                     |
-| ------------------ | ----------------------------------------------------------- |
-| BEM block          | .`the-component`__element--theme--dark.is-active.js-modal   |
-| BEM element        | .the-component__`element`--theme--dark.is-active.js-modal   |
-| BEM modifier name  | .the-component__element--`theme`--dark.is-active.js-modal   |
-| BEM modifier value | .the-component__element--theme--`dark`.is-active.js-modal   |
-| Utility classes    | .the-component__element--theme--dark.`is-active`.`js-modal` |
+| Entity             | Example                                  |
+| ------------------ | ---------------------------------------- |
+| BEM block          | .`the-component`__element--theme--dark   |
+| BEM element        | .the-component__`element`--theme--dark   |
+| BEM modifier name  | .the-component__element--`theme`--dark   |
+| BEM modifier value | .the-component__element--theme--`dark`   |
 
 ::: info The rule also supports:
 
 ✅ Predefined keywords for common naming styles (`'KEBAB_CASE'`, `'PASCAL_CASE'`, etc.) \
 ✅ Wildcards inside string patterns - `'foo-*'` \
 ✅ Multiple patterns per entity \
-✅ Complete disallowing of utility classes \
+✅ Complete disallowing of modifier values \
 ✅ Ignoring specific BEM blocks \
 ✅ Custom error messages
 :::
@@ -54,13 +53,12 @@ export default {
       elementPattern: /^[a-z][0-9a-z]*(?:-[0-9a-z]+)*$/,
       modifierNamePattern: 'KEBAB_CASE',
       modifierValuePattern: 'KEBAB_CASE',
-      utilityPattern: ['is-*', 'has-*', 'js-*', '-*'],
       elementSeparator: '__',
       modifierSeparator: '--',
       modifierValueSeparator: '--',
       ignoreBlocks: ['swiper-*', 'u-*'],
       messages: {
-        block: (name, patterns) => {
+        block: (name, fullSelector, patterns) => {
           return `Unexpected block name ${name}`;
         },
       },
@@ -109,19 +107,12 @@ type BemPatternOptions = Partial<{
    * Allowed pattern(s) for BEM modifier values.
    *
    * Supports RegExp, string (including wildcard patterns),
-   * or keywords like `KEBAB_CASE`.
+   * or keywords like `KEBAB_CASE`. \
+   * Use `false` to forbid modifier values entirely.
    *
    * @default KEBAB_CASE_REGEXP
    */
-  modifierValuePattern: string | RegExp | Array<string | RegExp>;
-
-  /**
-   * Allowed pattern(s) for utility classes.
-   * Use `false` to forbid utility classes entirely.
-   *
-   * @default ['is-*', 'has-*', 'js-*', '-*']
-   */
-  utilityPattern: false | string | RegExp | Array<string | RegExp>;
+  modifierValuePattern: false | string | RegExp | Array<string | RegExp>;
 
   /**
    * String used as the BEM element separator.
@@ -161,53 +152,46 @@ type BemPatternOptions = Partial<{
     /**
      * Custom message for BEM block violations.
      *
-     * @param   name       Detected block name.
-     * @param   patterns   Allowed patterns in object form.
+     * @param   name           Detected block name.
+     * @param   fullSelector   Full resolved BEM selector for the violation.
+     * @param   patterns       Allowed patterns in object form.
      *
-     * @returns            Error message.
+     * @returns                Error message.
      */
-    block: (name: string, patterns: ProcessedPattern[]) => string;
+    block: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
 
     /**
      * Custom message for BEM element violations.
      *
-     * @param   name       Detected element name.
-     * @param   patterns   Allowed patterns in object form.
+     * @param   name           Detected element name.
+     * @param   fullSelector   Full resolved BEM selector for the violation.
+     * @param   patterns       Allowed patterns in object form.
      *
-     * @returns            Error message.
+     * @returns                Error message.
      */
-    element: (name: string, patterns: ProcessedPattern[]) => string;
+    element: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
 
     /**
      * Custom message for BEM modifier name violations.
      *
-     * @param   name       Detected modifier name.
-     * @param   patterns   Allowed patterns in object form.
+     * @param   name           Detected modifier name.
+     * @param   fullSelector   Full resolved BEM selector for the violation.
+     * @param   patterns       Allowed patterns in object form.
      *
-     * @returns            Error message.
+     * @returns                Error message.
      */
-    modifierName: (name: string, patterns: ProcessedPattern[]) => string;
+    modifierName: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
 
     /**
      * Custom message for BEM modifier value violations.
      *
-     * @param   name       Detected modifier value.
-     * @param   patterns   Allowed patterns in object form.
+     * @param   name           Detected modifier value.
+     * @param   fullSelector   Full resolved BEM selector for the violation.
+     * @param   patterns       Allowed patterns in object form.
      *
-     * @returns            Error message.
+     * @returns                Error message.
      */
-    modifierValue: (name: string, patterns: ProcessedPattern[]) => string;
-
-    /**
-     * Custom message for utility class violations.
-     *
-     * @param   name       Detected utility class name.
-     * @param   patterns   Allowed patterns in object form
-     *                     or `false` if utilities are forbidden.
-     *
-     * @returns            Error message.
-     */
-    utility: (name: string, patterns: ProcessedPattern[] | false) => string;
+    modifierValue: (name: string, fullSelector: string, patterns: ProcessedPattern[] | false) => string;
   }>;
 }>
 ```
@@ -216,7 +200,7 @@ type BemPatternOptions = Partial<{
 
 ### Patterns
 
-All of the `blockPattern`, `elementPattern`, `modifierNamePattern`, `modifierValuePattern`, `utilityPattern` options
+All of the `blockPattern`, `elementPattern`, `modifierNamePattern`, `modifierValuePattern` options
 define the allowed naming patterns for different parts of your selectors.
 
 ::: warning Note
@@ -236,9 +220,9 @@ export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
     '@morev/bem/pattern': [true, {
-      blockPattern: '/^component-[a-z-]+/', // [!code focus]
+      blockPattern: 'component-*', // [!code focus]
       elementPattern: 'KEBAB_CASE', // [!code focus]
-      utilityPattern: 'is-*', // [!code focus]
+      modifierName: 'is-*', // [!code focus]
     },
   },
 }
@@ -247,24 +231,24 @@ export default {
 ---
 
 ```scss
-// ✅ Block name matches the pattern `/^component-[a-z-]+/`
+// ✅ Block name matches the pattern `'component-*'`
 // ✅ Element name matches the pattern `KEBAB_CASE`
-// ✅ Utility class matches the pattern `is-*`
-.component-foo__element.is-active {}
+// ✅ Modifier name matches the pattern `is-*`
+.component-foo__some-element--is-active {}
 
-// ❌ Block name does not match the pattern `/^component-[a-z-]+/`
+// ❌ Block name does not match the pattern ``'component-*'`
 // ✅ Element name matches the pattern `KEBAB_CASE`
-// ✅ Utility class matches the pattern `is-*`
-.the-component__element.is-active {}
+// ✅ Modifier name matches the pattern `is-*`
+.the-component__element--is-active {}
 
-// ✅ Block name matches the pattern `/^component-[a-z-]+/`
+// ✅ Block name matches the pattern `'component-*'`
 // ✅ The element is absent and not validated
-// ❌ Utility class does not match the pattern `is-*`
-.component-foo.active {}
+// ❌ Modifier name does not match the pattern `is-*`
+.component-foo--active {}
 
-// ✅ Block name matches the pattern `/^component-[a-z-]+/`
+// ✅ Block name matches the pattern `'component-*'`
 // ❌ The element does not match the pattern `KEBAB_CASE`
-// ✅ Utility classes are absent and not validated
+// ✅ Modifier name is absent and not validated
 .component-foo__FooElement {}
 ```
 
@@ -338,7 +322,7 @@ export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
     '@morev/bem/pattern': [true, {
-      utilityPattern: ['is-*', /.*foo.*/], // [!code focus]
+      modifierNamePattern: ['is-*', /.*foo.*/], // [!code focus]
     },
   },
 }
@@ -347,25 +331,75 @@ export default {
 ---
 
 ```scss
-// ✅ Utility class matches the pattern `'is-*'`
-.component-foo.is-active {}
+// ✅ Modifier name matches the pattern `'is-*'`
+.the-component--is-active {}
 
-// ✅ Utility classes match the pattern `/.*foo.*/`
-.component-foo.foo-bar {}
-.component-foo.bar-foo {}
+// ✅ Modifier name match the pattern `/.*foo.*/`
+.the-component--foo-bar {}
+.the-component--bar-foo {}
 
-// ✅ Utility class is absent and not validated
-.component-foo__element {}
+// ✅ Modifier name is absent and not validated
+.the-component__element {}
 
-// ❌ Utility class does not match any of the defined patterns
-.component-foo.baz {}
-
-// ✅ First utility class matches the pattern `is-*`,
-// ❌ But second one does not match any of the patterns
-.component-foo.is-active.fs-14 {}
+// ❌ Modifier name does not match any of the defined patterns
+.the-component--baz {}
 ```
 
 :::
+
+#### Disabling modifier values
+
+Some teams prefer a simplified BEM structure where **modifiers are always flat** -
+that is, modifier *names* encode their full meaning without a separate value part.
+
+```scss
+// Instead of
+.block--theme--dark {}
+
+// ...they write:
+.block--theme-dark {}
+```
+
+This approach enforces a strict three-level model:
+
+1. block
+1. element
+1. modifier
+
+It avoids introducing a fourth, optional level (modifier value)
+which can complicate mental parsing and tooling logic.
+
+---
+
+To enforce this model, set the `modifierValuePattern` to `false`. \
+This disables the use of separate modifier values entirely:
+
+```js
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/bem/pattern': [true, {
+      modifierValuePattern: false, // [!code focus]
+    }],
+  },
+}
+```
+
+This will disallow any BEM selector that contains a separate modifier value. \
+If you're using flattened values, they will be treated as part of the modifier name,
+and validated against `modifierNamePattern`.
+
+##### Example
+
+```scss
+// ✅ Valid: modifier is flattened into one name
+.block--theme-dark {}
+
+// ❌ Invalid: separate modifier name + value
+.block--theme--dark {}
+```
+
+---
 
 ### Separators
 
@@ -572,7 +606,8 @@ If you want to customize these messages - for example, to match your team's tone
 to translate them, or to integrate with specific tooling -
 you can provide custom message functions via the `messages` option.
 
-Each message function receives the detected entity name and the list of expected patterns.
+Each message function receives the detected entity name, full resolved BEM selectors
+and the list of expected patterns.
 
 #### Example
 
@@ -582,18 +617,18 @@ export default {
   rules: {
     '@morev/bem/pattern': [true, {
       messages: {
-        block: (name, patterns) =>
+        block: (name, fullSelector, patterns) =>
           `⛔ Block name "${name}" is invalid. It must follow: ${patterns.map(p => p.source).join(', ')}`,
 
         element: (name) =>
           `⚠️ Element "${name}" doesn't look good.`,
 
-        utility: (name, patterns) => {
+        modifierValue: (name, fullSelector, patterns) => {
           if (patterns === false) {
-            return `Utility classes like "${name}" are completely forbidden.`;
+            return `Modifier values in "${fullSelector}" are completely forbidden.`;
           }
 
-          return `Utility class "${name}" must match: ${patterns.map(p => p.source).join(', ')}`;
+          return `Modifier value "${name}" must match: ${patterns.map(p => p.source).join(', ')}`;
         },
       },
     }],
