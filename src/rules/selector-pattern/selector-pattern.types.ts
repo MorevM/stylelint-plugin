@@ -1,3 +1,5 @@
+import type { Separators } from '#modules/shared';
+
 export type ProcessedPattern = {
 	/**
 	 * The raw configuration value, cast to a string.
@@ -19,7 +21,7 @@ export type PrimaryOption = true;
 /**
  * Secondary options for the rule.
  */
-export type SecondaryOption = Partial<{
+export type SecondaryOption = Partial<Separators> & Partial<{
 	/**
 	 * Allowed pattern(s) for BEM block names.
 	 *
@@ -67,27 +69,6 @@ export type SecondaryOption = Partial<{
 	 * @default ['is-*', 'has-*', 'js-*', '-*']
 	 */
 	utilityPattern: false | string | RegExp | Array<string | RegExp>;
-
-	/**
-	 * String used as the BEM element separator.
-	 *
-	 * @default '__'
-	 */
-	elementSeparator: string;
-
-	/**
-	 * String used as the BEM modifier separator.
-	 *
-	 * @default '--'
-	 */
-	modifierSeparator: string;
-
-	/**
-	 * String used as the BEM modifier value separator.
-	 *
-	 * @default '--'
-	 */
-	modifierValueSeparator: string;
 
 	/**
 	 * Block names to ignore completely. \

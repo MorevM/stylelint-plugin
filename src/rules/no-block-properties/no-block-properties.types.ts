@@ -1,3 +1,5 @@
+import type { Separators } from '#modules/shared';
+
 /**
  * Primary option of the rule.
  */
@@ -6,7 +8,7 @@ export type PrimaryOption = true;
 /**
  * Secondary options for the rule.
  */
-export type SecondaryOption = {
+export type SecondaryOption = Partial<Separators> & {
 	/**
 	 * List of presets to apply globally. \
 	 * Available built-in presets: `['EXTERNAL_GEOMETRY', 'CONTEXT', 'POSITIONING']`.
@@ -151,25 +153,4 @@ export type SecondaryOption = {
 			presetName: string | undefined,
 		) => string;
 	};
-
-	/**
-	 * String used as the BEM element separator.
-	 *
-	 * @default '__'
-	 */
-	elementSeparator?: string;
-
-	/**
-	 * String used as the BEM modifier separator.
-	 *
-	 * @default '--'
-	 */
-	modifierSeparator?: string;
-
-	/**
-	 * String used as the BEM modifier value separator.
-	 *
-	 * @default '--'
-	 */
-	modifierValueSeparator?: string;
 };
