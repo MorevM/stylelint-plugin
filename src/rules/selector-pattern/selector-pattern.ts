@@ -87,7 +87,12 @@ export default createRule({
 		element: normalizePattern(secondary.elementPattern),
 		modifierName: normalizePattern(secondary.modifierNamePattern),
 		modifierValue: normalizePattern(secondary.modifierValuePattern),
-		utility: normalizePattern(secondary.utilityPattern),
+	};
+
+	const separators = {
+		elementSeparator: secondary.elementSeparator,
+		modifierSeparator: secondary.modifierSeparator,
+		modifierValueSeparator: secondary.modifierValueSeparator,
 	};
 
 	const messages = mergeMessages(ruleMessages, secondary.messages);
@@ -96,15 +101,13 @@ export default createRule({
 	const ignoreBlocks = toArray(secondary.ignoreBlocks)
 		.map((entry) => toRegExp(entry, { allowWildcard: true }));
 
-	const {
-		violations, getViolationIndexes, hasParentViolation,
-	} = createViolationsRegistry(ENTITIES_IN_ORDER);
+	const { violations, hasParentViolation } = createViolationsRegistry(ENTITIES_IN_ORDER);
 
 	root.walk((rule) => {
 		if (rule.type !== 'atrule' && rule.type !== 'rule') return;
 		if (rule.type === 'atrule' && rule.name !== 'at-root') return;
 
-		resolveBemEntities(rule, secondary).forEach((bemEntity) => {
+		resolveBemEntities({ rule, separators }).forEach((bemEntity) => {
 			if (!bemEntity.block) return;
 			if (ignoreBlocks.some((pattern) => pattern.test(bemEntity.block.value))) return;
 
@@ -115,7 +118,7 @@ export default createRule({
 				const bemEntities = toArray(bemEntityData);
 				if (isEmpty(bemEntities)) return;
 
-				bemEntities.forEach((entity) => {
+				bemEntities.forEach((entityPart) => {
 					const entityPatterns = patterns[entityName];
 
 					// Special case: utility classes can be completely forbidden via `false`
@@ -123,29 +126,27 @@ export default createRule({
 
 					// Determine whether this entity violates the configured patterns
 					const shouldReport = isDisallowedEntity || (
-						entityPatterns
-						&& entityPatterns.every((pattern) => !pattern.regexp.test(entity.value))
+						entityPatterns?.every((pattern) => !pattern.regexp.test(entity.value))
 						&& !hasParentViolation(rule, entityName, entity)
 					);
 
 					shouldReport && violations.push({
 						rule,
-						entity: entityName,
-						value: entity.value,
+						entityPart,
+						value: entityPart.value,
 						// Intentionally loosened type for utility scenario (might be `false`)
-						message: messages[entityName](entity.value, entityPatterns as any),
-						...getViolationIndexes(rule, entity.value),
+						message: messages[entityName](entityPart.value, bemEntity.bemSelector, entityPatterns as any),
 					});
 				});
 			});
 		});
 	});
 
-	violations.forEach(({ rule, startIndex, endIndex, message }) => {
+	violations.forEach(({ rule, entityPart, message }) => {
 		report({
 			node: rule,
-			index: startIndex,
-			endIndex,
+			index: entityPart.sourceRange?.[0] ?? 0,
+			endIndex: entityPart.sourceRange?.[1] ?? rule.toString().length,
 			message,
 		});
 	});
