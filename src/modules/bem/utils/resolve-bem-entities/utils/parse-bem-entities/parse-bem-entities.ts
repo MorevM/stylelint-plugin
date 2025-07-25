@@ -23,11 +23,6 @@ type Options = {
 	 * Custom separators used in BEM notation.
 	 */
 	separators: Separators;
-
-	/**
-	 * Offset applied to source ranges (e.g., in nested rules).
-	 */
-	sourceOffset: number;
 };
 
 /**
@@ -80,7 +75,7 @@ const consumeSubstring = (value: string, start: number, end: number): string => 
  * @returns           Parsed BEM entity or `null` if the class doesn't match the BEM pattern.
  */
 export const parseBemEntities = (options: Options): Partial<BemEntity> | null => {
-	const { node, rule, separators, sourceOffset } = options;
+	const { node, rule, separators } = options;
 	const { elementSeparator, modifierSeparator, modifierValueSeparator } = separators;
 	const separatorsMap: Record<EntityType, string> = {
 		block: '.',
@@ -116,7 +111,7 @@ export const parseBemEntities = (options: Options): Partial<BemEntity> | null =>
 
 		const { value, indices: [partStart, partEnd] } = entityParts[type];
 
-		// Find the source match that overlaps with this part. TODO:
+		// Find the source match that overlaps with this part.
 		const matchIndex = sourceMatches.findIndex((match) => {
 			return !match.value.includes('&')
 				&& !isEmpty(rangesIntersection([[partStart, partEnd], match.resolvedRange]));
@@ -151,8 +146,8 @@ export const parseBemEntities = (options: Options): Partial<BemEntity> | null =>
 			match.value = consumeSubstring(match.value, partIndex, partIndex + value.length);
 
 			return [
-				start + sourceOffset + match.offset,
-				end + sourceOffset + match.offset,
+				start + match.offset,
+				end + match.offset,
 			] as [number, number];
 		})();
 

@@ -26,21 +26,24 @@ const isSameSegment = (a: parser.Node[], b: parser.Node[]) =>
  *
  * @param   originalNodes   The original nodes from the user-defined selector.
  * @param   resolvedNodes   The selector nodes after nesting resolution.
+ * @param   sourceOffset    Offset of the nodes relative to original rule selector.
  *
  * @returns                 An array of resolved nodes with `.origin` metadata.
  */
 const attachOriginMetadata = (
 	originalNodes: BemNode[],
 	resolvedNodes: parser.Node[],
+	sourceOffset: number = 0,
 ): BemNode[] => {
 	const originalNodeRanges = originalNodes.map((node) => {
 		const value = node.toString();
-		const baseIndex = node.adjustedSourceIndex ?? node.sourceIndex;
+		const nodeIndex = node.sourceIndex + sourceOffset;
+		const adjustedIndex = node.adjustedSourceIndex ?? node.sourceIndex + sourceOffset;
 
 		return {
 			value,
-			sourceRange: [node.sourceIndex, node.sourceIndex + value.length] as [number, number],
-			adjustedRange: [baseIndex, baseIndex + value.length] as [number, number],
+			sourceRange: [nodeIndex, nodeIndex + value.length] as [number, number],
+			adjustedRange: [adjustedIndex, adjustedIndex + value.length] as [number, number],
 			offset: node.offset ?? 0,
 		};
 	});
@@ -117,6 +120,7 @@ const adjustNodeSource = (
  * @param   sourceSelectorNodes     Nodes from the original (nested) selector.
  * @param   resolvedSelectorNodes   Fully-resolved nodes after nesting flattening.
  * @param   rule                    The rule or at-rule that owns the selector (e.g., for offset calculation).
+ * @param   sourceOffset            Offset of the selector nodes relative to original rule selector.
  *
  * @returns                         A list of resolved node segments, each linked to a source-level BEM segment.
  */
@@ -124,13 +128,14 @@ export const getResolvedBemSegments = (
 	sourceSelectorNodes: parser.Node[],
 	resolvedSelectorNodes: parser.Node[],
 	rule: postcss.Rule | postcss.AtRule,
+	sourceOffset: number = 0,
 ): BemNode[][] => {
 	const relevantSourceSegments = getBemCandidateSegments(sourceSelectorNodes);
 
 	const isAtRoot = isAtRule(rule, ['at-root', 'nest']);
 	const contextOffset = isAtRoot
-		? rule.name.length + 1 + rule.raws.afterName!.length // +1 for `@`
-		: 0;
+		? rule.name.length + rule.raws.afterName!.length + sourceOffset + 1 // +1 for `@`
+		: sourceOffset;
 
 	let sourceShift = 0;
 

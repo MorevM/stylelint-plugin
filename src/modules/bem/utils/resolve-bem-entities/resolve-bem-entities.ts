@@ -1,3 +1,4 @@
+import { inspect } from 'node:util';
 import { arrayUnique, assert, isUndefined, mergeObjects } from '@morev/utils';
 import { Rule } from 'postcss';
 import { isPseudoElementNode } from '#modules/postcss';
@@ -176,6 +177,7 @@ export const resolveBemEntities = (options: Options) => {
 				sourceSelectorNodes,
 				resolvedSelectorNodes,
 				rule,
+				sourceOffset,
 			);
 
 			const pseudoStore = createPseudoStore();
@@ -218,7 +220,7 @@ export const resolveBemEntities = (options: Options) => {
 					[parentPseudo, parentBemEntity] = pseudoStore.getParents(node, processedBemEntities);
 
 					if (node.type === 'class') {
-						const maybeBemEntity = parseBemEntities({ node, rule, sourceOffset, separators });
+						const maybeBemEntity = parseBemEntities({ node, rule, separators });
 						// Technically impossible scenario, used solely for TS type narrowing.
 						if (!maybeBemEntity) continue;
 

@@ -400,6 +400,30 @@ describe(resolveBemEntities, () => {
 			expect(result[0].modifierValue?.sourceRange).toBeUndefined();
 		});
 
+		it('Resolves proper indices using SCSS nesting if the element is splitted in compound selector', () => {
+			const result = resolveWith(`
+				.foo {
+					&__item {
+						&-title, &-value, &--mod, span &-el {}
+					}
+				}
+			`, `&-title, &-value, &--mod, span &-el`);
+
+			expect(result).toHaveLength(4);
+
+			expect(result[0].block.sourceRange).toBeUndefined();
+			expect(result[0].element?.sourceRange).toStrictEqual([0, 7]);
+
+			expect(result[1].block.sourceRange).toBeUndefined();
+			expect(result[1].element?.sourceRange).toStrictEqual([9, 16]);
+
+			expect(result[2].block.sourceRange).toBeUndefined();
+			expect(result[2].modifierName?.sourceRange).toStrictEqual([21, 24]);
+
+			expect(result[3].block.sourceRange).toBeUndefined();
+			expect(result[3].element?.sourceRange).toStrictEqual([31, 35]);
+		});
+
 		it('Resolves proper indices using SCSS nesting if the modifier value is deeply splitted', () => {
 			const result = resolveWith(`
 				.foo {
