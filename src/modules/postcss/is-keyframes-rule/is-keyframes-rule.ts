@@ -1,6 +1,6 @@
-import type { AtRule, ChildNode } from 'postcss';
+import { isAtRule } from '#modules/postcss/is-at-rule/is-at-rule';
+import type { ChildNode } from 'postcss';
 
 export const isKeyframesRule = (rule: ChildNode) => {
-	return rule.parent?.type === 'atrule'
-		&& (rule.parent as AtRule).name === 'keyframes';
+	return isAtRule(rule.parent, ['keyframes']);
 };
