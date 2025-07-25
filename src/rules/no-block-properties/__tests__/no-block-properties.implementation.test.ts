@@ -60,6 +60,12 @@ testRule({
 				.bar-component--modifier { color: red; }
 			`,
 		},
+		{
+			description: 'Non-block element',
+			code: `
+				.foo-component__item:has(.card) { margin-block-start: 16px; }
+			`,
+		},
 	],
 	reject: [
 		{
@@ -72,6 +78,19 @@ testRule({
 					message: messages.unexpected('margin-block-start', '.the-component', 'block', 'EXTERNAL_GEOMETRY'),
 					line: 1, column: 18,
 					endLine: 1, endColumn: 36,
+				},
+			],
+		},
+		{
+			description: 'Root-level :pseudo block has a disallowed property',
+			code: `
+				:is(.the-component) { margin-block-start: 16px; }
+			`,
+			warnings: [
+				{
+					message: messages.unexpected('margin-block-start', '.the-component', 'block', 'EXTERNAL_GEOMETRY'),
+					line: 1, column: 23,
+					endLine: 1, endColumn: 41,
 				},
 			],
 		},
@@ -105,6 +124,20 @@ testRule({
 				},
 			],
 		},
+		{
+			description: 'Side effect in compound selector is not reported',
+			code: `
+				.foo, span .bar {
+					margin-block-start: 16px;
+
+					&__item {
+						margin-block-start: 16px;
+					}
+				}
+			`,
+			warnings: [
+				{
+					message: messages.unexpected('margin-block-start', '.foo', 'block', 'EXTERNAL_GEOMETRY'),
 					line: 2, column: 2,
 					endLine: 2, endColumn: 20,
 				},

@@ -86,46 +86,55 @@ export default createRule({
 		.map((value) => toRegExp(value, { allowWildcard: true }));
 
 	root.walkRules((rule) => {
-		const [resolvedSelector] = resolveNestedSelector({ node: rule });
+		const resolvedSelectors = resolveNestedSelector({ node: rule });
 
-		parseSelectors(resolvedSelector.resolved).forEach((selectorNodes) => {
-			// Side effect selector, `.foo span`, `span .foo`
-			if (selectorNodes.some((node) => node.type === 'combinator')) return;
-			// `.the-component::before` is allowed
-			if (isPseudoElementNode(selectorNodes.at(-1))) return;
+		for (const resolvedSelector of resolvedSelectors) {
+			parseSelectors(resolvedSelector.resolved).forEach((selectorNodes) => {
+				// Side effect selector, `.foo span`, `span .foo`
+				if (selectorNodes.some((node) => node.type === 'combinator')) return;
+				// `.the-component::before` is allowed
+				if (isPseudoElementNode(selectorNodes.at(-1))) return;
 
-			const selectorBemEntities = resolveBemEntities({ rule, separators });
-
-			const entitiesToReport = selectorBemEntities
-				// We are looking only for BEM blocks or its modifiers in the rule
-				.filter((bemEntity) => !bemEntity.element)
-				// Skip ignored blocks
-				.filter((bemEntity) => {
-					return !ignorePatterns
-						.some((blockPattern) => blockPattern.test(bemEntity.block.value));
+				const selectorBemEntities = resolveBemEntities({
+					rule,
+					separators,
+					source: resolvedSelector.resolved,
+				}).filter((bemEntity) => {
+					return bemEntity.bemSelector.startsWith(resolvedSelector.inject)
+						&& [null, 'modifier', 'entity'].includes(bemEntity.sourceContext);
 				});
 
-			if (isEmpty(entitiesToReport)) return;
+				const entitiesToReport = selectorBemEntities
+				// We are looking only for BEM blocks or its modifiers in the rule
+					.filter((bemEntity) => !bemEntity.element)
+				// Skip ignored blocks
+					.filter((bemEntity) => {
+						return !ignorePatterns
+							.some((blockPattern) => blockPattern.test(bemEntity.block.value));
+					});
 
-			entitiesToReport.forEach((bemEntity) => {
-				const context = bemEntity.modifierName ? 'modifier' : 'block';
+				if (isEmpty(entitiesToReport)) return;
 
-				const declarationsToReport = getRuleDeclarations(rule, { onlyDirectChildren: true })
-					.filter((declaration) => disallowedProperties[context].has(declaration.prop));
+				entitiesToReport.forEach((bemEntity) => {
+					const context = bemEntity.modifierName ? 'modifier' : 'block';
 
-				declarationsToReport.forEach((declaration) => {
-					report({
-						message: messages.unexpected(
-							declaration.prop,
-							bemEntity.bemSelector,
-							context,
-							propertyToPresetMap.get(declaration.prop),
-						),
-						node: declaration,
-						word: declaration.prop,
+					const declarationsToReport = getRuleDeclarations(rule, { onlyDirectChildren: true })
+						.filter((declaration) => disallowedProperties[context].has(declaration.prop));
+
+					declarationsToReport.forEach((declaration) => {
+						report({
+							message: messages.unexpected(
+								declaration.prop,
+								bemEntity.bemSelector,
+								context,
+								propertyToPresetMap.get(declaration.prop),
+							),
+							node: declaration,
+							word: declaration.prop,
+						});
 					});
 				});
 			});
-		});
+		}
 	});
 });
