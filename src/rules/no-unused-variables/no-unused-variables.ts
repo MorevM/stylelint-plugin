@@ -2,15 +2,29 @@ import * as v from 'valibot';
 import { addNamespace, createRule, getRuleUrl, isCssFile, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { toRegExp } from '#modules/shared';
 import type { Declaration, Node } from 'postcss';
+import type { Scope } from './no-unused-variables.types';
 
 const RULE_NAME = 'no-unused-variables';
 
-type Scope = {
-	variables: Map<string, Declaration>;
-	usages: Set<string>;
-};
-
-const findVariables = (input: string, onlyInterpolated: boolean) => {
+/**
+ * Extracts SASS variable references from the given string.
+ *
+ * Supports both plain (`$var`) and interpolated (`#{$var}`) usages.
+ * Optionally filters only interpolated variables when `onlyInterpolated` is `true`.
+ *
+ * Variables inside strings (e.g. `"$var"` or `'\\$var'`) are excluded in plain mode.
+ *
+ * @example
+ * extractSassVariables('#{$b}__element', true); // ['$b']
+ * extractSassVariables('width: $width;', false); // ['$width']
+ * extractSassVariables('content: "$foo"', false); // []
+ *
+ * @param   input              The input string (e.g. a selector, property, or value) to search within.
+ * @param   onlyInterpolated   Whether to extract only interpolated variables (i.e. `#{$var}`).
+ *
+ * @returns                    A list of matched variable names, including the leading `$` symbol.
+ */
+const extractSassVariables = (input: string, onlyInterpolated: boolean) => {
 	const regExp = onlyInterpolated
 		? /#{(\$[\w-]+)}/g
 		: /(?<!["'\\])(\$[\w-]+)/g;
@@ -85,7 +99,7 @@ export default createRule({
 		const variables = (() => {
 			if (node.type === 'rule') {
 				// #{$b}__element
-				return findVariables(node.selector, true);
+				return extractSassVariables(node.selector, true);
 			}
 
 			if (node.type === 'decl') {
@@ -93,23 +107,23 @@ export default createRule({
 				// only the value should be checked
 				// for scenarios like `$foo: #{$bar}__baz`.
 				if (seenVariables.has(node)) {
-					return findVariables(node.value, false);
+					return extractSassVariables(node.value, false);
 				}
 
 				return [
 					// #{$property}: 100px;
-					...findVariables(node.prop, false),
+					...extractSassVariables(node.prop, false),
 					// width: $width;
-					...findVariables(node.value, false),
+					...extractSassVariables(node.value, false),
 				];
 			}
 
 			if (node.type === 'atrule') {
 				return [
 					// @#{$at-rule-name}
-					...findVariables(node.name, true),
+					...extractSassVariables(node.name, true),
 					// @media ($breakpoint-tablet-small)
-					...findVariables(node.params, false),
+					...extractSassVariables(node.params, false),
 				];
 			}
 

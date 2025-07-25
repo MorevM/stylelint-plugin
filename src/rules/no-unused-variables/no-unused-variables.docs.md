@@ -33,7 +33,7 @@ This rule helps keep your component code clean and intentional by reporting vari
 All options are optional and have sensible default values.
 
 ```ts
-type NoUnusedVariablesOptions = Partial<{
+type NoUnusedVariablesOptions = {
   /**
    * Whether variables declared at the root level should also be checked.
    * By default, root-level variables are ignored,
@@ -41,16 +41,18 @@ type NoUnusedVariablesOptions = Partial<{
    *
    * @default false
    */
-  checkRoot: boolean;
+  checkRoot?: boolean;
 
   /**
-   * A list of variable names to ignore.
+   * A list of variable names to ignore (without leading `$`).
    * Supports both exact string matches and wildcard patterns.
+   *
+   * @example ['my-var']
    *
    * @default []
    */
-  ignore: Array<string | RegExp>;
-}>;
+  ignore?: Array<string | RegExp>;
+};
 ```
 
 ---
