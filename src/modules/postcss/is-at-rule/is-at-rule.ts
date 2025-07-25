@@ -13,9 +13,10 @@ import type { AtRule, ChildNode, Container, Document } from 'postcss';
  *                        Narrows the type to `AtRule` on success.
  */
 export const isAtRule = (
-	node: Document | ChildNode | Container,
+	node: Document | ChildNode | Container | undefined,
 	atRuleNames?: string[],
 ): node is AtRule => {
+	if (!node) return false;
 	if (node.type !== 'atrule') return false;
 
 	return isEmpty(atRuleNames)

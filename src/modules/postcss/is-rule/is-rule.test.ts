@@ -16,6 +16,10 @@ describe(isRule, () => {
 		expect(isRule(createAtRule())).toBe(false);
 	});
 
+	it('Returns `false` for `undefined` input', () => {
+		expect(isRule(undefined)).toBe(false);
+	});
+
 	it('Returns `true` for `Rule` node', () => {
 		expect(isRule(createRule())).toBe(true);
 	});

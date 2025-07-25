@@ -9,6 +9,10 @@ const createDecl = (): Declaration =>
 
 describe(isAtRule, () => {
 	describe('Without `atRuleNames` filter', () => {
+		it('Returns `false` for `undefined` input', () => {
+			expect(isAtRule(undefined)).toBe(false);
+		});
+
 		it('Returns `false` for non-`AtRule` nodes', () => {
 			expect(isAtRule(createDecl())).toBe(false);
 		});
@@ -30,6 +34,10 @@ describe(isAtRule, () => {
 
 		it('Returns `false` when `AtRule` name does not match any of the provided `atRuleNames`', () => {
 			expect(isAtRule(createAtRule('keyframes'), ['media', 'supports'])).toBe(false);
+		});
+
+		it('Returns `false` for `undefined` input with filter', () => {
+			expect(isAtRule(undefined, ['keyframes'])).toBe(false);
 		});
 	});
 });
