@@ -34,6 +34,7 @@ const isValidBemEntity = (entity: Partial<BemEntity>): entity is BemEntity => {
  */
 const createBemEntity = (partialEntity?: Partial<BemEntity>): Partial<BemEntity> => {
 	return mergeObjects({
+		sourceContext: null,
 		block: undefined,
 		element: undefined,
 		modifierName: undefined,
@@ -131,8 +132,14 @@ const createPseudoStore = () => {
 const extractNestedBemEntities = (bemEntity: BemEntity) => {
 	return [
 		bemEntity,
-		...bemEntity.context.classes.entities.map((entity) => entity.entity),
-		...bemEntity.context.classes.modifiers.map((entity) => entity.entity),
+		...bemEntity.context.classes.entities.map((entity) => {
+			entity.entity.sourceContext = entity.context;
+			return entity.entity;
+		}),
+		...bemEntity.context.classes.modifiers.map((entity) => {
+			entity.entity.sourceContext = entity.context;
+			return entity.entity;
+		}),
 	];
 };
 
@@ -222,12 +229,12 @@ export const resolveBemEntities = (options: Options) => {
 						}
 
 						// Later classes within same segment may be modifiers or nested entities
-						const whereToPush = maybeBemEntity.block?.value === bemEntity.block.value
-							? 'modifiers'
-							: 'entities';
+						const [whereToPush, contextName] = maybeBemEntity.block?.value === bemEntity.block.value
+							? ['modifiers', 'modifier'] as const
+							: ['entities', 'entity'] as const;
 
 						isValidBemEntity(maybeBemEntity) && bemEntity.context.classes[whereToPush].push({
-							context: null,
+							context: contextName,
 							entity: maybeBemEntity,
 						});
 					}

@@ -94,6 +94,31 @@ export type BemEntity = {
 	bemSelector: string;
 
 	/**
+	 * Indicates the structural or semantic context in which this BEM entity was discovered.
+	 *
+	 * May be one of:
+	 * * A pseudo-class selector name such as `:is`, `:has`, `:not` - when the entity comes from within such constructs.
+	 * * `'modifier'` - when this entity is a modifier of a previous one, e.g. `.block.block--mod`.
+	 * * `'entity'` - when this entity is another standalone BEM entity used in the same selector, e.g. `.foo.bar`.
+	 * - `null` — when the entity is top-level and not contextually dependent on any wrapping or neighboring selector.
+	 *
+	 * Used to distinguish the role and origin of the entity in compound selectors and nested structures.
+	 *
+	 * @example
+	 * .block {
+	 *   // Both entities will have sourceContext: ':is'
+	 *   :is(&--mod, &__elem) {}
+	 * }
+	 * @example
+	 *  // Second entity (modifier) will have sourceContext: 'modifier'
+	 * .block.block--mod {}
+	 * @example
+	 * // Second entity will have sourceContext: 'entity'
+	 * .foo.bar {}
+	 */
+	sourceContext: string | null;
+
+	/**
 	 * Parsed `block` part (always present).
 	 */
 	block: BemEntityPart;

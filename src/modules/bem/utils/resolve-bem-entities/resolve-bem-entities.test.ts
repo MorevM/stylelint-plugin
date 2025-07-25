@@ -260,6 +260,36 @@ describe(resolveBemEntities, () => {
 				expect(resolveBemEntities({ separators, source: '' })).toStrictEqual([]);
 			});
 		});
+
+		// TODO: The order is incorrect, but the structure is valid.
+		// It's not a big problem now, but it will need to be rewritten later.
+		describe('sourceContext', () => {
+			it('Properly identifies the source context', () => {
+				const { root } = postcss().process(`
+					.foo:is(.bar:not(.baz)).foo--mod.component {}
+				`, { syntax: postcssScss });
+
+				const rule = root.nodes[0] as Rule;
+				const result = resolveBemEntities({ rule, separators });
+
+				expect(result).toHaveLength(5);
+
+				expect(result[0].block.value).toBe('foo');
+				expect(result[0].sourceContext).toBeNull();
+
+				expect(result[1].block.value).toBe('component');
+				expect(result[1].sourceContext).toBe('entity');
+
+				expect(result[2].block.value).toBe('bar');
+				expect(result[2].sourceContext).toBe(':is');
+
+				expect(result[3].block.value).toBe('foo');
+				expect(result[3].sourceContext).toBe('modifier');
+
+				expect(result[4].block.value).toBe('baz');
+				expect(result[4].sourceContext).toBe(':not');
+			});
+		});
 	});
 
 	describe('Indices', () => {
