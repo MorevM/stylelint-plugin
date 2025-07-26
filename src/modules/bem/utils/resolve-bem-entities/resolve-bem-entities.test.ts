@@ -424,6 +424,23 @@ describe(resolveBemEntities, () => {
 			expect(result[3].element?.sourceRange).toStrictEqual([31, 35]);
 		});
 
+		it('Resolves proper indices using SCSS nesting if the element is splitted after another entity and combinator', () => {
+			const result = resolveWith(`
+				.the-component {
+					&__element {
+						.another-component &-title {}
+					}
+				}
+			`, `.another-component &-title`);
+
+			expect(result).toHaveLength(2);
+
+			expect(result[0].block.sourceRange).toStrictEqual([1, 18]);
+
+			expect(result[1].block.sourceRange).toBeUndefined();
+			expect(result[1].element?.sourceRange).toStrictEqual([19, 26]);
+		});
+
 		it('Resolves proper indices using SCSS nesting if the modifier value is deeply splitted', () => {
 			const result = resolveWith(`
 				.foo {

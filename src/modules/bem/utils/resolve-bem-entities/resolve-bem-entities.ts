@@ -1,4 +1,3 @@
-import { inspect } from 'node:util';
 import { arrayUnique, assert, isUndefined, mergeObjects } from '@morev/utils';
 import { Rule } from 'postcss';
 import { isPseudoElementNode } from '#modules/postcss';
