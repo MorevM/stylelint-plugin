@@ -1,6 +1,5 @@
 import { isEmpty } from '@morev/utils';
 import { isAtRule } from '#modules/postcss';
-import { resolveNestedSelector } from '#modules/selectors';
 import { extractSelectorSegment } from '../extract-selector-segment/extract-selector-segment';
 import { getBemCandidateSegments } from '../get-bem-candidate-segments/get-bem-candidate-segments';
 import type postcss from 'postcss';
@@ -121,6 +120,7 @@ const adjustNodeSource = (
  * @param   resolvedSelectorNodes   Fully-resolved nodes after nesting flattening.
  * @param   rule                    The rule or at-rule that owns the selector (e.g., for offset calculation).
  * @param   sourceOffset            Offset of the selector nodes relative to original rule selector.
+ * @param   sourceInject            Parent injection of the selector nodes came from `resolve-nested-selector`.
  *
  * @returns                         A list of resolved node segments, each linked to a source-level BEM segment.
  */
@@ -128,7 +128,8 @@ export const getResolvedBemSegments = (
 	sourceSelectorNodes: parser.Node[],
 	resolvedSelectorNodes: parser.Node[],
 	rule: postcss.Rule | postcss.AtRule,
-	sourceOffset: number = 0,
+	sourceOffset: number,
+	sourceInject: string,
 ): BemNode[][] => {
 	const relevantSourceSegments = getBemCandidateSegments(sourceSelectorNodes);
 	const sourceHasNesting = relevantSourceSegments
@@ -143,11 +144,6 @@ export const getResolvedBemSegments = (
 
 	const adjustedSourceSegments = relevantSourceSegments
 		.reduce<BemNode[][]>((acc, segment) => {
-			const { inject } = resolveNestedSelector({
-				node: rule,
-				selector: segment[0].value,
-			})[0];
-
 			const adjustedSegment = segment.map((node, index) => {
 				const isFirstInSegment = index === 0;
 				const isNestingNode = node.type === 'nesting';
@@ -156,7 +152,7 @@ export const getResolvedBemSegments = (
 				// to account for injected selector parts during nesting resolution.
 				// This keeps source index alignment consistent with the resolved tree.
 				if ((isFirstInSegment && !isAtRoot && !sourceHasNesting) || isNestingNode) {
-					const injectedLength = inject?.length ?? 0;
+					const injectedLength = sourceInject?.length ?? 0;
 					const originalLength = isNestingNode ? node.value.length : 0;
 					sourceShift += injectedLength - originalLength;
 				}

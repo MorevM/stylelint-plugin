@@ -424,6 +424,28 @@ describe(resolveBemEntities, () => {
 			expect(result[3].element?.sourceRange).toStrictEqual([31, 35]);
 		});
 
+		it('Resolves proper indices using SCSS nesting if the element is splitted in compound selector in different branches', () => {
+			const result = resolveWith(`
+				.the-component {
+					&__element, .foo {
+						&--bar {
+							&-baz {}
+						}
+					}
+				}
+			`, `&-baz`);
+
+			expect(result).toHaveLength(2);
+
+			expect(result[0].block.sourceRange).toBeUndefined();
+			expect(result[0].element?.sourceRange).toBeUndefined();
+			expect(result[0].modifierName?.sourceRange).toStrictEqual([0, 5]);
+
+			expect(result[1].block.sourceRange).toBeUndefined();
+			expect(result[1].element?.sourceRange).toBeUndefined();
+			expect(result[1].modifierName?.sourceRange).toStrictEqual([0, 5]);
+		});
+
 		it('Resolves proper indices using SCSS nesting if the element is splitted after another entity and combinator', () => {
 			const result = resolveWith(`
 				.the-component {
