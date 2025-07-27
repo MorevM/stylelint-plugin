@@ -498,6 +498,21 @@ describe(resolveNestedSelector, () => {
 			]);
 		});
 
+		it('Does not add `inject` if pointed to `@at-root` without `&`', () => {
+			const code = `
+				.foo {
+					@at-root .bar, .baz {
+						&__item {}
+					}
+				}
+			`;
+
+			expect(resolveSelectorInContext(code, '.bar, .baz')).toStrictEqual([
+				{ raw: '.bar', resolved: '.bar', inject: '', offset: 0 },
+				{ raw: '.baz', resolved: '.baz', inject: '', offset: 6 },
+			]);
+		});
+
 		it('Can resolve complex selectors at once', () => {
 			const code = `
 				.card {

@@ -116,7 +116,15 @@ const getTrees = (
 	for (let i = 0, l = initialSelectors.length; i < l; i++) {
 		const selector = initialSelectors[i];
 		const offset = getOffset(initialSelectors, i);
-		walk(node, [{ offset, type: 'rule', value: selector.trim() }]);
+
+		const current = { offset, type: 'rule', value: selector.trim() } as const;
+		// If `at-root` does not contain `&` character,
+		// further traversal will result in an incorrect `inject`.
+		if (isAtRule(node, ['at-root']) && !selector.includes('&')) {
+			results.push([current]);
+		} else {
+			walk(node, [current]);
+		}
 	}
 
 	return results;
