@@ -2,43 +2,134 @@ import * as v from 'valibot';
 import { resolveBemChain } from '#modules/bem';
 import { isAtRule, isRule } from '#modules/postcss';
 import { addNamespace, createRule, extractSeparators, getRuleUrl, isCssFile, vSeparatorsSchema } from '#modules/rule-utils';
-import type { AtRule, Rule } from 'postcss';
-import type { BemEntityPart, EntityType } from '#modules/bem';
-import type { BemChain } from '#modules/bem/utils/resolve-bem-chain/resolve-bem-chain.types';
+import type { Root } from 'postcss';
+import type { Separators } from '#modules/shared';
+import type { RepeatingGroup, RepeatingGroupItem, SecondaryOption, Violation } from './no-chained-bem-entities.types';
 
 const RULE_NAME = 'no-chained-bem-entities';
-
-type Violation = {
-	type: EntityType | 'nestedModifierValue';
-	expected: string;
-	node: Rule | AtRule;
-	index: number;
-	endIndex: number;
-};
-
-type Entity = {
-	entityType: EntityType;
-	entityPart: BemEntityPart;
-	bemSelector: string;
-	rule: Rule | AtRule;
-};
-
-type RepeatingGroup = {
-	rule: Rule | AtRule;
-	repeatingEntities: Entity[];
-	nextEntityPart: BemEntityPart | undefined;
-	bemSelector: string;
-};
 
 /**
  * TODO:
  * * User-defined messages
+ * * Configuration tests
  * * Documentation
  * * Non-default separators tests
  */
 
 const createMessage = (type: string, correct: string) =>
 	`Unexpected chained BEM ${type}. Move it to the parent level as "${correct}"`;
+
+/**
+ * Traverses the CSS AST and collects groups of repeated BEM entities of the same type
+ * that are chained using `&` (e.g., `&__element { &-item {} }`,).
+ *
+ * @param   root         PostCSS root node.
+ * @param   separators   BEM separators used in the current config.
+ *
+ * @returns              List of repeating BEM entity groups.
+ */
+const collectRepeatingGroups = (root: Root, separators: Separators): RepeatingGroup[] => {
+	const repeatingGroups: RepeatingGroup[] = [];
+
+	root.walk((rule) => {
+		if (!isAtRule(rule, ['at-root', 'nest']) && !isRule(rule)) return;
+
+		const source = isRule(rule) ? rule.selector : rule.params;
+		if (!source.includes('&')) return;
+
+		const chains = resolveBemChain(rule, separators);
+
+		chains.forEach((chain) => {
+			for (let index = 0; index < chain.length; index++) {
+				const current = chain[index];
+
+				// Skip if not the beginning of a new group
+				if (
+					index > 0
+					&& chain[index - 1].type === current.type
+				) {
+					continue;
+				}
+
+				const currentType = current.type;
+				const repeating: RepeatingGroupItem[] = [current];
+				let i = index + 1;
+
+				// Collect subsequent items of the same type
+				while (
+					i < chain.length
+					&& chain[i].type === currentType
+					&& chain[i].selector !== current.selector
+				) {
+					repeating.push(chain[i]);
+					i++;
+				}
+
+				if (repeating.length > 1) {
+					repeatingGroups.push({
+						rule: current.rule,
+						repeating,
+						nextPart: chain[i]?.part,
+						bemSelector: current.selector,
+					});
+				}
+			}
+		});
+	});
+
+	return repeatingGroups;
+};
+
+/**
+ * Converts repeating BEM entity groups into Violation objects
+ * that can later be reported by the rule.
+ *
+ * @param   groups      Repeating groups collected from BEM chains.
+ * @param   secondary   Rule options.
+ *
+ * @returns             Flat list of violation objects.
+ */
+const getViolationsFromGroups = (
+	groups: RepeatingGroup[],
+	secondary: SecondaryOption,
+): Violation[] => {
+	const seen = new Set<string>();
+	const violations: Violation[] = [];
+
+	for (const group of groups) {
+		const { repeating: [deepestEntity], nextPart } = group;
+		const { type, part } = deepestEntity;
+
+		const [index, endIndex] = part.sourceRange ?? [0, 0];
+		const key = `${index}-${endIndex}-${part.selector}`;
+
+		// Prevent duplicate warnings for the same range
+		// in cases like `&__foo, &__bar { &-item {} }`
+		if (seen.has(key)) continue;
+		seen.add(key);
+
+		const violationTemplate = { node: group.rule, index, endIndex };
+
+		if (
+			secondary.disallowNestedModifierValues
+			&& nextPart?.type === 'modifierName'
+		) {
+			violations.push({
+				type: 'nestedModifierValue',
+				expected: `&${nextPart.selector}${part.selector}`,
+				...violationTemplate,
+			});
+			continue;
+		}
+
+		// `nextPart` will be `undefined` for the block itself, `.foo-block`
+		const expected = nextPart ? `&${part.selector}` : part.selector;
+
+		violations.push({ type, expected, ...violationTemplate });
+	}
+
+	return violations;
+};
 
 export default createRule({
 	name: addNamespace(RULE_NAME),
@@ -69,83 +160,13 @@ export default createRule({
 	if (isCssFile(root)) return;
 
 	const separators = extractSeparators(secondary);
+	const repeatingGroups = collectRepeatingGroups(root, separators);
+	const violations = getViolationsFromGroups(repeatingGroups, secondary);
 
-	const repeatingGroups: RepeatingGroup[] = [];
-	root.walk((rule) => {
-		if (!isAtRule(rule, ['at-root', 'nest']) && !isRule(rule)) return;
-
-		const source = isRule(rule) ? rule.selector : rule.params;
-
-		// Something not BEM-related
-		if (!source.includes('&')) return;
-
-		const chains = resolveBemChain(rule, separators);
-		chains.forEach((chain) => {
-			chain.forEach((chainItem, index) => {
-				// Пропускаем, если это не начало группы
-				if (index > 0 && chain[index - 1].entityType === chainItem.entityType) return;
-
-				const currentType = chainItem.entityType;
-				const repeating: BemChain = [chainItem];
-				let i = index + 1;
-
-				while (i < chain.length && chain[i].entityType === currentType && chain[i].bemSelector !== chainItem.bemSelector) {
-					repeating.push(chain[i]);
-					i++;
-				}
-
-				if (repeating.length > 1) {
-					repeatingGroups.push({
-						rule: chainItem.rule,
-						repeatingEntities: repeating,
-						nextEntityPart: chain[i]?.entityPart,
-						bemSelector: chainItem.bemSelector,
-					});
-				}
-			});
-		});
-	});
-
-	const warnings = repeatingGroups.reduce<Violation[]>((acc, group) => {
-		const mostDeep = group.repeatingEntities[0];
-		const { entityType, entityPart } = mostDeep;
-		const expected = group.nextEntityPart
-			? `&${entityPart.selector}`
-			: entityPart.selector;
-		const [index, endIndex] = mostDeep.entityPart.sourceRange ?? [0, 0];
-
-		// Prevent duplicated warnings in case of multiple branches
-		if (acc.some((warning) => {
-			return warning.index === index && warning.endIndex === endIndex && warning.expected === expected;
-		})) {
-			return acc;
-		}
-
-		if (group.nextEntityPart?.type === 'modifierName' && secondary.disallowNestedModifierValues) {
-			acc.push({
-				type: 'nestedModifierValue',
-				node: group.rule,
-				expected: `&${group.nextEntityPart.selector}${expected.slice(1)}`,
-				index,
-				endIndex,
-			});
-			return acc;
-		}
-
-		acc.push({
-			type: entityType,
-			expected,
-			node: group.rule,
-			index: mostDeep.entityPart.sourceRange?.[0] ?? 0,
-			endIndex: mostDeep.entityPart.sourceRange?.[1] ?? 0,
-		});
-		return acc;
-	}, []).filter(Boolean);
-
-	warnings.forEach((warning) => {
+	violations.forEach((violation) => {
 		report({
-			...warning,
-			message: messages[warning.type](warning.expected),
+			...violation,
+			message: messages[violation.type](violation.expected),
 		});
 	});
 });
