@@ -1,20 +1,38 @@
-import { arrayUnique, assert, isEmpty } from '@morev/utils';
 import * as v from 'valibot';
-import { resolveBemEntities } from '#modules/bem';
+import { resolveBemChain } from '#modules/bem';
 import { isAtRule, isRule } from '#modules/postcss';
-import { addNamespace, createRule, getRuleUrl, isCssFile, vSeparatorsSchema } from '#modules/rule-utils';
-import { parseSelectors } from '#modules/selectors';
-import { getMostSpecificEntityPart } from './utils';
-import { resolveBemChain } from './utils/resolve-bem-chain/resolve-bem-chain';
+import { addNamespace, createRule, extractSeparators, getRuleUrl, isCssFile, vSeparatorsSchema } from '#modules/rule-utils';
 import type { AtRule, Rule } from 'postcss';
-import type { BemEntity } from '#modules/bem';
+import type { BemEntityPart, EntityType } from '#modules/bem';
+import type { BemChain } from '#modules/bem/utils/resolve-bem-chain/resolve-bem-chain.types';
 
 const RULE_NAME = 'no-chained-bem-entities';
+
+type Violation = {
+	type: EntityType | 'nestedModifierValue';
+	expected: string;
+	node: Rule | AtRule;
+	index: number;
+	endIndex: number;
+};
+
+type Entity = {
+	entityType: EntityType;
+	entityPart: BemEntityPart;
+	bemSelector: string;
+	rule: Rule | AtRule;
+};
+
+type RepeatingGroup = {
+	rule: Rule | AtRule;
+	repeatingEntities: Entity[];
+	nextEntityPart: BemEntityPart | undefined;
+	bemSelector: string;
+};
 
 /**
  * TODO:
  * * User-defined messages
- * * Disallow splitting modifier and its value?
  * * Documentation
  * * Non-default separators tests
  */
@@ -34,13 +52,15 @@ export default createRule({
 		element: (correct: string) => createMessage('element name', correct),
 		modifierName: (correct: string) => createMessage('modifier name', correct),
 		modifierValue: (correct: string) => createMessage('modifier value', correct),
+		nestedModifierValue: (correct: string) =>
+			`Unexpected nested modifier value. Use a flat selector "${correct}" instead`,
 	},
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
 			v.strictObject({
 				...vSeparatorsSchema,
-				allowSplittedModifierValues: v.optional(v.boolean(), false),
+				disallowNestedModifierValues: v.optional(v.boolean(), false),
 			}),
 		),
 	},
@@ -48,43 +68,84 @@ export default createRule({
 	// The rule only applicable to SCSS files.
 	if (isCssFile(root)) return;
 
-	const VALID_START_CHARACTERS = arrayUnique([
-		secondary.elementSeparator,
-		secondary.modifierSeparator,
-		secondary.allowSplittedModifierValues && secondary.modifierValueSeparator,
-	]).filter(Boolean);
+	const separators = extractSeparators(secondary);
 
-	root.walkRules((rule) => {
+	const repeatingGroups: RepeatingGroup[] = [];
+	root.walk((rule) => {
+		if (!isAtRule(rule, ['at-root', 'nest']) && !isRule(rule)) return;
+
+		const source = isRule(rule) ? rule.selector : rule.params;
+
 		// Something not BEM-related
-		if (!rule.selector.includes('&')) return;
+		if (!source.includes('&')) return;
 
-		// Consider compound selectors, e.g. `&--foo, &--bar`
-		parseSelectors(rule.selector).forEach((selectorNodes) => {
-			const chainedTagNodes = selectorNodes.filter((node, index, nodes) => {
-				return node.type === 'tag' && nodes[index - 1]?.type === 'nesting';
-			});
-			if (isEmpty(chainedTagNodes)) return;
+		const chains = resolveBemChain(rule, separators);
+		chains.forEach((chain) => {
+			chain.forEach((chainItem, index) => {
+				// Пропускаем, если это не начало группы
+				if (index > 0 && chain[index - 1].entityType === chainItem.entityType) return;
 
-			chainedTagNodes.forEach((tagNode) => {
-				const nestedValue = tagNode.value;
-				// Interpolated strings, e.g. `&#{$b}`
-				if (!nestedValue || nestedValue.startsWith('#')) return;
+				const currentType = chainItem.entityType;
+				const repeating: BemChain = [chainItem];
+				let i = index + 1;
 
-				if (!VALID_START_CHARACTERS.some((char) => nestedValue.startsWith(char))) {
-					const bemEntity = resolveBemEntities(rule, secondary, { source: `&${nestedValue}`	})[0];
-					if (!bemEntity) return;
+				while (i < chain.length && chain[i].entityType === currentType && chain[i].bemSelector !== chainItem.bemSelector) {
+					repeating.push(chain[i]);
+					i++;
+				}
 
-					const [entityValue, entityType] = resolveMostSpecificEntity(bemEntity);
-
-					report({
-						message: messages[entityType](entityValue),
-						node: rule,
-						// `- 1` to include the '&' character, since `tagNode` starts after it.
-						index: tagNode.sourceIndex - 1,
-						endIndex: tagNode.sourceIndex + nestedValue.length,
+				if (repeating.length > 1) {
+					repeatingGroups.push({
+						rule: chainItem.rule,
+						repeatingEntities: repeating,
+						nextEntityPart: chain[i]?.entityPart,
+						bemSelector: chainItem.bemSelector,
 					});
 				}
 			});
+		});
+	});
+
+	const warnings = repeatingGroups.reduce<Violation[]>((acc, group) => {
+		const mostDeep = group.repeatingEntities[0];
+		const { entityType, entityPart } = mostDeep;
+		const expected = group.nextEntityPart
+			? `&${entityPart.selector}`
+			: entityPart.selector;
+		const [index, endIndex] = mostDeep.entityPart.sourceRange ?? [0, 0];
+
+		// Prevent duplicated warnings in case of multiple branches
+		if (acc.some((warning) => {
+			return warning.index === index && warning.endIndex === endIndex && warning.expected === expected;
+		})) {
+			return acc;
+		}
+
+		if (group.nextEntityPart?.type === 'modifierName' && secondary.disallowNestedModifierValues) {
+			acc.push({
+				type: 'nestedModifierValue',
+				node: group.rule,
+				expected: `&${group.nextEntityPart.selector}${expected.slice(1)}`,
+				index,
+				endIndex,
+			});
+			return acc;
+		}
+
+		acc.push({
+			type: entityType,
+			expected,
+			node: group.rule,
+			index: mostDeep.entityPart.sourceRange?.[0] ?? 0,
+			endIndex: mostDeep.entityPart.sourceRange?.[1] ?? 0,
+		});
+		return acc;
+	}, []).filter(Boolean);
+
+	warnings.forEach((warning) => {
+		report({
+			...warning,
+			message: messages[warning.type](warning.expected),
 		});
 	});
 });

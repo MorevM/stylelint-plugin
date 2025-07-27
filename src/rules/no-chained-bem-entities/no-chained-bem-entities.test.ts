@@ -206,6 +206,131 @@ testRule({
 				},
 			],
 		},
+		{
+			description: 'Splitted elements with mixed entities across different blocks',
+			code: `
+				.the-component {
+					&__element, .foo {
+						&-title {}
+						&--bar {
+							&-baz {}
+						}
+					}
+				}
+			`,
+			warnings: [
+				{
+					line: 3, column: 3,
+					endLine: 3, endColumn: 10,
+					message: messages.element('&__element-title'),
+				},
+				{
+					line: 3, column: 3,
+					endLine: 3, endColumn: 10,
+					message: messages.block('.foo-title'),
+				},
+				{
+					line: 5, column: 4,
+					endLine: 5, endColumn: 9,
+					message: messages.modifierName('&--bar-baz'),
+				},
+			],
+		},
+		{
+			description: 'Mixed entities in one rule',
+			code: `
+				.the-component {
+					&__element, &--modifier {
+						&-value {}
+					}
+				}
+			`,
+			warnings: [
+				{
+					line: 3, column: 3,
+					endLine: 3, endColumn: 10,
+					message: messages.element('&__element-value'),
+				},
+				{
+					line: 3, column: 3,
+					endLine: 3, endColumn: 10,
+					message: messages.modifierName('&--modifier-value'),
+				},
+			],
+		},
+		{
+			description: 'Rules inside `@at-root` or `@nest`',
+			code: `
+				.the-component {
+					&__element, &--modifier {
+						&-value {
+							@at-root .foo {
+								&-block {
+									&__el {
+										@nest &-val {}
+									}
+								}
+							}
+						}
+					}
+				}
+			`,
+			warnings: [
+				{
+					line: 3, column: 3,
+					endLine: 3, endColumn: 10,
+					message: messages.element('&__element-value'),
+				},
+				{
+					line: 3, column: 3,
+					endLine: 3, endColumn: 10,
+					message: messages.modifierName('&--modifier-value'),
+				},
+				{
+					line: 5, column: 5,
+					endLine: 5, endColumn: 12,
+					message: messages.block('.foo-block'),
+				},
+				{
+					line: 7, column: 13,
+					endLine: 7, endColumn: 18,
+					message: messages.element('&__el-val'),
+				},
+			],
+		},
+	],
+});
+
+testRule({
+	description: 'Secondary > disallowNestedModifierValues: true',
+	config: [true, { disallowNestedModifierValues: true }],
+	reject: [
+		{
+			code: `
+				.block {
+					&__element {
+						&--modifier {
+							@media (width > 360px) {
+								@layer components {
+									&--value {
+										&value {}
+									}
+								}
+							}
+						}
+					}
+
+					&--modifier--value {}
+				}
+			`,
+			warnings: [
+				{
+					message: messages.nestedModifierValue('&--modifier--valuevalue'),
+					line: 7, column: 7,
+					endLine: 7, endColumn: 13,
+				},
+			],
+		},
 	],
 });
 
