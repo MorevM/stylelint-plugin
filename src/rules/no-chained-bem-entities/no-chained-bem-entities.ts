@@ -15,8 +15,8 @@ const RULE_NAME = 'no-chained-bem-entities';
  * * Non-default separators tests
  */
 
-const createMessage = (type: string, correct: string) =>
-	`Unexpected chained BEM ${type}. Move it to the parent level as "${correct}"`;
+const createMessage = (type: string, expected: string) =>
+	`Unexpected chained BEM ${type}. Move it to the parent level as "${expected}"`;
 
 /**
  * Traverses the CSS AST and collects groups of repeated BEM entities of the same type

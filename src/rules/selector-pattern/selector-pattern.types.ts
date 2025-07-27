@@ -56,19 +56,12 @@ export type SecondaryOption = Partial<Separators> & Partial<{
 	 * Allowed pattern(s) for BEM modifier values.
 	 *
 	 * Supports RegExp, string (including wildcard patterns),
-	 * or keywords like `KEBAB_CASE`.
+	 * or keywords like `KEBAB_CASE`. \
+	 * Use `false` to forbid modifier values entirely.
 	 *
 	 * @default KEBAB_CASE_REGEXP
 	 */
-	modifierValuePattern: string | RegExp | Array<string | RegExp>;
-
-	/**
-	 * Allowed pattern(s) for utility classes.
-	 * Use `false` to forbid utility classes entirely.
-	 *
-	 * @default ['is-*', 'has-*', 'js-*', '-*']
-	 */
-	utilityPattern: false | string | RegExp | Array<string | RegExp>;
+	modifierValuePattern: false | string | RegExp | Array<string | RegExp>;
 
 	/**
 	 * Block names to ignore completely. \
@@ -130,16 +123,11 @@ export type SecondaryOption = Partial<Separators> & Partial<{
 		 * @returns            Error message.
 		 */
 		modifierValue: (name: string, patterns: ProcessedPattern[]) => string;
-
-		/**
-		 * Custom message for utility class violations.
-		 *
-		 * @param   name       Detected utility class name.
-		 * @param   patterns   Allowed patterns in object form
-		 *                     or `false` if utilities are forbidden.
-		 *
-		 * @returns            Error message.
-		 */
-		utility: (name: string, patterns: ProcessedPattern[] | false) => string;
 	}>;
 }>;
+
+export type RuleSchema = {
+	name: '@morev/bem/selector-pattern';
+	primaryOption: PrimaryOption;
+	secondaryOption: SecondaryOption;
+};

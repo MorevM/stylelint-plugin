@@ -301,6 +301,7 @@ testRule({
 	],
 });
 
+// disallowNestedModifierValues: true
 testRule({
 	description: 'Secondary > disallowNestedModifierValues: true',
 	config: [true, { disallowNestedModifierValues: true }],
@@ -380,7 +381,6 @@ testRule({
 		},
 	],
 });
-
 
 // `messages` option with disallowed modifier values
 testRule({
