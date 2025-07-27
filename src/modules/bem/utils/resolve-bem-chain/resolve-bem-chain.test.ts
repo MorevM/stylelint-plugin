@@ -5,7 +5,7 @@ import type { BemChain } from './resolve-bem-chain.types';
 
 const separators = DEFAULT_SEPARATORS;
 
-const chainToType = (chains: BemChain[]) => {
+const simplifyChains = (chains: BemChain[]) => {
 	return chains.map((chainItem) => {
 		return chainItem.map((item) => {
 			return {
@@ -34,7 +34,7 @@ describe(resolveBemChain, () => {
 
 		const result = resolveBemChain(rule, separators);
 
-		expect(chainToType(result)).toStrictEqual([
+		expect(simplifyChains(result)).toStrictEqual([
 			[
 				{ entityType: 'block', bemSelector: '.block' },
 			],
@@ -54,7 +54,7 @@ describe(resolveBemChain, () => {
 
 		const result = resolveBemChain(rule, separators);
 
-		expect(chainToType(result)).toStrictEqual([
+		expect(simplifyChains(result)).toStrictEqual([
 			[
 				{ entityType: 'modifierValue', bemSelector: '.block__element--modifier-name--modifier-value' },
 				{ entityType: 'modifierName', bemSelector: '.block__element--modifier-name' },
@@ -85,7 +85,7 @@ describe(resolveBemChain, () => {
 
 		const result = resolveBemChain(rule, separators);
 
-		expect(chainToType(result)).toStrictEqual([
+		expect(simplifyChains(result)).toStrictEqual([
 			[
 				{ entityType: 'modifierValue', bemSelector: '.block-foo__element-foo--modifier-name-foo--modifier-value-bar' },
 				{ entityType: 'modifierValue', bemSelector: '.block-foo__element-foo--modifier-name-foo--modifier-value' },
@@ -112,7 +112,7 @@ describe(resolveBemChain, () => {
 
 		const result = resolveBemChain(rule, separators);
 
-		expect(chainToType(result)).toStrictEqual([
+		expect(simplifyChains(result)).toStrictEqual([
 			[
 				{ entityType: 'modifierValue', bemSelector: '.block__element--name--value' },
 				{ entityType: 'modifierName', bemSelector: '.block__element--name' },
@@ -141,7 +141,7 @@ describe(resolveBemChain, () => {
 
 		const result = resolveBemChain(rule, separators);
 
-		expect(chainToType(result)).toStrictEqual([
+		expect(simplifyChains(result)).toStrictEqual([
 			[
 				{ entityType: 'modifierValue', bemSelector: '.block__element--name--value' },
 				{ entityType: 'modifierName', bemSelector: '.block__element--name' },
@@ -180,7 +180,7 @@ describe(resolveBemChain, () => {
 
 		const result = resolveBemChain(rule, separators);
 
-		expect(chainToType(result)).toStrictEqual([
+		expect(simplifyChains(result)).toStrictEqual([
 			[
 				{ entityType: 'modifierName', bemSelector: '.block__element--value' },
 				{ entityType: 'element', bemSelector: '.block__element' },
@@ -205,7 +205,7 @@ describe(resolveBemChain, () => {
 
 		const result = resolveBemChain(rule, separators);
 
-		expect(chainToType(result)).toStrictEqual([
+		expect(simplifyChains(result)).toStrictEqual([
 			[
 				{ entityType: 'modifierName', bemSelector: '.block__element--bar' },
 				{ entityType: 'element', bemSelector: '.block__element' },
@@ -229,7 +229,7 @@ describe(resolveBemChain, () => {
 
 		const result = resolveBemChain(rule, separators);
 
-		expect(chainToType(result)).toStrictEqual([
+		expect(simplifyChains(result)).toStrictEqual([
 			[
 				{ entityType: 'modifierName', bemSelector: '.foo__bar-el--mod' },
 				{ entityType: 'element', bemSelector: '.foo__bar-el' },
@@ -242,6 +242,34 @@ describe(resolveBemChain, () => {
 				{ entityType: 'element', bemSelector: '.block-b__bar' },
 				{ entityType: 'block', bemSelector: '.block-b' },
 				{ entityType: 'block', bemSelector: '.block' },
+			],
+		]);
+	});
+
+	it('Resolves nested BEM blocks with multiple chains', () => {
+		const rule = getRuleBySelector(`
+			.the-component {
+				&__element, .foo {
+					&--bar {
+						&-baz {}
+					}
+				}
+			}
+		`, '&-baz');
+
+		const result = resolveBemChain(rule, separators);
+
+		expect(simplifyChains(result)).toStrictEqual([
+			[
+				{ entityType: 'modifierName', bemSelector: '.the-component__element--bar-baz' },
+				{ entityType: 'modifierName', bemSelector: '.the-component__element--bar' },
+				{ entityType: 'element', bemSelector: '.the-component__element' },
+				{ entityType: 'block', bemSelector: '.the-component' },
+			],
+			[
+				{ entityType: 'modifierName', bemSelector: '.foo--bar-baz' },
+				{ entityType: 'modifierName', bemSelector: '.foo--bar' },
+				{ entityType: 'block', bemSelector: '.foo' },
 			],
 		]);
 	});
