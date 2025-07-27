@@ -214,6 +214,35 @@ describe(resolveBemChain, () => {
 		]);
 	});
 
+	it('Resolves different block name nested in `@at-root` without using `&`', () => {
+		const rule = getRuleBySelector(`
+			.the-component {
+				&__element, &--modifier {
+					&-value {
+						@at-root .foo {
+							&-block {
+								&__el {
+									@nest &-val {}
+								}
+							}
+						}
+					}
+				}
+			}
+		`, '&-val');
+
+		const result = resolveBemChain(rule, separators);
+
+		expect(simplifyChains(result)).toStrictEqual([
+			[
+				{ entityType: 'element', bemSelector: '.foo-block__el-val' },
+				{ entityType: 'element', bemSelector: '.foo-block__el' },
+				{ entityType: 'block', bemSelector: '.foo-block' },
+				{ entityType: 'block', bemSelector: '.foo' },
+			],
+		]);
+	});
+
 	it('Resolves nested BEM blocks', () => {
 		const rule = getRuleBySelector(`
 			.block {

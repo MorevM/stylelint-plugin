@@ -107,7 +107,13 @@ export const resolveBemChain = (
 
 			const parentBemEntities = getParentBemEntities(bemEntity.rule, separators);
 
-			if (!parentBemEntities) return [currentChain];
+			if (
+				!parentBemEntities
+				// Case: `@at-root` with different BEM block nested in another block
+				|| parentBemEntities.every((entity) => !bemSelector.startsWith(entity.bemSelector))
+			) {
+				return [currentChain];
+			}
 
 			return collectChains(
 				parentBemEntities,
