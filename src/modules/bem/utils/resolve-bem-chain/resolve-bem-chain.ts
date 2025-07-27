@@ -60,9 +60,9 @@ const getParentBemEntities = (rule: Rule | AtRule, separators: Separators) => {
  * ```ts
  * [
  *   [
- *     { entityType: 'modifierName', entityPart: { value: 'mod', ... }, ... },
- *     { entityType: 'element', entityPart: { value: 'item', ... }, ... },
- *     { entityType: 'block', entityPart: { value: 'block', ... }, ... },
+ *     { type: 'modifierName', part: { value: 'mod', ... }, ... },
+ *     { type: 'element', part: { value: 'item', ... }, ... },
+ *     { type: 'block', part: { value: 'block', ... }, ... },
  *   ]
  * ]
  * ```
@@ -85,16 +85,16 @@ export const resolveBemChain = (
 		previous?: { selector: string; specificPartType: EntityType },
 	): BemChain[] => {
 		return bemEntities.flatMap((bemEntity) => {
-			const [entityPart, entityType] = getMostSpecificEntityPart(bemEntity);
-			const { bemSelector } = bemEntity;
+			const [part, type] = getMostSpecificEntityPart(bemEntity);
+			const { bemSelector: selector } = bemEntity;
 
-			const isDifferentBranch = previous && !previous?.selector.startsWith(bemSelector);
+			const isDifferentBranch = previous && !previous?.selector.startsWith(selector);
 
 			if (isDifferentBranch) {
 				// Special case: block inside block
 				// `.bar { .foo { &__item } }` => ['foo__item', '.foo'],
 				// `.bar` is not the part of the chain in the case.
-				if (previous.specificPartType === 'block' && entityType === 'block') {
+				if (previous.specificPartType === 'block' && type === 'block') {
 					return [chain];
 				}
 				return [];
@@ -102,7 +102,7 @@ export const resolveBemChain = (
 
 			const currentChain = [
 				...chain,
-				{ entityType, entityPart, bemSelector, rule: bemEntity.rule },
+				{ type, part, selector, rule: bemEntity.rule },
 			];
 
 			const parentBemEntities = getParentBemEntities(bemEntity.rule, separators);
@@ -110,7 +110,7 @@ export const resolveBemChain = (
 			if (
 				!parentBemEntities
 				// Case: `@at-root` with different BEM block nested in another block
-				|| parentBemEntities.every((entity) => !bemSelector.startsWith(entity.bemSelector))
+				|| parentBemEntities.every((entity) => !selector.startsWith(entity.bemSelector))
 			) {
 				return [currentChain];
 			}
@@ -118,7 +118,7 @@ export const resolveBemChain = (
 			return collectChains(
 				parentBemEntities,
 				currentChain,
-				{ selector: bemEntity.bemSelector, specificPartType: entityType },
+				{ selector: bemEntity.bemSelector, specificPartType: type },
 			);
 		});
 	};

@@ -9,8 +9,8 @@ const simplifyChains = (chains: BemChain[]) => {
 	return chains.map((chainItem) => {
 		return chainItem.map((item) => {
 			return {
-				entityType: item.entityType,
-				bemSelector: item.bemSelector,
+				type: item.type,
+				selector: item.selector,
 			};
 		});
 	});
@@ -36,7 +36,7 @@ describe(resolveBemChain, () => {
 
 		expect(simplifyChains(result)).toStrictEqual([
 			[
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'block', selector: '.block' },
 			],
 		]);
 	});
@@ -56,10 +56,10 @@ describe(resolveBemChain, () => {
 
 		expect(simplifyChains(result)).toStrictEqual([
 			[
-				{ entityType: 'modifierValue', bemSelector: '.block__element--modifier-name--modifier-value' },
-				{ entityType: 'modifierName', bemSelector: '.block__element--modifier-name' },
-				{ entityType: 'element', bemSelector: '.block__element' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierValue', selector: '.block__element--modifier-name--modifier-value' },
+				{ type: 'modifierName', selector: '.block__element--modifier-name' },
+				{ type: 'element', selector: '.block__element' },
+				{ type: 'block', selector: '.block' },
 			],
 		]);
 	});
@@ -87,14 +87,14 @@ describe(resolveBemChain, () => {
 
 		expect(simplifyChains(result)).toStrictEqual([
 			[
-				{ entityType: 'modifierValue', bemSelector: '.block-foo__element-foo--modifier-name-foo--modifier-value-bar' },
-				{ entityType: 'modifierValue', bemSelector: '.block-foo__element-foo--modifier-name-foo--modifier-value' },
-				{ entityType: 'modifierName', bemSelector: '.block-foo__element-foo--modifier-name-foo' },
-				{ entityType: 'modifierName', bemSelector: '.block-foo__element-foo--modifier-name' },
-				{ entityType: 'element', bemSelector: '.block-foo__element-foo' },
-				{ entityType: 'element', bemSelector: '.block-foo__element' },
-				{ entityType: 'block', bemSelector: '.block-foo' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierValue', selector: '.block-foo__element-foo--modifier-name-foo--modifier-value-bar' },
+				{ type: 'modifierValue', selector: '.block-foo__element-foo--modifier-name-foo--modifier-value' },
+				{ type: 'modifierName', selector: '.block-foo__element-foo--modifier-name-foo' },
+				{ type: 'modifierName', selector: '.block-foo__element-foo--modifier-name' },
+				{ type: 'element', selector: '.block-foo__element-foo' },
+				{ type: 'element', selector: '.block-foo__element' },
+				{ type: 'block', selector: '.block-foo' },
+				{ type: 'block', selector: '.block' },
 			],
 		]);
 	});
@@ -114,16 +114,16 @@ describe(resolveBemChain, () => {
 
 		expect(simplifyChains(result)).toStrictEqual([
 			[
-				{ entityType: 'modifierValue', bemSelector: '.block__element--name--value' },
-				{ entityType: 'modifierName', bemSelector: '.block__element--name' },
-				{ entityType: 'element', bemSelector: '.block__element' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierValue', selector: '.block__element--name--value' },
+				{ type: 'modifierName', selector: '.block__element--name' },
+				{ type: 'element', selector: '.block__element' },
+				{ type: 'block', selector: '.block' },
 			],
 			[
-				{ entityType: 'modifierValue', bemSelector: '.block__element--name--foo' },
-				{ entityType: 'modifierName', bemSelector: '.block__element--name' },
-				{ entityType: 'element', bemSelector: '.block__element' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierValue', selector: '.block__element--name--foo' },
+				{ type: 'modifierName', selector: '.block__element--name' },
+				{ type: 'element', selector: '.block__element' },
+				{ type: 'block', selector: '.block' },
 			],
 		]);
 	});
@@ -143,28 +143,28 @@ describe(resolveBemChain, () => {
 
 		expect(simplifyChains(result)).toStrictEqual([
 			[
-				{ entityType: 'modifierValue', bemSelector: '.block__element--name--value' },
-				{ entityType: 'modifierName', bemSelector: '.block__element--name' },
-				{ entityType: 'element', bemSelector: '.block__element' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierValue', selector: '.block__element--name--value' },
+				{ type: 'modifierName', selector: '.block__element--name' },
+				{ type: 'element', selector: '.block__element' },
+				{ type: 'block', selector: '.block' },
 			],
 			[
-				{ entityType: 'modifierValue', bemSelector: '.block__foo--name--value' },
-				{ entityType: 'modifierName', bemSelector: '.block__foo--name' },
-				{ entityType: 'element', bemSelector: '.block__foo' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierValue', selector: '.block__foo--name--value' },
+				{ type: 'modifierName', selector: '.block__foo--name' },
+				{ type: 'element', selector: '.block__foo' },
+				{ type: 'block', selector: '.block' },
 			],
 			[
-				{ entityType: 'modifierValue', bemSelector: '.block__element--name--foo' },
-				{ entityType: 'modifierName', bemSelector: '.block__element--name' },
-				{ entityType: 'element', bemSelector: '.block__element' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierValue', selector: '.block__element--name--foo' },
+				{ type: 'modifierName', selector: '.block__element--name' },
+				{ type: 'element', selector: '.block__element' },
+				{ type: 'block', selector: '.block' },
 			],
 			[
-				{ entityType: 'modifierValue', bemSelector: '.block__foo--name--foo' },
-				{ entityType: 'modifierName', bemSelector: '.block__foo--name' },
-				{ entityType: 'element', bemSelector: '.block__foo' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierValue', selector: '.block__foo--name--foo' },
+				{ type: 'modifierName', selector: '.block__foo--name' },
+				{ type: 'element', selector: '.block__foo' },
+				{ type: 'block', selector: '.block' },
 			],
 		]);
 	});
@@ -182,14 +182,14 @@ describe(resolveBemChain, () => {
 
 		expect(simplifyChains(result)).toStrictEqual([
 			[
-				{ entityType: 'modifierName', bemSelector: '.block__element--value' },
-				{ entityType: 'element', bemSelector: '.block__element' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierName', selector: '.block__element--value' },
+				{ type: 'element', selector: '.block__element' },
+				{ type: 'block', selector: '.block' },
 			],
 			[
-				{ entityType: 'modifierValue', bemSelector: '.block__foo--name--value' },
-				{ entityType: 'modifierName', bemSelector: '.block__foo--name' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierValue', selector: '.block__foo--name--value' },
+				{ type: 'modifierName', selector: '.block__foo--name' },
+				{ type: 'block', selector: '.block' },
 			],
 		]);
 	});
@@ -207,9 +207,9 @@ describe(resolveBemChain, () => {
 
 		expect(simplifyChains(result)).toStrictEqual([
 			[
-				{ entityType: 'modifierName', bemSelector: '.block__element--bar' },
-				{ entityType: 'element', bemSelector: '.block__element' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierName', selector: '.block__element--bar' },
+				{ type: 'element', selector: '.block__element' },
+				{ type: 'block', selector: '.block' },
 			],
 		]);
 	});
@@ -235,10 +235,10 @@ describe(resolveBemChain, () => {
 
 		expect(simplifyChains(result)).toStrictEqual([
 			[
-				{ entityType: 'element', bemSelector: '.foo-block__el-val' },
-				{ entityType: 'element', bemSelector: '.foo-block__el' },
-				{ entityType: 'block', bemSelector: '.foo-block' },
-				{ entityType: 'block', bemSelector: '.foo' },
+				{ type: 'element', selector: '.foo-block__el-val' },
+				{ type: 'element', selector: '.foo-block__el' },
+				{ type: 'block', selector: '.foo-block' },
+				{ type: 'block', selector: '.foo' },
 			],
 		]);
 	});
@@ -260,17 +260,17 @@ describe(resolveBemChain, () => {
 
 		expect(simplifyChains(result)).toStrictEqual([
 			[
-				{ entityType: 'modifierName', bemSelector: '.foo__bar-el--mod' },
-				{ entityType: 'element', bemSelector: '.foo__bar-el' },
-				{ entityType: 'element', bemSelector: '.foo__bar' },
-				{ entityType: 'block', bemSelector: '.foo' },
+				{ type: 'modifierName', selector: '.foo__bar-el--mod' },
+				{ type: 'element', selector: '.foo__bar-el' },
+				{ type: 'element', selector: '.foo__bar' },
+				{ type: 'block', selector: '.foo' },
 			],
 			[
-				{ entityType: 'modifierName', bemSelector: '.block-b__bar-el--mod' },
-				{ entityType: 'element', bemSelector: '.block-b__bar-el' },
-				{ entityType: 'element', bemSelector: '.block-b__bar' },
-				{ entityType: 'block', bemSelector: '.block-b' },
-				{ entityType: 'block', bemSelector: '.block' },
+				{ type: 'modifierName', selector: '.block-b__bar-el--mod' },
+				{ type: 'element', selector: '.block-b__bar-el' },
+				{ type: 'element', selector: '.block-b__bar' },
+				{ type: 'block', selector: '.block-b' },
+				{ type: 'block', selector: '.block' },
 			],
 		]);
 	});
@@ -290,15 +290,15 @@ describe(resolveBemChain, () => {
 
 		expect(simplifyChains(result)).toStrictEqual([
 			[
-				{ entityType: 'modifierName', bemSelector: '.the-component__element--bar-baz' },
-				{ entityType: 'modifierName', bemSelector: '.the-component__element--bar' },
-				{ entityType: 'element', bemSelector: '.the-component__element' },
-				{ entityType: 'block', bemSelector: '.the-component' },
+				{ type: 'modifierName', selector: '.the-component__element--bar-baz' },
+				{ type: 'modifierName', selector: '.the-component__element--bar' },
+				{ type: 'element', selector: '.the-component__element' },
+				{ type: 'block', selector: '.the-component' },
 			],
 			[
-				{ entityType: 'modifierName', bemSelector: '.foo--bar-baz' },
-				{ entityType: 'modifierName', bemSelector: '.foo--bar' },
-				{ entityType: 'block', bemSelector: '.foo' },
+				{ type: 'modifierName', selector: '.foo--bar-baz' },
+				{ type: 'modifierName', selector: '.foo--bar' },
+				{ type: 'block', selector: '.foo' },
 			],
 		]);
 	});

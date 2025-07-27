@@ -12,19 +12,19 @@ export type BemChainItem = {
 	/**
 	 * Type of the BEM part.
 	 */
-	entityType: EntityType;
+	type: EntityType;
 
 	/**
 	 * The specific part of the BEM entity.
 	 */
-	entityPart: BemEntityPart;
+	part: BemEntityPart;
 
 	/**
 	 * Fully resolved selector that this entity was derived from.
 	 *
 	 * @example '.block__element--mod'
 	 */
-	bemSelector: string;
+	selector: string;
 
 	/**
 	 * The PostCSS rule or at-rule this entity belongs to.
