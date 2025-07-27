@@ -339,4 +339,85 @@ testRule({
 	],
 });
 
-// TODO: Non-default options
+// `messages` option with allowed modifier values
+testRule({
+	description: '`messages` option with allowed modifier values',
+	config: [true, {
+		messages: {
+			block: (expected: string) => `Block ${expected}`,
+			element: (expected: string) => `Element ${expected}`,
+			modifierName: (expected: string) => `Modifier name ${expected}`,
+			modifierValue: (expected: string) => `Modifier value ${expected}`,
+			nestedModifierValue: (expected: string) => `Nested ${expected}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.foo {
+					&-b {
+						&__el {
+							&-e {
+								&--mod {
+									&-m {
+										&--value {
+											&-v {}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			`,
+			warnings: [
+				{ message: `Block .foo-b` },
+				{ message: `Element &__el-e` },
+				{ message: `Modifier name &--mod-m` },
+				{ message: `Modifier value &--value-v` },
+			],
+		},
+	],
+});
+
+
+// `messages` option with disallowed modifier values
+testRule({
+	description: '`messages` option with disallowed modifier values',
+	config: [true, {
+		disallowNestedModifierValues: true,
+		messages: {
+			block: (expected: string) => `Block ${expected}`,
+			element: (expected: string) => `Element ${expected}`,
+			modifierName: (expected: string) => `Modifier name ${expected}`,
+			modifierValue: (expected: string) => `Modifier value ${expected}`,
+			nestedModifierValue: (expected: string) => `Nested ${expected}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.foo {
+					&-b {}
+					&--mod {
+						&--value {}
+					}
+
+					&--mod2 {
+						&--value2 {
+							&-value3 {}
+						}
+					}
+				}
+			`,
+			warnings: [
+				{ message: `Block .foo-b` },
+				{ message: `Nested &--mod--value` },
+				{ message: `Nested &--mod2--value2` },
+				{ message: `Nested &--mod2--value2-value3` },
+			],
+		},
+	],
+});

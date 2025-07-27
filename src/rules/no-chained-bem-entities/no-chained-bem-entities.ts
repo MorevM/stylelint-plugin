@@ -1,7 +1,7 @@
 import * as v from 'valibot';
 import { resolveBemChain } from '#modules/bem';
 import { isAtRule, isRule } from '#modules/postcss';
-import { addNamespace, createRule, extractSeparators, getRuleUrl, isCssFile, vSeparatorsSchema } from '#modules/rule-utils';
+import { addNamespace, createRule, extractSeparators, getRuleUrl, isCssFile, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
 import type { Root } from 'postcss';
 import type { Separators } from '#modules/shared';
 import type { RepeatingGroup, RepeatingGroupItem, SecondaryOption, Violation } from './no-chained-bem-entities.types';
@@ -10,7 +10,6 @@ const RULE_NAME = 'no-chained-bem-entities';
 
 /**
  * TODO:
- * * User-defined messages
  * * Configuration tests
  * * Documentation
  * * Non-default separators tests
@@ -25,10 +24,15 @@ const createMessage = (type: string, correct: string) =>
  *
  * @param   root         PostCSS root node.
  * @param   separators   BEM separators used in the current config.
+ * @param   secondary    Rule options.
  *
  * @returns              List of repeating BEM entity groups.
  */
-const collectRepeatingGroups = (root: Root, separators: Separators): RepeatingGroup[] => {
+const collectRepeatingGroups = (
+	root: Root,
+	separators: Separators,
+	secondary: SecondaryOption,
+): RepeatingGroup[] => {
 	const repeatingGroups: RepeatingGroup[] = [];
 
 	root.walk((rule) => {
@@ -163,15 +167,23 @@ export default createRule({
 			v.strictObject({
 				...vSeparatorsSchema,
 				disallowNestedModifierValues: v.optional(v.boolean(), false),
+				messages: vMessagesSchema({
+					block: [v.string()],
+					element: [v.string()],
+					modifierName: [v.string()],
+					modifierValue: [v.string()],
+					nestedModifierValue: [v.string()],
+				}),
 			}),
 		),
 	},
-}, (primary, secondary, { report, messages, root }) => {
+}, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	// The rule only applicable to SCSS files.
 	if (isCssFile(root)) return;
 
+	const messages = mergeMessages(ruleMessages, secondary.messages);
 	const separators = extractSeparators(secondary);
-	const repeatingGroups = collectRepeatingGroups(root, separators);
+	const repeatingGroups = collectRepeatingGroups(root, separators, secondary);
 	const violations = getViolationsFromGroups(repeatingGroups, secondary);
 
 	violations.forEach((violation) => {

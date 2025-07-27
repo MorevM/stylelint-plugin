@@ -116,4 +116,55 @@ export type SecondaryOption = Partial<Separators> & {
 	 * @default false
 	 */
 	disallowNestedModifierValues?: boolean;
+
+	/**
+	 * Custom message functions for each violation type.
+	 * If provided, overrides the default error messages.
+	 */
+	messages: Partial<{
+		/**
+		 * Custom message for chained BEM block violations.
+		 *
+		 * @param   expected   Expected entity name.
+		 *
+		 * @returns            Error message.
+		 */
+		block: (expected: string) => string;
+
+		/**
+		 * Custom message for chained BEM element violations.
+		 *
+		 * @param   expected   Expected entity name.
+		 *
+		 * @returns            Error message.
+		 */
+		element: (expected: string) => string;
+
+		/**
+		 * Custom message for chained BEM modifier violations.
+		 *
+		 * @param   expected   Expected entity name.
+		 *
+		 * @returns            Error message.
+		 */
+		modifierName: (expected: string) => string;
+
+		/**
+		 * Custom message for chained BEM modifier value violations.
+		 *
+		 * @param   expected   Expected entity name.
+		 *
+		 * @returns            Error message.
+		 */
+		modifierValue: (expected: string) => string;
+
+		/**
+		 * Custom message for nested BEM modifier values.
+		 *
+		 * @param   expected   Expected entity name.
+		 *
+		 * @returns            Error message.
+		 */
+		nestedModifierValue: (expected: string) => string;
+	}>;
 };
