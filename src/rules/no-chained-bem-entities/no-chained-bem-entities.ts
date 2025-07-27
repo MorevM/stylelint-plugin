@@ -10,9 +10,7 @@ const RULE_NAME = 'no-chained-bem-entities';
 
 /**
  * TODO:
- * * Configuration tests
  * * Documentation
- * * Non-default separators tests
  */
 
 const createMessage = (type: string, expected: string) =>
