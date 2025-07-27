@@ -325,6 +325,11 @@ testRule({
 			`,
 			warnings: [
 				{
+					message: messages.nestedModifierValue('&--modifier--value'),
+					line: 6, column: 9,
+					endLine: 6, endColumn: 14,
+				},
+				{
 					message: messages.nestedModifierValue('&--modifier--valuevalue'),
 					line: 7, column: 7,
 					endLine: 7, endColumn: 13,

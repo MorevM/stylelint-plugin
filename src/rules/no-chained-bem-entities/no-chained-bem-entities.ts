@@ -65,11 +65,22 @@ const collectRepeatingGroups = (root: Root, separators: Separators): RepeatingGr
 					i++;
 				}
 
-				if (repeating.length > 1) {
+				const next = chain[i];
+
+				if (
+					repeating.length > 1
+					// Also report even a single modifier value if it's nested under a modifier name,
+					// flat structure is required when `disallowNestedModifierValues` is `true`.
+					|| (
+						secondary.disallowNestedModifierValues
+						&& currentType === 'modifierValue'
+						&& next?.type === 'modifierName'
+					)
+				) {
 					repeatingGroups.push({
 						rule: current.rule,
 						repeating,
-						nextPart: chain[i]?.part,
+						nextPart: next?.part,
 						bemSelector: current.selector,
 					});
 				}
