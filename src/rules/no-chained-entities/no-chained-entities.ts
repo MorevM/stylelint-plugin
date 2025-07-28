@@ -1,3 +1,4 @@
+import { assert } from '@morev/utils';
 import * as v from 'valibot';
 import { resolveBemChain } from '#modules/bem';
 import { isAtRule, isRule } from '#modules/postcss';
@@ -13,8 +14,8 @@ const RULE_NAME = 'no-chained-entities';
  * * Documentation
  */
 
-const createMessage = (type: string, expected: string) =>
-	`Unexpected chained BEM ${type}. Move it to the parent level as "${expected}"`;
+const createMessage = (type: string, actual: string, expected: string) =>
+	`Unexpected chained BEM ${type} "${actual}". Move it to the parent level as "${expected}"`;
 
 /**
  * Traverses the CSS AST and collects groups of repeated BEM entities of the same type
@@ -121,7 +122,31 @@ const getViolationsFromGroups = (
 		if (seen.has(key)) continue;
 		seen.add(key);
 
-		const violationTemplate = { node: group.rule, index, endIndex };
+		const actual = (() => {
+			assert(
+				deepestEntity.part.sourceRange,
+				'`deepestEntity` should have a `sourceRange` here.',
+			);
+
+			const { rule } = deepestEntity;
+			const source = isRule(rule)
+				? rule.selector
+				: `@${rule.name}${rule.raws.afterName ?? ''}${rule.params}`;
+
+			const actual = source.slice(...deepestEntity.part.sourceRange);
+
+			if (actual.includes('&')) return actual;
+
+			// The only case with fully presented modifier value.
+			return `&${nextPart?.separator ?? ''}${actual}`;
+		})();
+
+		const violationTemplate = {
+			node: group.rule,
+			index,
+			endIndex,
+			actual,
+		};
 
 		if (
 			secondary.disallowNestedModifierValues
@@ -152,12 +177,12 @@ export default createRule({
 		fixable: false,
 	},
 	messages: {
-		block: (correct: string) => createMessage('block name', correct),
-		element: (correct: string) => createMessage('element name', correct),
-		modifierName: (correct: string) => createMessage('modifier name', correct),
-		modifierValue: (correct: string) => createMessage('modifier value', correct),
-		nestedModifierValue: (correct: string) =>
-			`Unexpected nested modifier value. Use a flat selector "${correct}" instead`,
+		block: (actual: string, expected: string) => createMessage('block name', actual, expected),
+		element: (actual: string, expected: string) => createMessage('element name', actual, expected),
+		modifierName: (actual: string, expected: string) => createMessage('modifier name', actual, expected),
+		modifierValue: (actual: string, expected: string) => createMessage('modifier value', actual, expected),
+		nestedModifierValue: (actual: string, expected: string) =>
+			`Unexpected nested modifier value "${actual}". Use a flat selector "${expected}" instead`,
 	},
 	schema: {
 		primary: v.literal(true),
@@ -166,11 +191,11 @@ export default createRule({
 				...vSeparatorsSchema,
 				disallowNestedModifierValues: v.optional(v.boolean(), false),
 				messages: vMessagesSchema({
-					block: [v.string()],
-					element: [v.string()],
-					modifierName: [v.string()],
-					modifierValue: [v.string()],
-					nestedModifierValue: [v.string()],
+					block: [v.string(), v.string()],
+					element: [v.string(), v.string()],
+					modifierName: [v.string(), v.string()],
+					modifierValue: [v.string(), v.string()],
+					nestedModifierValue: [v.string(), v.string()],
 				}),
 			}),
 		),
@@ -187,7 +212,7 @@ export default createRule({
 	violations.forEach((violation) => {
 		report({
 			...violation,
-			message: messages[violation.type](violation.expected),
+			message: messages[violation.type](violation.actual, violation.expected),
 		});
 	});
 });

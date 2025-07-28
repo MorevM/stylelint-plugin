@@ -101,32 +101,32 @@ testRule({
 				{
 					line: 3, column: 3,
 					endLine: 3, endColumn: 10,
-					message: messages.element('&__element-title'),
+					message: messages.element('&-title', '&__element-title'),
 				},
 				{
 					line: 3, column: 12,
 					endLine: 3, endColumn: 19,
-					message: messages.element('&__element-value'),
+					message: messages.element('&-value', '&__element-value'),
 				},
 				{
 					line: 5, column: 5,
 					endLine: 5, endColumn: 10,
-					message: messages.modifierName('&--modifier-one'),
+					message: messages.modifierName('&-one', '&--modifier-one'),
 				},
 				{
 					line: 5, column: 12,
 					endLine: 5, endColumn: 21,
-					message: messages.modifierName('&--modifier-one-two'),
+					message: messages.modifierName('&-one-two', '&--modifier-one-two'),
 				},
 				{
 					line: 6, column: 5,
 					endLine: 6, endColumn: 10,
-					message: messages.modifierName('&--modifier-two'),
+					message: messages.modifierName('&-two', '&--modifier-two'),
 				},
 				{
 					line: 11, column: 2,
 					endLine: 11, endColumn: 8,
-					message: messages.block('.the-component-name'),
+					message: messages.block('&-name', '.the-component-name'),
 				},
 			],
 		},
@@ -143,7 +143,7 @@ testRule({
 				{
 					line: 3, column: 22,
 					endLine: 3, endColumn: 29,
-					message: messages.element('&__element-title'),
+					message: messages.element('&-title', '&__element-title'),
 				},
 			],
 		},
@@ -160,7 +160,7 @@ testRule({
 				{
 					line: 3, column: 23,
 					endLine: 3, endColumn: 30,
-					message: messages.element('&__element-title'),
+					message: messages.element('&-title', '&__element-title'),
 				},
 			],
 		},
@@ -187,22 +187,22 @@ testRule({
 				{
 					line: 4, column: 4,
 					endLine: 4, endColumn: 11,
-					message: messages.element('&__element-title'),
+					message: messages.element('&-title', '&__element-title'),
 				},
 				{
 					line: 5, column: 4,
 					endLine: 5, endColumn: 11,
-					message: messages.element('&__element-value'),
+					message: messages.element('&-value', '&__element-value'),
 				},
 				{
 					line: 8, column: 7,
 					endLine: 8, endColumn: 12,
-					message: messages.modifierName('&--modifier-one'),
+					message: messages.modifierName('&-one', '&--modifier-one'),
 				},
 				{
 					line: 10, column: 6,
 					endLine: 10, endColumn: 11,
-					message: messages.modifierName('&--modifier-two'),
+					message: messages.modifierName('&-two', '&--modifier-two'),
 				},
 			],
 		},
@@ -222,17 +222,17 @@ testRule({
 				{
 					line: 3, column: 3,
 					endLine: 3, endColumn: 10,
-					message: messages.element('&__element-title'),
+					message: messages.element('&-title', '&__element-title'),
 				},
 				{
 					line: 3, column: 3,
 					endLine: 3, endColumn: 10,
-					message: messages.block('.foo-title'),
+					message: messages.block('&-title', '.foo-title'),
 				},
 				{
 					line: 5, column: 4,
 					endLine: 5, endColumn: 9,
-					message: messages.modifierName('&--bar-baz'),
+					message: messages.modifierName('&-baz', '&--bar-baz'),
 				},
 			],
 		},
@@ -249,12 +249,12 @@ testRule({
 				{
 					line: 3, column: 3,
 					endLine: 3, endColumn: 10,
-					message: messages.element('&__element-value'),
+					message: messages.element('&-value', '&__element-value'),
 				},
 				{
 					line: 3, column: 3,
 					endLine: 3, endColumn: 10,
-					message: messages.modifierName('&--modifier-value'),
+					message: messages.modifierName('&-value', '&--modifier-value'),
 				},
 			],
 		},
@@ -279,22 +279,22 @@ testRule({
 				{
 					line: 3, column: 3,
 					endLine: 3, endColumn: 10,
-					message: messages.element('&__element-value'),
+					message: messages.element('&-value', '&__element-value'),
 				},
 				{
 					line: 3, column: 3,
 					endLine: 3, endColumn: 10,
-					message: messages.modifierName('&--modifier-value'),
+					message: messages.modifierName('&-value', '&--modifier-value'),
 				},
 				{
 					line: 5, column: 5,
 					endLine: 5, endColumn: 12,
-					message: messages.block('.foo-block'),
+					message: messages.block('&-block', '.foo-block'),
 				},
 				{
 					line: 7, column: 13,
 					endLine: 7, endColumn: 18,
-					message: messages.element('&__el-val'),
+					message: messages.element('&-val', '&__el-val'),
 				},
 			],
 		},
@@ -326,12 +326,12 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.nestedModifierValue('&--modifier--value'),
+					message: messages.nestedModifierValue('&--value', '&--modifier--value'),
 					line: 6, column: 9,
 					endLine: 6, endColumn: 14,
 				},
 				{
-					message: messages.nestedModifierValue('&--modifier--valuevalue'),
+					message: messages.nestedModifierValue('&value', '&--modifier--valuevalue'),
 					line: 7, column: 7,
 					endLine: 7, endColumn: 13,
 				},
@@ -345,11 +345,11 @@ testRule({
 	description: '`messages` option with allowed modifier values',
 	config: [true, {
 		messages: {
-			block: (expected: string) => `Block ${expected}`,
-			element: (expected: string) => `Element ${expected}`,
-			modifierName: (expected: string) => `Modifier name ${expected}`,
-			modifierValue: (expected: string) => `Modifier value ${expected}`,
-			nestedModifierValue: (expected: string) => `Nested ${expected}`,
+			block: (actual: string, expected: string) => `Block ${actual} ${expected}`,
+			element: (actual: string, expected: string) => `Element ${actual} ${expected}`,
+			modifierName: (actual: string, expected: string) => `Modifier name ${actual} ${expected}`,
+			modifierValue: (actual: string, expected: string) => `Modifier value ${actual} ${expected}`,
+			nestedModifierValue: (actual: string, expected: string) => `Nested ${actual} ${expected}`,
 		},
 	}],
 	reject: [
@@ -373,10 +373,10 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Block .foo-b` },
-				{ message: `Element &__el-e` },
-				{ message: `Modifier name &--mod-m` },
-				{ message: `Modifier value &--value-v` },
+				{ message: `Block &-b .foo-b` },
+				{ message: `Element &-e &__el-e` },
+				{ message: `Modifier name &-m &--mod-m` },
+				{ message: `Modifier value &-v &--value-v` },
 			],
 		},
 	],
@@ -388,11 +388,11 @@ testRule({
 	config: [true, {
 		disallowNestedModifierValues: true,
 		messages: {
-			block: (expected: string) => `Block ${expected}`,
-			element: (expected: string) => `Element ${expected}`,
-			modifierName: (expected: string) => `Modifier name ${expected}`,
-			modifierValue: (expected: string) => `Modifier value ${expected}`,
-			nestedModifierValue: (expected: string) => `Nested ${expected}`,
+			block: (actual: string, expected: string) => `Block ${actual} ${expected}`,
+			element: (actual: string, expected: string) => `Element ${actual} ${expected}`,
+			modifierName: (actual: string, expected: string) => `Modifier name ${actual} ${expected}`,
+			modifierValue: (actual: string, expected: string) => `Modifier value ${actual} ${expected}`,
+			nestedModifierValue: (actual: string, expected: string) => `Nested ${actual} ${expected}`,
 		},
 	}],
 	reject: [
@@ -413,10 +413,10 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Block .foo-b` },
-				{ message: `Nested &--mod--value` },
-				{ message: `Nested &--mod2--value2` },
-				{ message: `Nested &--mod2--value2-value3` },
+				{ message: `Block &-b .foo-b` },
+				{ message: `Nested &--value &--mod--value` },
+				{ message: `Nested &--value2 &--mod2--value2` },
+				{ message: `Nested &-value3 &--mod2--value2-value3` },
 			],
 		},
 	],

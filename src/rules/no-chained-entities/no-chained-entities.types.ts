@@ -38,6 +38,11 @@ export type Violation = {
 	type: EntityType | 'nestedModifierValue';
 
 	/**
+	 * Actually used selector for this part.
+	 */
+	actual: string;
+
+	/**
 	 * Suggested correct selector for this part.
 	 */
 	expected: string;
@@ -124,46 +129,51 @@ export type SecondaryOption = Partial<Separators> & {
 		/**
 		 * Custom message for chained BEM block violations.
 		 *
-		 * @param   expected   Expected entity name.
+		 * @param   actual     Actual BEM selector found in the source code.
+		 * @param   expected   Expected BEM selector.
 		 *
 		 * @returns            Error message.
 		 */
-		block?: (expected: string) => string;
+		block?: (actual: string, expected: string) => string;
 
 		/**
 		 * Custom message for chained BEM element violations.
 		 *
-		 * @param   expected   Expected entity name.
+		 * @param   actual     Actual BEM selector found in the source code.
+		 * @param   expected   Expected BEM selector.
 		 *
 		 * @returns            Error message.
 		 */
-		element?: (expected: string) => string;
+		element?: (actual: string, expected: string) => string;
 
 		/**
 		 * Custom message for chained BEM modifier violations.
 		 *
-		 * @param   expected   Expected entity name.
+		 * @param   actual     Actual BEM selector found in the source code.
+		 * @param   expected   Expected BEM selector.
 		 *
 		 * @returns            Error message.
 		 */
-		modifierName?: (expected: string) => string;
+		modifierName?: (actual: string, expected: string) => string;
 
 		/**
 		 * Custom message for chained BEM modifier value violations.
 		 *
-		 * @param   expected   Expected entity name.
+		 * @param   actual     Actual BEM selector found in the source code.
+		 * @param   expected   Expected BEM selector.
 		 *
 		 * @returns            Error message.
 		 */
-		modifierValue?: (expected: string) => string;
+		modifierValue?: (actual: string, expected: string) => string;
 
 		/**
 		 * Custom message for nested BEM modifier values.
 		 *
-		 * @param   expected   Expected entity name.
+		 * @param   actual     Actual BEM selector found in the source code.
+		 * @param   expected   Expected BEM selector.
 		 *
 		 * @returns            Error message.
 		 */
-		nestedModifierValue?: (expected: string) => string;
+		nestedModifierValue?: (actual: string, expected: string) => string;
 	};
 };
