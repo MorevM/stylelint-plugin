@@ -2,7 +2,6 @@ import type { AtRule, Rule } from 'postcss';
 import type { BemEntityPart, EntityType } from '#modules/bem';
 import type { Separators } from '#modules/shared';
 
-
 /**
  * Represents a single BEM entity within a repeating group that violates the rule.
  */

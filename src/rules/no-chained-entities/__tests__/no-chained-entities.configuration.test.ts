@@ -1,4 +1,4 @@
-import rule from '../no-chained-bem-entities';
+import rule from '../no-chained-entities';
 
 const { ruleName } = rule;
 const testRuleConfig = createTestRuleConfig({ ruleName });

@@ -4,9 +4,9 @@ import { isAtRule, isRule } from '#modules/postcss';
 import { addNamespace, createRule, extractSeparators, getRuleUrl, isCssFile, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
 import type { Root } from 'postcss';
 import type { Separators } from '#modules/shared';
-import type { RepeatingGroup, RepeatingGroupItem, SecondaryOption, Violation } from './no-chained-bem-entities.types';
+import type { RepeatingGroup, RepeatingGroupItem, SecondaryOption, Violation } from './no-chained-entities.types';
 
-const RULE_NAME = 'no-chained-bem-entities';
+const RULE_NAME = 'no-chained-entities';
 
 /**
  * TODO:
