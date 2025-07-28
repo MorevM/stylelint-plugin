@@ -76,19 +76,18 @@ const consumeSubstring = (value: string, start: number, end: number): string => 
  */
 export const parseBemEntities = (options: Options): Partial<BemEntity> | null => {
 	const { node, rule, separators } = options;
-	const { elementSeparator, modifierSeparator, modifierValueSeparator } = separators;
 	const separatorsMap: Record<EntityType, string> = {
 		block: '.',
-		element: elementSeparator,
-		modifierName: modifierSeparator,
-		modifierValue: modifierValueSeparator,
+		element: separators.element,
+		modifierName: separators.modifier,
+		modifierValue: separators.modifierValue,
 	};
 
 	const bemRegExp = new RegExp(
-		`^(?<block>.+?)(?=${elementSeparator}|${modifierSeparator}|$)`
-		+ `(?:${elementSeparator}(?<element>.+?)(?=${modifierSeparator}|$))?`
-		+ `(?:${modifierSeparator}(?<modifierName>.+?)(?=${modifierValueSeparator}|$))?`
-		+ `(?:${modifierValueSeparator}(?<modifierValue>.+))?`,
+		`^(?<block>.+?)(?=${separators.element}|${separators.modifier}|$)`
+		+ `(?:${separators.element}(?<element>.+?)(?=${separators.modifier}|$))?`
+		+ `(?:${separators.modifier}(?<modifierName>.+?)(?=${separators.modifierValue}|$))?`
+		+ `(?:${separators.modifierValue}(?<modifierValue>.+))?`,
 		'd',
 	);
 

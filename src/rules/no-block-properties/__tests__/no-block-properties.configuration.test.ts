@@ -3,6 +3,7 @@ import rule from '../no-block-properties';
 const { ruleName } = rule;
 const testRuleConfig = createTestRuleConfig({ ruleName });
 
+// Primary option
 testRuleConfig({
 	description: 'Primary option',
 	accept: [
@@ -22,6 +23,7 @@ testRuleConfig({
 	],
 });
 
+// Secondary options object
 testRuleConfig({
 	description: 'Secondary options object',
 	accept: [
@@ -46,6 +48,7 @@ testRuleConfig({
 	],
 });
 
+// Secondary option > messages
 testRuleConfig({
 	description: 'Secondary option > messages',
 	accept: [
@@ -73,6 +76,41 @@ testRuleConfig({
 				messages: {
 					unexpected: () => '',
 					FOO: () => '',
+				},
+			}],
+		},
+	],
+});
+
+// Secondary option > separators
+testRuleConfig({
+	description: 'Secondary option > separators',
+	accept: [
+		{
+			description: 'Valid separators object',
+			config: [true, {
+				separators: {
+					element: '__',
+					modifier: '--',
+					modifierValue: '--',
+				},
+			}],
+		},
+	],
+	reject: [
+		{
+			description: 'Non-valid `separators[prop]`',
+			config: [true, {
+				separators: {
+					element: 1,
+				},
+			}],
+		},
+		{
+			description: 'Extra `separators` key',
+			config: [true, {
+				separators: {
+					FOO: '__',
 				},
 			}],
 		},

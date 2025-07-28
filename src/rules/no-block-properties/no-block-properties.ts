@@ -66,16 +66,16 @@ export default createRule({
 					}),
 				),
 				ignoreBlocks: v.optional(v.array(vStringOrRegExpSchema), []),
+				separators: vSeparatorsSchema,
 				messages: vMessagesSchema({
 					unexpected: [v.string(), v.string(), v.string(), v.union([v.string(), v.undefined()])],
 				}),
-				...vSeparatorsSchema,
 			}),
 		),
 	},
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	const messages = mergeMessages(ruleMessages, secondary.messages);
-	const separators = extractSeparators(secondary);
+	const separators = extractSeparators(secondary.separators);
 
 	const {
 		disallowedProperties,

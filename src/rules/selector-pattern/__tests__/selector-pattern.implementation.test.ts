@@ -394,9 +394,9 @@ testRule({
 	],
 });
 
-// Pattern is false (disable modifier value classes)
+// Pattern as a false (only for modifier value classes)
 testRule({
-	description: 'Pattern as a false (only for utility)',
+	description: 'Pattern as a false (only for modifier value classes)',
 	config: [true, { modifierValuePattern: false }],
 	accept: [
 		{ code: '.foo-test {}' },
@@ -476,7 +476,7 @@ testRule({
 
 // `messages` option
 testRule({
-	description: 'Pattern as a false (only for utility)',
+	description: 'Custom messages',
 	config: [true, {
 		messages: {
 			block: (name: string, selector: string, patterns: ProcessedPattern[]) => `Block ${name} ${selector}`,

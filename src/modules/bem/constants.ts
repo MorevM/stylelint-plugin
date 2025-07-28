@@ -4,7 +4,7 @@ import type { Separators } from '#modules/shared';
 export const BEM_ENTITIES = ['block', 'element', 'modifierName', 'modifierValue'] as const;
 
 export const DEFAULT_SEPARATORS: Separators = {
-	elementSeparator: '__',
-	modifierSeparator: '--',
-	modifierValueSeparator: '--',
+	element: '__',
+	modifier: '--',
+	modifierValue: '--',
 };

@@ -188,8 +188,8 @@ export default createRule({
 		primary: v.literal(true),
 		secondary: v.optional(
 			v.strictObject({
-				...vSeparatorsSchema,
 				disallowNestedModifierValues: v.optional(v.boolean(), false),
+				separators: vSeparatorsSchema,
 				messages: vMessagesSchema({
 					block: [v.string(), v.string()],
 					element: [v.string(), v.string()],
@@ -205,7 +205,7 @@ export default createRule({
 	if (isCssFile(root)) return;
 
 	const messages = mergeMessages(ruleMessages, secondary.messages);
-	const separators = extractSeparators(secondary);
+	const separators = extractSeparators(secondary.separators);
 	const repeatingGroups = collectRepeatingGroups(root, separators, secondary);
 	const violations = getViolationsFromGroups(repeatingGroups, secondary);
 

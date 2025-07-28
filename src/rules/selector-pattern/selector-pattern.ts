@@ -39,12 +39,6 @@ export default createRule({
 		primary: v.literal(true),
 		secondary: v.optional(
 			v.strictObject({
-				messages: vMessagesSchema({
-					block: [v.string(), v.string(), v.any()],
-					element: [v.string(), v.string(), v.any()],
-					modifierName: [v.string(), v.string(), v.any()],
-					modifierValue: [v.string(), v.string(), v.any()],
-				}),
 				blockPattern: v.optional(
 					vArrayable(vStringOrRegExpSchema),
 					KEBAB_CASE_REGEXP,
@@ -65,7 +59,13 @@ export default createRule({
 					v.array(vStringOrRegExpSchema),
 					[],
 				),
-				...vSeparatorsSchema,
+				separators: vSeparatorsSchema,
+				messages: vMessagesSchema({
+					block: [v.string(), v.string(), v.any()],
+					element: [v.string(), v.string(), v.any()],
+					modifierName: [v.string(), v.string(), v.any()],
+					modifierValue: [v.string(), v.string(), v.any()],
+				}),
 			}),
 		),
 	},
@@ -79,7 +79,7 @@ export default createRule({
 		modifierValue: normalizePattern(secondary.modifierValuePattern),
 	};
 
-	const separators = extractSeparators(secondary);
+	const separators = extractSeparators(secondary.separators);
 	const messages = mergeMessages(ruleMessages, secondary.messages);
 
 	// Precompile ignore list for block names

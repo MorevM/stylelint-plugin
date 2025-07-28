@@ -12,9 +12,9 @@ import type { Separators } from '#modules/shared';
  * @returns           Fully defined `Separators` object.
  */
 export const extractSeparators = (
-	options: Partial<Separators>,
+	options: Partial<Separators> | undefined,
 ): Separators => ({
-	elementSeparator: options.elementSeparator ?? DEFAULT_SEPARATORS.elementSeparator,
-	modifierSeparator: options.modifierSeparator ?? DEFAULT_SEPARATORS.modifierSeparator,
-	modifierValueSeparator: options.modifierValueSeparator ?? DEFAULT_SEPARATORS.modifierValueSeparator,
+	element: options?.element ?? DEFAULT_SEPARATORS.element,
+	modifier: options?.modifier ?? DEFAULT_SEPARATORS.modifier,
+	modifierValue: options?.modifierValue ?? DEFAULT_SEPARATORS.modifierValue,
 });

@@ -7,19 +7,19 @@ export type Separators = {
 	 *
 	 * @example '__'
 	 */
-	elementSeparator: string;
+	element: string;
 
 	/**
 	 * Separator between entity and modifier name.
 	 *
 	 * @example '--'
 	 */
-	modifierSeparator: string;
+	modifier: string;
 
 	/**
 	 * Separator between modifier name and value.
 	 *
 	 * @example '--'
 	 */
-	modifierValueSeparator: string;
+	modifierValue: string;
 };
