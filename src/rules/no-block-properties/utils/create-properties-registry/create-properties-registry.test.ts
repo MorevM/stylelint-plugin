@@ -11,11 +11,9 @@ describe(createPropertiesRegistry, () => {
 
 		expect(registry.disallowedProperties.block.has('margin')).toBe(true);
 		expect(registry.disallowedProperties.modifier.has('margin')).toBe(true);
-		expect(registry.disallowedProperties.utility.has('margin')).toBe(true);
 
 		expect(registry.disallowedProperties.block.has('z-index')).toBe(true);
 		expect(registry.disallowedProperties.modifier.has('z-index')).toBe(true);
-		expect(registry.disallowedProperties.utility.has('z-index')).toBe(true);
 	});
 
 	it('Merges custom presets into property-to-preset map', () => {

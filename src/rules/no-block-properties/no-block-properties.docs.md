@@ -85,11 +85,6 @@ export default {
           allowProperties: [],
           disallowProperties: [],
         },
-        utility: {
-          presets: [],
-          allowProperties: [],
-          disallowProperties: [],
-        },
       },
       ignoreBlocks: ['swiper-*', /.*legacy.*/],
       elementSeparator: '__',
@@ -202,32 +197,6 @@ export type NoBlockPropertiesOptions = {
        */
       disallowProperties?: string[];
     };
-
-    /**
-     * Utility-level restrictions.
-     */
-    utility?: {
-      /**
-       * Additional presets to apply only for utility classes.
-       *
-       * @default []
-       */
-      presets?: string[];
-
-      /**
-       * Properties explicitly allowed only for utility classes.
-       *
-       * @default []
-       */
-      allowProperties?: string[];
-
-      /**
-       * Properties explicitly disallowed only for utility classes.
-       *
-       * @default []
-       */
-      disallowProperties?: string[];
-    };
   };
 
   /**
@@ -248,7 +217,7 @@ export type NoBlockPropertiesOptions = {
     unexpected?: (
       property: string,
       selector: string,
-      context: 'block' | 'modifier' | 'utility',
+      context: 'block' | 'modifier',
       preset: string | undefined,
     ) => string;
   };
@@ -368,7 +337,6 @@ The properties restricted by `presets` apply to:
 | ------------------------- | -------------------------- | --------------------------------- |
 | BEM block selectors       | `.the-component`           | ✅ Yes                            |
 | BEM block modifiers       | `.the-component--modifier` | ✅ Yes                            |
-| BEM block utility classes | `.the-component.is-active` | ✅ Yes (if utilities are allowed) |
 
 ```scss
 .the-component {
@@ -572,13 +540,6 @@ export type PerEntityOption = {
    * @example `.the-component--modifier`
    */
   modifier?: _EntityRestrictions;
-
-  /**
-   * Individual restrictions for `utility` context
-   *
-   * @example `.the-component.is-active`
-   */
-  utility?: _EntityRestrictions;
 };
 ```
 
@@ -586,7 +547,6 @@ The `perEntity` option allows you to define **separate restrictions for differen
 
 * BEM block selectors (`.the-component`)
 * BEM block modifiers (`.the-component--modifier`)
-* BEM block utility classes (`.the-component.is-active`)
 
 ::: tip Why
 In practice, applying the same strict rules to both blocks and their modifiers can be too limiting.
@@ -595,7 +555,6 @@ For example:
 
 * You may want to restrict external geometry and positioning for pure blocks.
 * But allow limited use of `z-index` or `position` for modifiers to handle isolated layout exceptions.
-* Or apply different restrictions for utility classes entirely.
 
 The `perEntity` option lets you adjust restrictions for each entity type individually, while keeping global defaults in place -
 or defining only *per-entity restrictions* without global presets if preferred.
@@ -654,7 +613,6 @@ In this case:
 * No global restrictions apply.
 * BEM block selectors are restricted based on `EXTERNAL_GEOMETRY`.
 * BEM block modifiers are restricted based on `POSITIONING`.
-* Utility classes are unaffected.
 
 #### Notes
 
@@ -741,7 +699,7 @@ export type MessagesOption = {
   unexpected?: (
     property: string,
     selector: string,
-    context: 'block' | 'modifier' | 'utility',
+    context: 'block' | 'modifier',
     preset: string | undefined,
   ) => string | undefined;
 }
@@ -762,7 +720,7 @@ The `messages` option allows you to override the default messages reported by th
 | ---------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `property` | The name of the restricted CSS property. <br /> *Examples:* `'margin-top'`, `'margin-block-start'`, `'margin-inline'`, etc. |
 | `selector` | The full selector that triggered the rule. <br /> `'.the-component'`, `'.the-component--mod'`, `'.the-component.is-active'` |
-| `context`  | The BEM entity type of selector. <br />`'block'`, `'modifier'`, or `'utility'`.                                             |
+| `context`  | The BEM entity type of selector. <br />`'block'` or `'modifier'`.                                                           |
 | `preset`   | The name of the preset that the property belongs to, if available. <br />*Examples:* `'EXTERNAL_GEOMETRY'`, `undefined`.    |
 
 #### Examples
@@ -788,7 +746,6 @@ export default {
           })();
 
           const contextType = (() => {
-            if (context === 'utility') return 'утилитарного класса блока';
             if (context === 'modifier') return 'модификатора блока';
             return 'блока';
           })();
@@ -806,7 +763,7 @@ export default {
 
 ::: info How message formatting works
 
-If your `messages.unexpected` function returns anything other than a `string` (e.g., `undefined`),
+If your custom message function returns anything other than a `string` (e.g., `undefined`),
 the rule will automatically fall back to the default built-in message.
 
 Additionally, all custom messages are automatically processed through `stripIndent` function,

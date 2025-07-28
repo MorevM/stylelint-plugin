@@ -101,32 +101,6 @@ export type SecondaryOption = Partial<Separators> & {
 			 */
 			disallowProperties?: string[];
 		};
-
-		/**
-		 * Utility-level restrictions.
-		 */
-		utility?: {
-			/**
-			 * Additional presets to apply only for utility classes.
-			 *
-			 * @default []
-			 */
-			presets?: string[];
-
-			/**
-			 * Properties explicitly allowed only for utility classes.
-			 *
-			 * @default []
-			 */
-			allowProperties?: string[];
-
-			/**
-			 * Properties explicitly disallowed only for utility classes.
-			 *
-			 * @default []
-			 */
-			disallowProperties?: string[];
-		};
 	};
 
 	/**
@@ -149,7 +123,7 @@ export type SecondaryOption = Partial<Separators> & {
 		unexpected?: (
 			propertyName: string,
 			selector: string,
-			context: 'block' | 'modifier' | 'utility',
+			context: 'block' | 'modifier',
 			presetName: string | undefined,
 		) => string;
 	};

@@ -87,7 +87,6 @@ export const createPropertiesRegistry = (
 		disallowedProperties: {
 			block: buildDisallowedSet(secondary.perEntity?.block),
 			modifier: buildDisallowedSet(secondary.perEntity?.modifier),
-			utility: buildDisallowedSet(secondary.perEntity?.utility),
 		},
 		propertyToPresetMap,
 	};
