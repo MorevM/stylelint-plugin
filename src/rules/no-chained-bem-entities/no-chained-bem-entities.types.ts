@@ -121,7 +121,7 @@ export type SecondaryOption = Partial<Separators> & {
 	 * Custom message functions for each violation type.
 	 * If provided, overrides the default error messages.
 	 */
-	messages: Partial<{
+	messages?: {
 		/**
 		 * Custom message for chained BEM block violations.
 		 *
@@ -129,7 +129,7 @@ export type SecondaryOption = Partial<Separators> & {
 		 *
 		 * @returns            Error message.
 		 */
-		block: (expected: string) => string;
+		block?: (expected: string) => string;
 
 		/**
 		 * Custom message for chained BEM element violations.
@@ -138,7 +138,7 @@ export type SecondaryOption = Partial<Separators> & {
 		 *
 		 * @returns            Error message.
 		 */
-		element: (expected: string) => string;
+		element?: (expected: string) => string;
 
 		/**
 		 * Custom message for chained BEM modifier violations.
@@ -147,7 +147,7 @@ export type SecondaryOption = Partial<Separators> & {
 		 *
 		 * @returns            Error message.
 		 */
-		modifierName: (expected: string) => string;
+		modifierName?: (expected: string) => string;
 
 		/**
 		 * Custom message for chained BEM modifier value violations.
@@ -156,7 +156,7 @@ export type SecondaryOption = Partial<Separators> & {
 		 *
 		 * @returns            Error message.
 		 */
-		modifierValue: (expected: string) => string;
+		modifierValue?: (expected: string) => string;
 
 		/**
 		 * Custom message for nested BEM modifier values.
@@ -165,6 +165,6 @@ export type SecondaryOption = Partial<Separators> & {
 		 *
 		 * @returns            Error message.
 		 */
-		nestedModifierValue: (expected: string) => string;
-	}>;
+		nestedModifierValue?: (expected: string) => string;
+	};
 };
