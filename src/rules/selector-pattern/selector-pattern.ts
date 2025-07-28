@@ -44,7 +44,6 @@ export default createRule({
 					element: [v.string(), v.string(), v.any()],
 					modifierName: [v.string(), v.string(), v.any()],
 					modifierValue: [v.string(), v.string(), v.any()],
-					utility: [v.string(), v.string(), v.any()],
 				}),
 				blockPattern: v.optional(
 					vArrayable(vStringOrRegExpSchema),

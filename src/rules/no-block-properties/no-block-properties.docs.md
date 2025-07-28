@@ -719,7 +719,7 @@ The `messages` option allows you to override the default messages reported by th
 | Argument   | Description                                                                                                                 |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `property` | The name of the restricted CSS property. <br /> *Examples:* `'margin-top'`, `'margin-block-start'`, `'margin-inline'`, etc. |
-| `selector` | The full selector that triggered the rule. <br /> `'.the-component'`, `'.the-component--mod'`, `'.the-component.is-active'` |
+| `selector` | The full selector that triggered the rule. <br /> `'.the-component'`, `'.the-component--mod'`                               |
 | `context`  | The BEM entity type of selector. <br />`'block'` or `'modifier'`.                                                           |
 | `preset`   | The name of the preset that the property belongs to, if available. <br />*Examples:* `'EXTERNAL_GEOMETRY'`, `undefined`.    |
 
@@ -761,15 +761,7 @@ export default {
 }
 ```
 
-::: info How message formatting works
-
-If your custom message function returns anything other than a `string` (e.g., `undefined`),
-the rule will automatically fall back to the default built-in message.
-
-Additionally, all custom messages are automatically processed through `stripIndent` function,
-so it's safe and recommended to use template literals (backticks, ```) for multiline messages without worrying about inconsistent indentation.
-
-:::
+<!--@include: @/docs/_parts/custom-messages.md#formatting-->
 
 ---
 

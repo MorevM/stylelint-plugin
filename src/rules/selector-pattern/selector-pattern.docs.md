@@ -371,8 +371,7 @@ which can complicate mental parsing and tooling logic.
 
 ---
 
-To enforce this model, set the `modifierValuePattern` to `false`. \
-This disables the use of separate modifier values entirely:
+To enforce this model, set the `modifierValuePattern` to `false`.
 
 ```js
 export default {
@@ -599,14 +598,13 @@ export default {
 * If the block name matches, the entire selector is excluded from validation.
 * You can mix plain strings, wildcards, and regular expressions in the same list.
 
+---
+
 ### Custom messages (`messages`)
 
-The rule provides built-in error messages for BEM entities and utility classes. \
-If you want to customize these messages - for example, to match your team's tone of voice,
-to translate them, or to integrate with specific tooling -
-you can provide custom message functions via the `messages` option.
+<!--@include: @/docs/_parts/custom-messages.md#header-->
 
-Each message function receives the detected entity name, full resolved BEM selectors
+Each message function receives the detected entity name, full resolved BEM selector
 and the list of expected patterns.
 
 #### Example
@@ -615,7 +613,7 @@ and the list of expected patterns.
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
+    '@morev/bem/selector-pattern': [true, {
       messages: {
         block: (name, fullSelector, patterns) =>
           `⛔ Block name "${name}" is invalid. It must follow: ${patterns.map(p => p.source).join(', ')}`,
@@ -652,7 +650,7 @@ type ProcessedPattern = {
   regexp: RegExp;
 };
 
-export type MessagesOption = Partial<{
+export type MessagesOption = {
   /**
    * Custom message for BEM block violations.
    *
@@ -661,7 +659,7 @@ export type MessagesOption = Partial<{
    *
    * @returns            Error message.
    */
-  block: (name: string, patterns: ProcessedPattern[]) => string;
+  block?: (name: string, patterns: ProcessedPattern[]) => string;
 
   /**
    * Custom message for BEM element violations.
@@ -671,7 +669,7 @@ export type MessagesOption = Partial<{
    *
    * @returns            Error message.
    */
-  element: (name: string, patterns: ProcessedPattern[]) => string;
+  element?: (name: string, patterns: ProcessedPattern[]) => string;
 
   /**
    * Custom message for BEM modifier name violations.
@@ -681,7 +679,7 @@ export type MessagesOption = Partial<{
    *
    * @returns            Error message.
    */
-  modifierName: (name: string, patterns: ProcessedPattern[]) => string;
+  modifierName?: (name: string, patterns: ProcessedPattern[]) => string;
 
   /**
    * Custom message for BEM modifier value violations.
@@ -691,25 +689,10 @@ export type MessagesOption = Partial<{
    *
    * @returns            Error message.
    */
-  modifierValue: (name: string, patterns: ProcessedPattern[]) => string;
-
-  /**
-   * Custom message for utility class violations.
-   *
-   * @param   name       Detected utility class name.
-   * @param   patterns   Allowed patterns in object form
-   *                     or `false` if utilities are forbidden.
-   *
-   * @returns            Error message.
-   */
-  utility: (name: string, patterns: ProcessedPattern[] | false) => string;
-}>
+  modifierValue?: (name: string, patterns: ProcessedPattern[]) => string;
+}
 ```
 
 :::
 
-#### Notes
-
-* You don't need to override all message functions - you can override only needed ones;
-* You are free to generate simple static strings or fully dynamic messages;
-* The `patterns` array contains objects with a `.source` property holding the original pattern string.
+<!--@include: @/docs/_parts/custom-messages.md#formatting-->
