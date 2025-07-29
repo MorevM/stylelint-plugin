@@ -2,9 +2,7 @@
 
 Enforces naming patterns for BEM entities.
 
-## Overview
-
-This rule allows you to enforce naming conventions for different parts of BEM-based selectors.
+---
 
 **You can define specific patterns for:**
 
@@ -49,10 +47,12 @@ export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
     '@morev/bem/selector-pattern': [true, {
-      blockPattern: 'KEBAB_CASE',
-      elementPattern: /^[a-z][0-9a-z]*(?:-[0-9a-z]+)*$/,
-      modifierNamePattern: 'KEBAB_CASE',
-      modifierValuePattern: 'KEBAB_CASE',
+      patterns: {
+        block: 'KEBAB_CASE',
+        element: /^[a-z][0-9a-z]*(?:-[0-9a-z]+)*$/,
+        modifierName: 'KEBAB_CASE',
+        modifierValue: 'KEBAB_CASE',
+      }
       ignoreBlocks: ['swiper-*', 'u-*'],
       separators: {
         element: '__',
@@ -76,49 +76,55 @@ export default {
 ```ts
 type BemPatternOptions = {
   /**
-   * Allowed pattern(s) for BEM block names.
-   *
-   * Supports RegExp, string (including wildcard patterns),
-   * or keywords like `KEBAB_CASE`.
-   *
-   * @default KEBAB_CASE_REGEXP
+   * Object containing allowed patterns for different BEM entities.
    */
-  blockPattern?: string | RegExp | Array<string | RegExp>;
+  patterns?: {
+    /**
+     * Allowed pattern(s) for BEM block names.
+     *
+     * Supports RegExp, string (including wildcard patterns),
+     * or keywords like `KEBAB_CASE`.
+     *
+     * @default KEBAB_CASE_REGEXP
+     */
+    block?: string | RegExp | Array<string | RegExp>;
 
-  /**
-   * Allowed pattern(s) for BEM element names.
-   *
-   * Supports RegExp, string (including wildcard patterns),
-   * or keywords like `KEBAB_CASE`.
-   *
-   * @default KEBAB_CASE_REGEXP
-   */
-  elementPattern?: string | RegExp | Array<string | RegExp>;
+    /**
+     * Allowed pattern(s) for BEM element names.
+     *
+     * Supports RegExp, string (including wildcard patterns),
+     * or keywords like `KEBAB_CASE`.
+     *
+     * @default KEBAB_CASE_REGEXP
+     */
+    element?: string | RegExp | Array<string | RegExp>;
 
-  /**
-   * Allowed pattern(s) for BEM modifier names.
-   *
-   * Supports RegExp, string (including wildcard patterns),
-   * or keywords like `KEBAB_CASE`.
-   *
-   * @default KEBAB_CASE_REGEXP
-   */
-  modifierNamePattern?: string | RegExp | Array<string | RegExp>;
+    /**
+     * Allowed pattern(s) for BEM modifier names.
+     *
+     * Supports RegExp, string (including wildcard patterns),
+     * or keywords like `KEBAB_CASE`.
+     *
+     * @default KEBAB_CASE_REGEXP
+     */
+    modifierName?: string | RegExp | Array<string | RegExp>;
 
-  /**
-   * Allowed pattern(s) for BEM modifier values.
-   *
-   * Supports RegExp, string (including wildcard patterns),
-   * or keywords like `KEBAB_CASE`. \
-   * Use `false` to forbid modifier values entirely.
-   *
-   * @default KEBAB_CASE_REGEXP
-   */
-  modifierValuePattern?: false | string | RegExp | Array<string | RegExp>;
+    /**
+     * Allowed pattern(s) for BEM modifier values.
+     *
+     * Supports RegExp, string (including wildcard patterns),
+     * or keywords like `KEBAB_CASE`. \
+     * Use `false` to forbid modifier values entirely.
+     *
+     * @default KEBAB_CASE_REGEXP
+     */
+    modifierValue?: false | string | RegExp | Array<string | RegExp>;
+  };
 
   /**
    * Object that defines BEM separators used to distinguish blocks, elements, modifiers, and modifier values. \
    * This allows the rule to work correctly with non-standard BEM naming conventions.
+   */
    */
   separators?: {
     /**
@@ -208,8 +214,8 @@ type BemPatternOptions = {
 
 ### Patterns
 
-All of the `blockPattern`, `elementPattern`, `modifierNamePattern`, `modifierValuePattern` options
-define the allowed naming patterns for different parts of your selectors.
+All of the keys of `patterns` property define the allowed naming patterns
+for different parts of your selectors.
 
 ::: warning Note
 The options shown below are not defaults or best practices. \
@@ -228,9 +234,11 @@ export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
     '@morev/bem/selector-pattern': [true, {
-      blockPattern: 'component-*', // [!code focus]
-      elementPattern: 'KEBAB_CASE', // [!code focus]
-      modifierName: 'is-*', // [!code focus]
+      patterns: {
+        block: 'component-*', // [!code focus]
+        element: 'KEBAB_CASE', // [!code focus]
+        modifierName: 'is-*', // [!code focus]
+      },
     },
   },
 }
@@ -293,7 +301,9 @@ export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
     '@morev/bem/selector-pattern': [true, {
-      blockPattern: /^component-[a-z-]+/, // [!code focus]
+      patterns: {
+        blockPattern: /^component-[a-z-]+/, // [!code focus]
+      },
     },
   },
 }
@@ -330,7 +340,9 @@ export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
     '@morev/bem/selector-pattern': [true, {
-      modifierNamePattern: ['is-*', /.*foo.*/], // [!code focus]
+      patterns: {
+        modifierName: ['is-*', /.*foo.*/], // [!code focus]
+      }
     },
   },
 }
@@ -386,7 +398,9 @@ export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
     '@morev/bem/selector-pattern': [true, {
-      modifierValuePattern: false, // [!code focus]
+      patterns: {
+        modifierValue: false, // [!code focus]
+      }
     }],
   },
 }
@@ -394,7 +408,7 @@ export default {
 
 This will disallow any BEM selector that contains a separate modifier value. \
 If you're using flattened values, they will be treated as part of the modifier name,
-and validated against `modifierNamePattern`.
+and validated against `pattern.modifierName`.
 
 ##### Example
 

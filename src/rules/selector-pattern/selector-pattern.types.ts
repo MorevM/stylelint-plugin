@@ -23,45 +23,50 @@ export type PrimaryOption = true;
  */
 export type SecondaryOption = {
 	/**
-	 * Allowed pattern(s) for BEM block names.
-	 *
-	 * Supports RegExp, string (including wildcard patterns),
-	 * or keywords like `KEBAB_CASE`.
-	 *
-	 * @default KEBAB_CASE_REGEXP
+	 * Object containing allowed patterns for different BEM entities.
 	 */
-	blockPattern?: string | RegExp | Array<string | RegExp>;
+	patterns?: {
+		/**
+		 * Allowed pattern(s) for BEM block names.
+		 *
+		 * Supports RegExp, string (including wildcard patterns),
+		 * or keywords like `KEBAB_CASE`.
+		 *
+		 * @default KEBAB_CASE_REGEXP
+		 */
+		block?: string | RegExp | Array<string | RegExp>;
 
-	/**
-	 * Allowed pattern(s) for BEM element names.
-	 *
-	 * Supports RegExp, string (including wildcard patterns),
-	 * or keywords like `KEBAB_CASE`.
-	 *
-	 * @default KEBAB_CASE_REGEXP
-	 */
-	elementPattern?: string | RegExp | Array<string | RegExp>;
+		/**
+		 * Allowed pattern(s) for BEM element names.
+		 *
+		 * Supports RegExp, string (including wildcard patterns),
+		 * or keywords like `KEBAB_CASE`.
+		 *
+		 * @default KEBAB_CASE_REGEXP
+		 */
+		element?: string | RegExp | Array<string | RegExp>;
 
-	/**
-	 * Allowed pattern(s) for BEM modifier names.
-	 *
-	 * Supports RegExp, string (including wildcard patterns),
-	 * or keywords like `KEBAB_CASE`.
-	 *
-	 * @default KEBAB_CASE_REGEXP
-	 */
-	modifierNamePattern?: string | RegExp | Array<string | RegExp>;
+		/**
+		 * Allowed pattern(s) for BEM modifier names.
+		 *
+		 * Supports RegExp, string (including wildcard patterns),
+		 * or keywords like `KEBAB_CASE`.
+		 *
+		 * @default KEBAB_CASE_REGEXP
+		 */
+		modifierName?: string | RegExp | Array<string | RegExp>;
 
-	/**
-	 * Allowed pattern(s) for BEM modifier values.
-	 *
-	 * Supports RegExp, string (including wildcard patterns),
-	 * or keywords like `KEBAB_CASE`. \
-	 * Use `false` to forbid modifier values entirely.
-	 *
-	 * @default KEBAB_CASE_REGEXP
-	 */
-	modifierValuePattern?: false | string | RegExp | Array<string | RegExp>;
+		/**
+		 * Allowed pattern(s) for BEM modifier values.
+		 *
+		 * Supports RegExp, string (including wildcard patterns),
+		 * or keywords like `KEBAB_CASE`. \
+		 * Use `false` to forbid modifier values entirely.
+		 *
+		 * @default KEBAB_CASE_REGEXP
+		 */
+		modifierValue?: false | string | RegExp | Array<string | RegExp>;
+	};
 
 	/**
 	 * Block names to ignore completely. \

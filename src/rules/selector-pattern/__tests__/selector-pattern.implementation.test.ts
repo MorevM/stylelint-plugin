@@ -259,7 +259,7 @@ const KEYWORD_PASCAL_PATTERN = normalizePattern('PASCAL_CASE') as ProcessedPatte
 // Pattern as a keyword
 testRule({
 	description: 'Pattern as a keyword',
-	config: [true, { blockPattern: 'PASCAL_CASE' }],
+	config: [true, { patterns: { block: 'PASCAL_CASE' } }],
 	accept: [
 		{ code: '.MyBlock {}' },
 		{ code: '.FooBar123 {}' },
@@ -293,7 +293,7 @@ const FOO_PATTERN = normalizePattern('foo-*') as ProcessedPattern[];
 // Pattern as a string
 testRule({
 	description: 'Pattern as a string',
-	config: [true, { blockPattern: 'foo-*' }],
+	config: [true, { patterns: { block: 'foo-*' } }],
 	accept: [
 		{ code: '.foo-block {}' },
 	],
@@ -316,7 +316,7 @@ const FOO_STRING_REGEX_PATTERN = normalizePattern('/^foo-[a-z]+$/') as Processed
 // Pattern as a RegExp in string form
 testRule({
 	description: 'Pattern as a RegExp in string form',
-	config: [true, { blockPattern: '/^foo-[a-z]+$/' }],
+	config: [true, { patterns: { block: '/^foo-[a-z]+$/' } }],
 	accept: [
 		{ code: '.foo-bar {}' },
 		{ code: '.foo-test {}' },
@@ -340,7 +340,7 @@ const FOO_REGEX_PATTERN = normalizePattern('/^foo-[a-z]+$/') as ProcessedPattern
 // Pattern as a RegExp
 testRule({
 	description: 'Pattern as an actual RegExp',
-	config: [true, { blockPattern: /^foo-[a-z]+$/ }],
+	config: [true, { patterns: { block: /^foo-[a-z]+$/ } }],
 	accept: [
 		{ code: '.foo-bar {}' },
 		{ code: '.foo-test {}' },
@@ -364,7 +364,7 @@ const MIXED_PATTERN = normalizePattern(['SNAKE_CASE', /^foo-[a-z]+$/, 'baz-*']) 
 // Pattern as an array of mixed values
 testRule({
 	description: 'Pattern as an array of mixed values',
-	config: [true, { blockPattern: ['SNAKE_CASE', /^foo-[a-z]+$/, 'baz-*'] }],
+	config: [true, { patterns: { block: ['SNAKE_CASE', /^foo-[a-z]+$/, 'baz-*'] } }],
 	accept: [
 		{ code: '.snake_case_selector {}' },
 		{ code: '.foo-test {}' },
@@ -397,7 +397,7 @@ testRule({
 // Pattern as a false (only for modifier value classes)
 testRule({
 	description: 'Pattern as a false (only for modifier value classes)',
-	config: [true, { modifierValuePattern: false }],
+	config: [true, { patterns: { modifierValue: false } }],
 	accept: [
 		{ code: '.foo-test {}' },
 	],

@@ -39,21 +39,31 @@ export default createRule({
 		primary: v.literal(true),
 		secondary: v.optional(
 			v.strictObject({
-				blockPattern: v.optional(
-					vArrayable(vStringOrRegExpSchema),
-					KEBAB_CASE_REGEXP,
-				),
-				elementPattern: v.optional(
-					vArrayable(vStringOrRegExpSchema),
-					KEBAB_CASE_REGEXP,
-				),
-				modifierNamePattern: v.optional(
-					vArrayable(vStringOrRegExpSchema),
-					KEBAB_CASE_REGEXP,
-				),
-				modifierValuePattern: v.optional(
-					v.union([v.literal(false), vArrayable(vStringOrRegExpSchema)]),
-					KEBAB_CASE_REGEXP,
+				patterns: v.optional(
+					v.strictObject({
+						block: v.optional(
+							vArrayable(vStringOrRegExpSchema),
+							KEBAB_CASE_REGEXP,
+						),
+						element: v.optional(
+							vArrayable(vStringOrRegExpSchema),
+							KEBAB_CASE_REGEXP,
+						),
+						modifierName: v.optional(
+							vArrayable(vStringOrRegExpSchema),
+							KEBAB_CASE_REGEXP,
+						),
+						modifierValue: v.optional(
+							v.union([v.literal(false), vArrayable(vStringOrRegExpSchema)]),
+							KEBAB_CASE_REGEXP,
+						),
+					}),
+					{
+						block: KEBAB_CASE_REGEXP,
+						element: KEBAB_CASE_REGEXP,
+						modifierName: KEBAB_CASE_REGEXP,
+						modifierValue: KEBAB_CASE_REGEXP,
+					},
 				),
 				ignoreBlocks: v.optional(
 					v.array(vStringOrRegExpSchema),
@@ -73,10 +83,10 @@ export default createRule({
 	// Normalize all configured patterns to internal RegExp format,
 	// resolve string wildcards and keywords like 'KEBAB_CASE'.
 	const patterns = {
-		block: normalizePattern(secondary.blockPattern),
-		element: normalizePattern(secondary.elementPattern),
-		modifierName: normalizePattern(secondary.modifierNamePattern),
-		modifierValue: normalizePattern(secondary.modifierValuePattern),
+		block: normalizePattern(secondary.patterns.block),
+		element: normalizePattern(secondary.patterns.element),
+		modifierName: normalizePattern(secondary.patterns.modifierName),
+		modifierValue: normalizePattern(secondary.patterns.modifierValue),
 	};
 
 	const separators = extractSeparators(secondary.separators);

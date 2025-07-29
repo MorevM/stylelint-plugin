@@ -48,6 +48,69 @@ testRuleConfig({
 	],
 });
 
+// Secondary option > patterns
+testRuleConfig({
+	description: 'Secondary option > separators',
+	accept: [
+		{
+			description: 'Valid pattern object (strings)',
+			config: [true, {
+				patterns: {
+					block: 'KEBAB_CASE',
+					element: 'KEBAB_CASE',
+					modifierName: 'KEBAB_CASE',
+					modifierValue: 'KEBAB_CASE',
+				},
+			}],
+		},
+		{
+			description: 'Valid pattern object (regexes)',
+			config: [true, {
+				patterns: {
+					block: /^[a-z][0-9a-z]*(?:-[0-9a-z]+)*$/,
+					element: /^[a-z][0-9a-z]*(?:-[0-9a-z]+)*$/,
+					modifierName: /^[a-z][0-9a-z]*(?:-[0-9a-z]+)*$/,
+					modifierValue: /^[a-z][0-9a-z]*(?:-[0-9a-z]+)*$/,
+				},
+			}],
+		},
+		{
+			description: 'Valid pattern object (mixed type)',
+			config: [true, {
+				patterns: {
+					block: [/^[a-z][0-9a-z]*(?:-[0-9a-z]+)*$/, 'foo-*'],
+				},
+			}],
+		},
+		{
+			description: 'Valid pattern object (modifier value as `false`)',
+			config: [true, {
+				patterns: {
+					modifierValue: false,
+				},
+			}],
+		},
+	],
+	reject: [
+		{
+			description: 'Non-valid `separators[prop]`',
+			config: [true, {
+				separators: {
+					element: 1,
+				},
+			}],
+		},
+		{
+			description: 'Extra `separators` key',
+			config: [true, {
+				separators: {
+					FOO: '__',
+				},
+			}],
+		},
+	],
+});
+
 // Secondary option > messages
 testRuleConfig({
 	description: 'Secondary option > messages',
