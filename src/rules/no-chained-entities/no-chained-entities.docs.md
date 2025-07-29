@@ -2,9 +2,7 @@
 
 Disallows splitting BEM entities across multiple chained `&` selectors in SCSS.
 
-::: info SASS/SCSS-only
-This rule applies only to SASS/SCSS files and has no effect on plain CSS files.
-:::
+<!-- @include: @/docs/_parts/sass-only.md -->
 
 ::: code-group
 

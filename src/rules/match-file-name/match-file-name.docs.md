@@ -1,4 +1,4 @@
-# @morev/match-file-name
+# @morev/bem/match-file-name
 
 Requires the file name to begin with the name of the BEM block it represents.
 

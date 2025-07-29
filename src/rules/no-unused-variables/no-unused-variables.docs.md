@@ -1,10 +1,8 @@
-# @morev/bem/no-unused-variables
+# @morev/sass/no-unused-variables
 
 Reports SASS variables that are declared but not used within their valid scope.
 
-::: info SASS-only
-This rule applies only to SASS/SCSS files and has no effect on plain CSS files.
-:::
+<!-- @include: @/docs/_parts/sass-only.md -->
 
 ```scss
 .the-component {

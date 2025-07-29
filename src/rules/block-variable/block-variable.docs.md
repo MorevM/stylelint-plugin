@@ -3,9 +3,7 @@
 Ensures that the top-level block selector (assumed to be the component's root selector)
 includes a variable that references the block name.
 
-::: info SASS-only
-This rule applies only to SASS/SCSS files and has no effect on plain CSS files.
-:::
+<!-- @include: @/docs/_parts/sass-only.md -->
 
 ## Motivation
 
