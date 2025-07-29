@@ -1,28 +1,30 @@
 import type { AtRule, Document, Node, Rule } from 'postcss';
-import type { BemEntityPart, EntityType } from '#modules/bem';
+import type { BemEntity, BemEntityPart, EntityType } from '#modules/bem';
 
 type Violation = {
 	rule: Rule | AtRule;
 	entityPart: BemEntityPart;
+	selector: string;
 	value: string;
 	message: string;
 };
 
-export const createViolationsRegistry = (entities: readonly string[]) => {
+export const createViolationsRegistry = () => {
 	const violations: Violation[] = [];
 
 	const hasParentViolation = (
-		rule: Rule | AtRule,
+		bemEntity: BemEntity,
 		entityType: EntityType,
 		entityPart: BemEntityPart,
 	) => {
-		let current: Document | Node | undefined = rule.parent;
+		let current: Document | Node | undefined = bemEntity.rule;
 		while (current) {
 			// eslint-disable-next-line @typescript-eslint/no-loop-func -- Trust me it's safe here
 			if (violations.some((violation) => {
 				return violation.rule === current
-					&& entities.indexOf(violation.entityPart.type) === entities.indexOf(entityType)
-					&& entityPart.value === violation.value;
+					&& entityType === violation.entityPart.type
+					&& entityPart.value === violation.value
+					&& bemEntity.bemSelector.startsWith(violation.selector);
 			})
 			) {
 				return true;

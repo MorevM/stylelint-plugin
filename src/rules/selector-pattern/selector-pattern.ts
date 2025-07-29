@@ -86,14 +86,13 @@ export default createRule({
 	const ignoreBlocks = toArray(secondary.ignoreBlocks)
 		.map((entry) => toRegExp(entry, { allowWildcard: true }));
 
-	const { violations, hasParentViolation } = createViolationsRegistry(BEM_ENTITIES);
+	const { violations, hasParentViolation } = createViolationsRegistry();
 
 	root.walk((rule) => {
 		if (rule.type !== 'atrule' && rule.type !== 'rule') return;
 		if (rule.type === 'atrule' && rule.name !== 'at-root') return;
 
 		resolveBemEntities({ rule, separators }).forEach((bemEntity) => {
-			if (!bemEntity.block) return;
 			if (ignoreBlocks.some((pattern) => pattern.test(bemEntity.block.value))) return;
 
 			BEM_ENTITIES.forEach((entityType) => {
@@ -114,12 +113,13 @@ export default createRule({
 					const shouldReport = isDisallowedEntity || (
 						entityPatterns
 						&& entityPatterns.every((pattern) => !pattern.regexp.test(entityPart.value))
-						&& !hasParentViolation(rule, entityType, entityPart)
+						&& !hasParentViolation(bemEntity, entityType, entityPart)
 					);
 
 					shouldReport && violations.push({
 						rule,
 						entityPart,
+						selector: bemEntity.bemSelector,
 						value: entityPart.value,
 						// Intentionally loosened type for modifier values scenario (might be `false`)
 						message: messages[entityType](entityPart.value, bemEntity.bemSelector, entityPatterns as any),
