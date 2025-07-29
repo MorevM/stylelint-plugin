@@ -711,9 +711,9 @@ describe(resolveBemEntities, () => {
 
 	describe('Custom separators (react style for instance)', () => {
 		const customSeparators = {
-			elementSeparator: '-',
-			modifierSeparator: '_',
-			modifierValueSeparator: '_',
+			element: '-',
+			modifier: '_',
+			modifierValue: '_',
 		};
 
 		describe('Block', () => {
