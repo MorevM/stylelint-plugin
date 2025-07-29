@@ -5,21 +5,21 @@ export type Separators = {
 	/**
 	 * Separator between block and element.
 	 *
-	 * @example '__'
+	 * @default '__'
 	 */
 	element: string;
 
 	/**
-	 * Separator between entity and modifier name.
+	 * Separator between block/element and modifier name.
 	 *
-	 * @example '--'
+	 * @default '--'
 	 */
 	modifier: string;
 
 	/**
-	 * Separator between modifier name and value.
+	 * Separator between modifier name and modifier value.
 	 *
-	 * @example '--'
+	 * @default '--'
 	 */
 	modifierValue: string;
 };

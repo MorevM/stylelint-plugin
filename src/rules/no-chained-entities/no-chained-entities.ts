@@ -10,10 +10,14 @@ import type { RepeatingGroup, RepeatingGroupItem, SecondaryOption, Violation } f
 const RULE_NAME = 'no-chained-entities';
 
 /**
- * TODO:
- * * Documentation
+ * Generates a standardized violation message for a chained BEM entity.
+ *
+ * @param   type       BEM entity type (e.g. "element", "modifier value").
+ * @param   actual     The actual (invalid) selector fragment.
+ * @param   expected   The expected flat-form selector.
+ *
+ * @returns            Formatted linting message.
  */
-
 const createMessage = (type: string, actual: string, expected: string) =>
 	`Unexpected chained BEM ${type} "${actual}". Move it to the parent level as "${expected}"`;
 

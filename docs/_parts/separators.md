@@ -16,8 +16,8 @@ or even custom ones.
 <!-- #endregion header -->
 
 <!-- #region footer -->
-The rule does not enforce any specific separator style.
-You can fully adapt it to match your team's preferred BEM convention by adjusting the separator options.
-
+::: info Rule is separator-agnostic
+You can adapt this rule to any BEM naming convention using the available options. \
 For details on naming principles, refer to the official [BEM methodology guide](https://en.bem.info/methodology/naming-convention/).
+:::
 <!-- #endregion footer -->

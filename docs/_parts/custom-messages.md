@@ -18,6 +18,7 @@ If your custom message function returns anything other than a `string` (e.g., `u
 the rule will automatically fall back to the default built-in message.
 
 Additionally, all custom messages are automatically processed through `stripIndent` function,
-so it's safe and recommended to use template literals (backticks, ```) for multiline messages without worrying about inconsistent indentation.
+so it's safe and recommended to use template literals (backticks, <code>`</code>)
+for multiline messages without worrying about inconsistent indentation.
 :::
 <!-- #endregion formatting -->
