@@ -8,7 +8,7 @@ export type PrimaryOption = true;
 /**
  * Secondary options for the rule.
  */
-export type SecondaryOption = Partial<Separators> & {
+export type SecondaryOption = {
 	/**
 	 * List of presets to apply globally. \
 	 * Available built-in presets: `['EXTERNAL_GEOMETRY', 'CONTEXT', 'POSITIONING']`.
@@ -127,4 +127,12 @@ export type SecondaryOption = Partial<Separators> & {
 			presetName: string | undefined,
 		) => string;
 	};
+
+	/**
+	 * Object that defines BEM separators used to distinguish blocks, elements, modifiers, and modifier values. \
+	 * This allows the rule to work correctly with non-standard BEM naming conventions.
+	 *
+	 * @default { element: '__', modifier: '--', modifierValue: '--' }
+	 */
+	separators?: Partial<Separators>;
 };

@@ -21,7 +21,7 @@ export type PrimaryOption = true;
 /**
  * Secondary options for the rule.
  */
-export type SecondaryOption = Partial<Separators> & Partial<{
+export type SecondaryOption = {
 	/**
 	 * Allowed pattern(s) for BEM block names.
 	 *
@@ -30,7 +30,7 @@ export type SecondaryOption = Partial<Separators> & Partial<{
 	 *
 	 * @default KEBAB_CASE_REGEXP
 	 */
-	blockPattern: string | RegExp | Array<string | RegExp>;
+	blockPattern?: string | RegExp | Array<string | RegExp>;
 
 	/**
 	 * Allowed pattern(s) for BEM element names.
@@ -40,7 +40,7 @@ export type SecondaryOption = Partial<Separators> & Partial<{
 	 *
 	 * @default KEBAB_CASE_REGEXP
 	 */
-	elementPattern: string | RegExp | Array<string | RegExp>;
+	elementPattern?: string | RegExp | Array<string | RegExp>;
 
 	/**
 	 * Allowed pattern(s) for BEM modifier names.
@@ -50,7 +50,7 @@ export type SecondaryOption = Partial<Separators> & Partial<{
 	 *
 	 * @default KEBAB_CASE_REGEXP
 	 */
-	modifierNamePattern: string | RegExp | Array<string | RegExp>;
+	modifierNamePattern?: string | RegExp | Array<string | RegExp>;
 
 	/**
 	 * Allowed pattern(s) for BEM modifier values.
@@ -61,7 +61,7 @@ export type SecondaryOption = Partial<Separators> & Partial<{
 	 *
 	 * @default KEBAB_CASE_REGEXP
 	 */
-	modifierValuePattern: false | string | RegExp | Array<string | RegExp>;
+	modifierValuePattern?: false | string | RegExp | Array<string | RegExp>;
 
 	/**
 	 * Block names to ignore completely. \
@@ -77,13 +77,13 @@ export type SecondaryOption = Partial<Separators> & Partial<{
 	 *
 	 * @default []
 	 */
-	ignoreBlocks: Array<string | RegExp>;
+	ignoreBlocks?: Array<string | RegExp>;
 
 	/**
 	 * Custom message functions for each entity.
 	 * If provided, overrides the default error messages.
 	 */
-	messages: Partial<{
+	messages?: {
 		/**
 		 * Custom message for BEM block violations.
 		 *
@@ -92,7 +92,7 @@ export type SecondaryOption = Partial<Separators> & Partial<{
 		 *
 		 * @returns            Error message.
 		 */
-		block: (name: string, patterns: ProcessedPattern[]) => string;
+		block?: (name: string, patterns: ProcessedPattern[]) => string;
 
 		/**
 		 * Custom message for BEM element violations.
@@ -102,7 +102,7 @@ export type SecondaryOption = Partial<Separators> & Partial<{
 		 *
 		 * @returns            Error message.
 		 */
-		element: (name: string, patterns: ProcessedPattern[]) => string;
+		element?: (name: string, patterns: ProcessedPattern[]) => string;
 
 		/**
 		 * Custom message for BEM modifier name violations.
@@ -112,7 +112,7 @@ export type SecondaryOption = Partial<Separators> & Partial<{
 		 *
 		 * @returns            Error message.
 		 */
-		modifierName: (name: string, patterns: ProcessedPattern[]) => string;
+		modifierName?: (name: string, patterns: ProcessedPattern[]) => string;
 
 		/**
 		 * Custom message for BEM modifier value violations.
@@ -122,9 +122,17 @@ export type SecondaryOption = Partial<Separators> & Partial<{
 		 *
 		 * @returns            Error message.
 		 */
-		modifierValue: (name: string, patterns: ProcessedPattern[]) => string;
-	}>;
-}>;
+		modifierValue?: (name: string, patterns: ProcessedPattern[]) => string;
+	};
+
+	/**
+	 * Object that defines BEM separators used to distinguish blocks, elements, modifiers, and modifier values. \
+	 * This allows the rule to work correctly with non-standard BEM naming conventions.
+	 *
+	 * @default { element: '__', modifier: '--', modifierValue: '--' }
+	 */
+	separators?: Partial<Separators>;
+};
 
 export type RuleSchema = {
 	name: '@morev/bem/selector-pattern';

@@ -37,7 +37,7 @@ All options are optional and have sensible default values.
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': true,
+    '@morev/bem/selector-pattern': true,
   }
 }
 ```
@@ -48,15 +48,17 @@ export default {
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
+    '@morev/bem/selector-pattern': [true, {
       blockPattern: 'KEBAB_CASE',
       elementPattern: /^[a-z][0-9a-z]*(?:-[0-9a-z]+)*$/,
       modifierNamePattern: 'KEBAB_CASE',
       modifierValuePattern: 'KEBAB_CASE',
-      elementSeparator: '__',
-      modifierSeparator: '--',
-      modifierValueSeparator: '--',
       ignoreBlocks: ['swiper-*', 'u-*'],
+      separators: {
+        element: '__',
+        modifier: '--',
+        modifierValue: '--',
+      },
       messages: {
         block: (name, fullSelector, patterns) => {
           return `Unexpected block name ${name}`;
@@ -72,7 +74,7 @@ export default {
 ::: details Show full type of the options
 
 ```ts
-type BemPatternOptions = Partial<{
+type BemPatternOptions = {
   /**
    * Allowed pattern(s) for BEM block names.
    *
@@ -81,7 +83,7 @@ type BemPatternOptions = Partial<{
    *
    * @default KEBAB_CASE_REGEXP
    */
-  blockPattern: string | RegExp | Array<string | RegExp>;
+  blockPattern?: string | RegExp | Array<string | RegExp>;
 
   /**
    * Allowed pattern(s) for BEM element names.
@@ -91,7 +93,7 @@ type BemPatternOptions = Partial<{
    *
    * @default KEBAB_CASE_REGEXP
    */
-  elementPattern: string | RegExp | Array<string | RegExp>;
+  elementPattern?: string | RegExp | Array<string | RegExp>;
 
   /**
    * Allowed pattern(s) for BEM modifier names.
@@ -101,7 +103,7 @@ type BemPatternOptions = Partial<{
    *
    * @default KEBAB_CASE_REGEXP
    */
-  modifierNamePattern: string | RegExp | Array<string | RegExp>;
+  modifierNamePattern?: string | RegExp | Array<string | RegExp>;
 
   /**
    * Allowed pattern(s) for BEM modifier values.
@@ -112,28 +114,34 @@ type BemPatternOptions = Partial<{
    *
    * @default KEBAB_CASE_REGEXP
    */
-  modifierValuePattern: false | string | RegExp | Array<string | RegExp>;
+  modifierValuePattern?: false | string | RegExp | Array<string | RegExp>;
 
   /**
-   * String used as the BEM element separator.
-   *
-   * @default '__'
+   * Object that defines BEM separators used to distinguish blocks, elements, modifiers, and modifier values. \
+   * This allows the rule to work correctly with non-standard BEM naming conventions.
    */
-  elementSeparator: string;
+  separators?: {
+    /**
+     * String used as the BEM element separator.
+     *
+     * @default '__'
+     */
+    element?: string;
 
-  /**
-   * String used as the BEM modifier separator.
-   *
-   * @default '--'
-   */
-  modifierSeparator: string;
+    /**
+     * String used as the BEM modifier separator.
+     *
+     * @default '--'
+     */
+    modifier?: string;
 
-  /**
-   * String used as the BEM modifier value separator.
-   *
-   * @default '--'
-   */
-  modifierValueSeparator: string;
+    /**
+     * String used as the BEM modifier value separator.
+     *
+     * @default '--'
+     */
+    modifierValue?: string;
+  }
 
   /**
    * Block names to ignore completely.
@@ -142,13 +150,13 @@ type BemPatternOptions = Partial<{
    *
    * @default []
    */
-  ignoreBlocks: Array<string | RegExp>;
+  ignoreBlocks?: Array<string | RegExp>;
 
   /**
    * Custom message functions for each entity.
    * If provided, overrides the default error messages.
    */
-  messages: Partial<{
+  messages?: {
     /**
      * Custom message for BEM block violations.
      *
@@ -158,7 +166,7 @@ type BemPatternOptions = Partial<{
      *
      * @returns                Error message.
      */
-    block: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
+    block?: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
 
     /**
      * Custom message for BEM element violations.
@@ -169,7 +177,7 @@ type BemPatternOptions = Partial<{
      *
      * @returns                Error message.
      */
-    element: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
+    element?: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
 
     /**
      * Custom message for BEM modifier name violations.
@@ -180,7 +188,7 @@ type BemPatternOptions = Partial<{
      *
      * @returns                Error message.
      */
-    modifierName: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
+    modifierName?: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
 
     /**
      * Custom message for BEM modifier value violations.
@@ -191,9 +199,9 @@ type BemPatternOptions = Partial<{
      *
      * @returns                Error message.
      */
-    modifierValue: (name: string, fullSelector: string, patterns: ProcessedPattern[] | false) => string;
-  }>;
-}>
+    modifierValue?: (name: string, fullSelector: string, patterns: ProcessedPattern[] | false) => string;
+  };
+}
 ```
 
 :::
@@ -219,7 +227,7 @@ as a pattern supporting wildcards, or a predefined keyword representing a popula
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
+    '@morev/bem/selector-pattern': [true, {
       blockPattern: 'component-*', // [!code focus]
       elementPattern: 'KEBAB_CASE', // [!code focus]
       modifierName: 'is-*', // [!code focus]
@@ -284,7 +292,7 @@ use string-based format described above if your config is written using such for
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
+    '@morev/bem/selector-pattern': [true, {
       blockPattern: /^component-[a-z-]+/, // [!code focus]
     },
   },
@@ -321,7 +329,7 @@ A list of any combination of the above.
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
+    '@morev/bem/selector-pattern': [true, {
       modifierNamePattern: ['is-*', /.*foo.*/], // [!code focus]
     },
   },
@@ -377,7 +385,7 @@ To enforce this model, set the `modifierValuePattern` to `false`.
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
+    '@morev/bem/selector-pattern': [true, {
       modifierValuePattern: false, // [!code focus]
     }],
   },
@@ -402,20 +410,7 @@ and validated against `modifierNamePattern`.
 
 ### Separators
 
-The rule supports different naming conventions for BEM entities by allowing you
-to configure the separators between block elements, modifiers, and modifier values.
-
-This flexibility ensures compatibility with all popular BEM styles described in the
-official [BEM methodology naming convention](https://en.bem.info/methodology/naming-convention/)
-or even custom ones.
-
-#### Available separators
-
-| Option                   | Default | Description                                         |
-| ------------------------ | ------- | --------------------------------------------------- |
-| `elementSeparator`       | `__`    | Separator between block and element.                |
-| `modifierSeparator`      | `--`    | Separator between block/element and modifier name.  |
-| `modifierValueSeparator` | `--`    | Separator between modifier name and modifier value. |
+<!-- @include: @/docs/_parts/separators.md#header -->
 
 #### Configuration examples
 
@@ -427,10 +422,12 @@ or even custom ones.
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
-      elementSeparator: '__',
-      modifierSeparator: '--',
-      modifierValueSeparator: '--',
+    '@morev/bem/selector-pattern': [true, {
+      separators: {
+        element: '__',
+        modifier: '--',
+        modifierValue: '--',
+      },
     },
   },
 }
@@ -456,10 +453,12 @@ export default {
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
-      elementSeparator: '__',
-      modifierSeparator: '_',
-      modifierValueSeparator: '_',
+    '@morev/bem/selector-pattern': [true, {
+      separators: {
+        element: '__',
+        modifier: '_',
+        modifierValue: '_',
+      },
     },
   },
 }
@@ -486,10 +485,12 @@ export default {
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
-      elementSeparator: '-',
-      modifierSeparator: '_',
-      modifierValueSeparator: '_',
+    '@morev/bem/selector-pattern': [true, {
+      separators: {
+        element: '-',
+        modifier: '_',
+        modifierValue: '_',
+      },
     },
   },
 }
@@ -507,10 +508,7 @@ export default {
 
 :::
 
-The rule does not enforce any specific separator style.
-You can fully adapt it to match your team's preferred BEM convention by adjusting the separator options.
-
-For details on naming principles, refer to the official [BEM methodology guide](https://en.bem.info/methodology/naming-convention/).
+<!-- @include: @/docs/_parts/separators.md#footer -->
 
 ### Ignoring specific blocks (`ignoreBlocks`)
 
@@ -529,7 +527,7 @@ In some projects, not all class names are strictly controlled by your codebase o
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
+    '@morev/bem/selector-pattern': [true, {
       ignoreBlocks: ['legacy-component'] // [!code focus]
     },
   },
@@ -553,7 +551,7 @@ export default {
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
+    '@morev/bem/selector-pattern': [true, {
       ignoreBlocks: ['swiper-*'] // [!code focus]
     },
   },
@@ -575,7 +573,7 @@ export default {
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/pattern': [true, {
+    '@morev/bem/selector-pattern': [true, {
       ignoreBlocks: [/.*foo.*/] // [!code focus]
     },
   },
@@ -602,7 +600,7 @@ export default {
 
 ### Custom messages (`messages`)
 
-<!--@include: @/docs/_parts/custom-messages.md#header-->
+<!-- @include: @/docs/_parts/custom-messages.md#header -->
 
 Each message function receives the detected entity name, full resolved BEM selector
 and the list of expected patterns.
@@ -695,4 +693,4 @@ export type MessagesOption = {
 
 :::
 
-<!--@include: @/docs/_parts/custom-messages.md#formatting-->
+<!-- @include: @/docs/_parts/custom-messages.md#formatting -->

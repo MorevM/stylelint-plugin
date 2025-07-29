@@ -97,7 +97,7 @@ export type PrimaryOption = true;
 /**
  * Secondary options for the rule.
  */
-export type SecondaryOption = Partial<Separators> & {
+export type SecondaryOption = {
 	/**
 	 * Whether to disallow nesting for modifier values:
 	 *
@@ -176,4 +176,12 @@ export type SecondaryOption = Partial<Separators> & {
 		 */
 		nestedModifierValue?: (actual: string, expected: string) => string;
 	};
+
+	/**
+	 * Object that defines BEM separators used to distinguish blocks, elements, modifiers, and modifier values. \
+	 * This allows the rule to work correctly with non-standard BEM naming conventions.
+	 *
+	 * @default { element: '__', modifier: '--', modifierValue: '--' }
+	 */
+	separators?: Partial<Separators>;
 };

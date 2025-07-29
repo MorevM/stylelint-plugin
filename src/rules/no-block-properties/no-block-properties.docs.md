@@ -87,9 +87,11 @@ export default {
         },
       },
       ignoreBlocks: ['swiper-*', /.*legacy.*/],
-      elementSeparator: '__',
-      modifierSeparator: '--',
-      modifierValueSeparator: '--',
+      separators: {
+        element: '__',
+        modifier: '--',
+        modifierValue: '--',
+      }
       messages: {
         unexpected: (property, selector, context, presetName) =>
           `Custom message: "${property}" is forbidden in ${context} "${selector}"`,
@@ -223,25 +225,33 @@ export type NoBlockPropertiesOptions = {
   };
 
   /**
-   * String used as the BEM element separator.
+   * Object that defines BEM separators used to distinguish blocks, elements, modifiers, and modifier values. \
+   * This allows the rule to work correctly with non-standard BEM naming conventions.
    *
-   * @default '__'
+   * @default { element: '__', modifier: '--', modifierValue: '--' }
    */
-  elementSeparator?: string;
+  separators?: {
+    /**
+     * String used as the BEM element separator.
+     *
+     * @default '__'
+     */
+    element?: string;
 
-  /**
-   * String used as the BEM modifier separator.
-   *
-   * @default '--'
-   */
-  modifierSeparator?: string;
+    /**
+     * String used as the BEM modifier separator.
+     *
+     * @default '--'
+     */
+    modifier?: string;
 
-  /**
-   * String used as the BEM modifier value separator.
-   *
-   * @default '--'
-   */
-  modifierValueSeparator?: string;
+    /**
+     * String used as the BEM modifier value separator.
+     *
+     * @default '--'
+     */
+    modifierValue?: string;
+  }
 };
 ```
 
@@ -761,30 +771,12 @@ export default {
 }
 ```
 
-<!--@include: @/docs/_parts/custom-messages.md#formatting-->
+<!-- @include: @/docs/_parts/custom-messages.md#formatting -->
 
 ---
 
 ### Separators
 
-The rule supports different naming conventions for BEM entities by allowing you
-to configure the separators between block elements, modifiers, and modifier values.
-
-This flexibility ensures compatibility with all popular BEM styles described in the
-official [BEM methodology naming convention](https://en.bem.info/methodology/naming-convention/)
-or even custom ones.
-
-#### Available separators
-
-| Option                   | Default | Description                                         |
-| ------------------------ | ------- | --------------------------------------------------- |
-| `elementSeparator`       | `__`    | Separator between block and element.                |
-| `modifierSeparator`      | `--`    | Separator between block/element and modifier name.  |
-| `modifierValueSeparator` | `--`    | Separator between modifier name and modifier value. |
-
-The rule does not enforce any specific separator style.
-You can fully adapt it to match your team's preferred BEM convention by adjusting the separator options.
-
-For details on naming principles, refer to the official [BEM methodology guide](https://en.bem.info/methodology/naming-convention/).
+<!-- @include: @/docs/_parts/separators.md#formatting -->
 
 <!-- TODO: Pattern link related -->
