@@ -1,4 +1,5 @@
 export * from './get-first-rule/get-first-rule';
+export * from './get-rule-content-meta/get-rule-content-meta';
 export * from './get-rule-declarations/get-rule-declarations';
 export * from './is-at-rule/is-at-rule';
 export * from './is-keyframes-rule/is-keyframes-rule';

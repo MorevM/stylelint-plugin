@@ -1,7 +1,7 @@
 import { assert } from '@morev/utils';
 import * as v from 'valibot';
 import { resolveBemChain } from '#modules/bem';
-import { isAtRule, isRule } from '#modules/postcss';
+import { getRuleContentMeta, isAtRule, isRule } from '#modules/postcss';
 import { addNamespace, createRule, extractSeparators, getRuleUrl, isCssFile, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
 import type { Root } from 'postcss';
 import type { Separators } from '#modules/shared';
@@ -41,7 +41,7 @@ const collectRepeatingGroups = (
 	root.walk((rule) => {
 		if (!isAtRule(rule, ['at-root', 'nest']) && !isRule(rule)) return;
 
-		const source = isRule(rule) ? rule.selector : rule.params;
+		const { source } = getRuleContentMeta(rule);
 		if (!source.includes('&')) return;
 
 		const chains = resolveBemChain(rule, separators);
@@ -132,11 +132,7 @@ const getViolationsFromGroups = (
 				'`deepestEntity` should have a `sourceRange` here.',
 			);
 
-			const { rule } = deepestEntity;
-			const source = isRule(rule)
-				? rule.selector
-				: `@${rule.name}${rule.raws.afterName ?? ''}${rule.params}`;
-
+			const { raw: source } = getRuleContentMeta(deepestEntity.rule);
 			const actual = source.slice(...deepestEntity.part.sourceRange);
 
 			if (actual.includes('&')) return actual;

@@ -1,5 +1,5 @@
 import { isEmpty } from '@morev/utils';
-import { isAtRule } from '#modules/postcss';
+import { getRuleContentMeta, isAtRule } from '#modules/postcss';
 import { extractSelectorSegment } from '../extract-selector-segment/extract-selector-segment';
 import { getBemCandidateSegments } from '../get-bem-candidate-segments/get-bem-candidate-segments';
 import type postcss from 'postcss';
@@ -136,9 +136,7 @@ export const getResolvedBemSegments = (
 		.some((segment) => segment.some((node) => node.type === 'nesting'));
 
 	const isAtRoot = isAtRule(rule, ['at-root', 'nest']);
-	const contextOffset = isAtRoot
-		? rule.name.length + rule.raws.afterName!.length + sourceOffset + 1 // +1 for `@`
-		: sourceOffset;
+	const contextOffset = getRuleContentMeta(rule).offset + sourceOffset;
 
 	let sourceShift = 0;
 
