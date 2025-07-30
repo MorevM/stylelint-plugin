@@ -1,7 +1,7 @@
 import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
-import { isKeyframesRule } from '#modules/postcss';
+import { getRuleContentMeta, isAtRule, isKeyframesRule, isRule } from '#modules/postcss';
 import { addNamespace, createRule, getRuleUrl, isCssFile, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { parseSelectors } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
@@ -48,23 +48,13 @@ export default createRule({
 	const normalizedIgnore = secondary.ignore.map((item) => toRegExp(item));
 
 	root.walk((node) => {
-		// Do not check the selector itself
 		if (node === bemBlock.rule) return;
-		if (node.type === 'comment' || node.type === 'decl') return;
-		if (node.type === 'atrule' && node.name !== 'at-root') return;
 		if (isKeyframesRule(node)) return;
+		if (!isAtRule(node, ['nest', 'at-root']) && !isRule(node)) return;
 
-		const originalSelector = node.type === 'rule'
-			? node.selector
-			: node.params;
+		const { source, offset } = getRuleContentMeta(node);
 
-		const atRuleOffset = node.type === 'atrule'
-			// +1 because of `@`
-			// +1 because PostCSS index starts with `1`
-			? node.name.length + 2
-			: 0;
-
-		const selectors = parseSelectors(originalSelector);
+		const selectors = parseSelectors(source);
 
 		selectors.forEach((selectorNodes) => {
 			if (isEmpty(selectorNodes)) return;
@@ -123,8 +113,8 @@ export default createRule({
 				report({
 					message: messages.rejected(selector),
 					node,
-					index: errorIndex + atRuleOffset,
-					endIndex: errorIndex + atRuleOffset + selector.length,
+					index: errorIndex + offset,
+					endIndex: errorIndex + offset + selector.length,
 				});
 			}
 		});
