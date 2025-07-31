@@ -23,18 +23,18 @@ const isSameSegment = (a: parser.Node[], b: parser.Node[]) =>
  * Enriches resolved selector nodes with metadata about their relation
  * to the original selector nodes, including matched ranges and full match flags.
  *
- * @param   originalNodes   The original nodes from the user-defined selector.
+ * @param   sourceNodes     The original nodes from the user-defined selector.
  * @param   resolvedNodes   The selector nodes after nesting resolution.
  * @param   sourceOffset    Offset of the nodes relative to original rule selector.
  *
  * @returns                 An array of resolved nodes with `.origin` metadata.
  */
 const attachOriginMetadata = (
-	originalNodes: BemNode[],
+	sourceNodes: BemNode[],
 	resolvedNodes: parser.Node[],
 	sourceOffset: number = 0,
 ): BemNode[] => {
-	const originalNodeRanges = originalNodes.map((node) => {
+	const sourceNodeRanges = sourceNodes.map((node) => {
 		const value = node.toString();
 		const nodeIndex = node.sourceIndex + sourceOffset;
 		const adjustedIndex = node.adjustedSourceIndex ?? node.sourceIndex + sourceOffset;
@@ -53,7 +53,7 @@ const attachOriginMetadata = (
 		const resolvedStart = node.sourceIndex;
 		const resolvedEnd = resolvedStart + nodeValue.length;
 
-		enrichedNode.sourceMatches = originalNodeRanges
+		enrichedNode.sourceMatches = sourceNodeRanges
 			.map(({ value, adjustedRange: [start, end], sourceRange, offset }) => {
 				if (resolvedStart >= end || resolvedEnd <= start) return null;
 
