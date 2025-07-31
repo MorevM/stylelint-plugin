@@ -1,7 +1,7 @@
-import { isString } from '@morev/utils';
+import { isString, isUndefined } from '@morev/utils';
 import postcss from 'postcss';
 import postcssScss from 'postcss-scss';
-import { isAtRule, isRule } from '#modules/postcss';
+import { getRuleContentMeta, isAtRule, isRule } from '#modules/postcss';
 
 /**
  * Parses the given source (as a string or PostCSS root) and returns
@@ -21,7 +21,7 @@ import { isAtRule, isRule } from '#modules/postcss';
  */
 export const getRuleBySelector = (
 	rootOrSource: postcss.Root | string,
-	selector: string,
+	selector?: string,
 ): postcss.Rule | postcss.AtRule => {
 	let found: postcss.Rule | postcss.AtRule | null = null;
 
@@ -29,10 +29,20 @@ export const getRuleBySelector = (
 		? postcss().process(rootOrSource, { syntax: postcssScss }).root
 		: rootOrSource;
 
+	if (isUndefined(selector)) {
+		const firstNode = root.nodes[0];
+
+		if (isAtRule(firstNode) || isRule(firstNode)) {
+			return firstNode;
+		}
+
+		throw new Error(`Rule not found`);
+	}
+
 	root.walk((rule) => {
 		if (!isRule(rule) && !isAtRule(rule)) return;
 
-		const match = isAtRule(rule) ? rule.params : rule.selector;
+		const { source: match } = getRuleContentMeta(rule);
 
 		if (match === selector) {
 			found = rule;
