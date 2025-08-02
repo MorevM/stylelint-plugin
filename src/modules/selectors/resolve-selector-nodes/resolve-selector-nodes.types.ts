@@ -51,7 +51,7 @@ export type AdjustedNode<Base = parser.Node> = Base & {
 /**
  * Enhanced `postcss-selector-parser` node, for internal usage only.
  */
-export type EnrichedNode<Base = parser.Node> = Base & {
+export type ResolvedNode<Base = parser.Node> = Base & {
 	meta: {
 		/**
 		 * Metadata linking a resolved selector node back to its source
@@ -88,7 +88,7 @@ export type EnrichedNode<Base = parser.Node> = Base & {
 };
 
 export type MappedSelector = {
-	resolvedNodes: EnrichedNode[];
+	resolvedNodes: ResolvedNode[];
 	sourceNodes: AdjustedNode[];
 };
 

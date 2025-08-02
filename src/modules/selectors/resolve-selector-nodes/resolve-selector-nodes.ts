@@ -4,7 +4,7 @@ import { parseSelectors } from '#modules/selectors/parse-selectors/parse-selecto
 import { resolveNestedSelector } from '#modules/selectors/resolve-nested-selector/resolve-nested-selector';
 import { adjustSource } from './utils/index';
 import type parser from 'postcss-selector-parser';
-import type { AdjustedNode, EnrichedNode, MappedSelector, Options, SourceNodeMeta } from './resolve-selector-nodes.types';
+import type { AdjustedNode, MappedSelector, Options, ResolvedNode, SourceNodeMeta } from './resolve-selector-nodes.types';
 
 const customToString = (node: parser.Node) => {
 	return ['class', 'tag'].includes(node.type)
@@ -54,7 +54,7 @@ const enrichNode = (
 	contextOffset: number,
 	_seenMeta: Set<SourceNodeMeta> = new Set(),
 ) => {
-	const enrichedNode = node as EnrichedNode;
+	const enrichedNode = node as ResolvedNode;
 	const nodeStart = node.sourceIndex;
 	const nodeEnd = nodeStart + customToString(node).length;
 

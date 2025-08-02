@@ -1,9 +1,9 @@
 import { isArray, isNumeric } from '@morev/utils';
 import { getRuleBySelector, stringifySelectorNodes } from '#modules/test-utils';
 import { resolveSelectorNodes } from './resolve-selector-nodes';
-import type { EnrichedNode } from './resolve-selector-nodes.types';
+import type { ResolvedNode } from './resolve-selector-nodes.types';
 
-const getSourceMatches = (nodes: EnrichedNode[]) => {
+const getSourceMatches = (nodes: ResolvedNode[]) => {
 	return nodes.map((node) => node.meta.sourceMatches);
 };
 
