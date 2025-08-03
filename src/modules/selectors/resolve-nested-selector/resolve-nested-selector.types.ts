@@ -10,7 +10,7 @@ export type PathItem = {
 	type: 'rule' | 'nest' | 'at-root';
 
 	/**
-	 * The raw value of the selector or at-rule parameter.
+	 * The source value of the selector or at-rule parameter.
 	 */
 	value: string;
 
@@ -29,7 +29,7 @@ export type ResolvedSelector = {
 	 *
 	 * @example '&--mod'
 	 */
-	raw: string;
+	source: string;
 
 	/**
 	 * The final resolved selector string.

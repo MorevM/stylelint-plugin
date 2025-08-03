@@ -49,7 +49,7 @@ export type AdjustedNode<Base = parser.Node> = Base & {
 
 
 /**
- * Enhanced `postcss-selector-parser` node, for internal usage only.
+ * Enhanced `postcss-selector-parser` node.
  */
 export type ResolvedNode<Base = parser.Node> = Base & {
 	meta: {
@@ -83,6 +83,14 @@ export type ResolvedNode<Base = parser.Node> = Base & {
 			 * Offset applied due to surrounding context (e.g., from `@at-root` or `@nest`).
 			 */
 			contextOffset: number;
+
+			/**
+			 * Offset applied due to position of the selector in case of compound selectors,
+			 * e.g. `.foo, .bar` -> `.bar` has offset `6`.
+			 *
+			 * Used when computing absolute source positions.
+			 */
+			sourceOffset: number;
 		}>;
 	};
 };

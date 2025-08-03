@@ -139,12 +139,12 @@ const getTrees = (
  */
 const resolveSelectorTrees = (trees: PathItem[][]): ResolvedSelector[] => {
 	return trees.map((tree) => {
-		const { offset, value: raw } = tree.at(-1)!;
+		const { offset, value: source } = tree.at(-1)!;
 		assert(offset, '`getTrees` ensures that the last element includes `offset`');
 
 		let context = '';
 
-		// Traverse all nodes except the last one (which holds the raw selector).
+		// Traverse all nodes except the last one (which holds the source selector).
 		for (let i = 0, l = tree.length; i < l; i++) {
 			const item = tree[i];
 			const isLast = i === tree.length - 1;
@@ -158,17 +158,17 @@ const resolveSelectorTrees = (trees: PathItem[][]): ResolvedSelector[] => {
 				: context.length ? `${context} ${item.value}` : item.value;
 		}
 
-		if (raw.includes('&')) {
-			// If the raw selector contains `&`, replace it with the accumulated context.
-			const resolved = split(unwrapInterpolatedNesting(raw), '&', true)
+		if (source.includes('&')) {
+			// If the source selector contains `&`, replace it with the accumulated context.
+			const resolved = split(unwrapInterpolatedNesting(source), '&', true)
 				.join(context);
 
-			return { raw, resolved, inject: context, offset };
+			return { source, resolved, inject: context, offset };
 		}
 
-		// If there's no `&`, treat the raw selector as an additional descendant.
+		// If there is no `&`, treat the source selector as an additional descendant.
 		const inject = context ? `${context} ` : '';
-		return { raw, resolved: inject + raw, inject, offset };
+		return { source, resolved: inject + source, inject, offset };
 	});
 };
 

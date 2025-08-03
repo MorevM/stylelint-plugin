@@ -163,7 +163,7 @@ export const resolveBemEntities = (options: Options) => {
 
 	const allBemEntities = resolveNestedSelector({ selector: options.source, node: rule })
 		.reduce<BemEntity[]>((acc, {
-			raw: matchedSelector,
+			source: matchedSelector,
 			resolved: resolvedSelector,
 			offset: sourceOffset,
 			inject: sourceInject,
