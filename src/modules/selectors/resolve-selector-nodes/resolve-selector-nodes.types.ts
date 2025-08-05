@@ -47,7 +47,6 @@ export type AdjustedNode<Base = parser.Node> = Base & {
 	};
 };
 
-
 /**
  * Enhanced `postcss-selector-parser` node.
  */
@@ -95,13 +94,45 @@ export type ResolvedNode<Base = parser.Node> = Base & {
 	};
 };
 
+/**
+ * A pair of resolved and source selector nodes, enriched with metadata for mapping.
+ *
+ * - `source` represents the .
+ * - `resolved` is the
+ *
+ * Used as the final output of `resolveSelectorNodes`.
+ */
 export type MappedSelector = {
-	resolvedNodes: ResolvedNode[];
-	sourceNodes: AdjustedNode[];
+	/**
+	 * Resolved selector nodes with links to corresponding source nodes.
+	 */
+	resolved: ResolvedNode[];
+
+	/**
+	 * Original source selector nodes with adjustments meta.
+	 */
+	source: AdjustedNode[];
 };
 
+/**
+ * Metadata extracted from a single node in the source selector.
+ *
+ * This structure is used during resolution to map resolved nodes back
+ * to their positions in the original source.
+ */
 export type SourceNodeMeta = {
+	/**
+	 * The normalized string value of the source node.
+	 */
 	value: string;
+
+	/**
+	 * Index range in the original source selector string (before nesting resolution).
+	 */
 	sourceRange: [number, number];
+
+	/**
+	 * Index range in the resolved selector string (after nesting is resolved).
+	 */
 	resolvedRange: [number, number];
 };

@@ -16,7 +16,7 @@ describe(resolveSelectorNodes, () => {
 
 			const selectors = resolveSelectorNodes({ node });
 
-			expect(selectors[0].resolvedNodes).toHaveLength(selectors[0].sourceNodes.length);
+			expect(selectors[0].resolved).toHaveLength(selectors[0].source.length);
 		});
 
 		it('Resolves all selector branches at once', () => {
@@ -48,11 +48,11 @@ describe(resolveSelectorNodes, () => {
 
 			const selectors = resolveSelectorNodes({ node });
 
-			expect(stringifySelectorNodes(selectors[0].sourceNodes)).toStrictEqual(
+			expect(stringifySelectorNodes(selectors[0].source)).toStrictEqual(
 				['&', '-title', ':has(.card:hover)'],
 			);
 
-			expect(stringifySelectorNodes(selectors[0].resolvedNodes)).toStrictEqual(
+			expect(stringifySelectorNodes(selectors[0].resolved)).toStrictEqual(
 				['.foo', ' ', '.block__element', ':hover', ' ', '.block__bar-title', ':has(.card:hover)'],
 			);
 		});
@@ -72,7 +72,7 @@ describe(resolveSelectorNodes, () => {
 
 			const selectors = resolveSelectorNodes({ node });
 
-			const condition = selectors[0].resolvedNodes
+			const condition = selectors[0].resolved
 				.every((resolvedNode) => isArray(resolvedNode.meta.sourceMatches));
 
 			expect(condition).toBe(true);
@@ -93,7 +93,7 @@ describe(resolveSelectorNodes, () => {
 
 			const selectors = resolveSelectorNodes({ node });
 
-			const condition = selectors[0].sourceNodes
+			const condition = selectors[0].source
 				.every((sourceNode) => {
 					return isNumeric(sourceNode.meta.resolvedSourceIndex)
 						&& isNumeric(sourceNode.meta.contextOffset);
@@ -104,7 +104,7 @@ describe(resolveSelectorNodes, () => {
 	});
 
 	describe('Meta', () => {
-		describe('sourceNodes', () => {
+		describe('source', () => {
 			it('Adjusts source indices without `&` character', () => {
 				const node = getRuleBySelector(`
 					.block {
@@ -115,11 +115,11 @@ describe(resolveSelectorNodes, () => {
 				`, `span`);
 				// .block__element span
 
-				const [{ sourceNodes }] = resolveSelectorNodes({ node });
+				const [{ source }] = resolveSelectorNodes({ node });
 
-				expect(sourceNodes).toHaveLength(1);
+				expect(source).toHaveLength(1);
 
-				expect(sourceNodes[0].meta).toStrictEqual({
+				expect(source[0].meta).toStrictEqual({
 					resolvedSourceIndex: 16,
 					contextOffset: 0,
 					sourceOffset: 0,
@@ -134,20 +134,20 @@ describe(resolveSelectorNodes, () => {
 						}
 					}
 				`, `span, .foo`);
-				// .block__element span
-				// .block__element .foo
 
 				const selectors = resolveSelectorNodes({ node });
 
 				expect(selectors).toHaveLength(2);
 
-				expect(selectors[0].sourceNodes[0].meta).toStrictEqual({
+				// .block__element span
+				expect(selectors[0].source[0].meta).toStrictEqual({
 					resolvedSourceIndex: 16,
 					contextOffset: 0,
 					sourceOffset: 0,
 				});
 
-				expect(selectors[1].sourceNodes[0].meta).toStrictEqual({
+				// .block__element .foo
+				expect(selectors[1].source[0].meta).toStrictEqual({
 					resolvedSourceIndex: 16,
 					contextOffset: 0,
 					sourceOffset: 6,
@@ -168,13 +168,13 @@ describe(resolveSelectorNodes, () => {
 
 				expect(selectors).toHaveLength(1);
 
-				expect(selectors[0].sourceNodes[0].meta).toStrictEqual({
+				expect(selectors[0].source[0].meta).toStrictEqual({
 					resolvedSourceIndex: 14,
 					contextOffset: 0,
 					sourceOffset: 0,
 				});
 
-				expect(selectors[0].sourceNodes[1].meta).toStrictEqual({
+				expect(selectors[0].source[1].meta).toStrictEqual({
 					resolvedSourceIndex: 15,
 					contextOffset: 0,
 					sourceOffset: 0,
@@ -188,17 +188,17 @@ describe(resolveSelectorNodes, () => {
 					}
 				`, `&:hover & & & .bar`);
 
-				const [{ sourceNodes }] = resolveSelectorNodes({ node });
+				const [{ source }] = resolveSelectorNodes({ node });
 
 				// .foo:hover .foo .foo .bar
-				expect(sourceNodes[0].meta).toStrictEqual({ resolvedSourceIndex: 3, contextOffset: 0, sourceOffset: 0 });
-				expect(sourceNodes[1].meta).toStrictEqual({ resolvedSourceIndex: 4, contextOffset: 0, sourceOffset: 0 });
-				expect(sourceNodes[2].meta).toStrictEqual({ resolvedSourceIndex: 10, contextOffset: 0, sourceOffset: 0 });
-				expect(sourceNodes[3].meta).toStrictEqual({ resolvedSourceIndex: 14, contextOffset: 0, sourceOffset: 0 });
-				expect(sourceNodes[4].meta).toStrictEqual({ resolvedSourceIndex: 15, contextOffset: 0, sourceOffset: 0 });
-				expect(sourceNodes[5].meta).toStrictEqual({ resolvedSourceIndex: 19, contextOffset: 0, sourceOffset: 0 });
-				expect(sourceNodes[6].meta).toStrictEqual({ resolvedSourceIndex: 20, contextOffset: 0, sourceOffset: 0 });
-				expect(sourceNodes[7].meta).toStrictEqual({ resolvedSourceIndex: 24, contextOffset: 0, sourceOffset: 0 });
+				expect(source[0].meta).toStrictEqual({ resolvedSourceIndex: 3, contextOffset: 0, sourceOffset: 0 });
+				expect(source[1].meta).toStrictEqual({ resolvedSourceIndex: 4, contextOffset: 0, sourceOffset: 0 });
+				expect(source[2].meta).toStrictEqual({ resolvedSourceIndex: 10, contextOffset: 0, sourceOffset: 0 });
+				expect(source[3].meta).toStrictEqual({ resolvedSourceIndex: 14, contextOffset: 0, sourceOffset: 0 });
+				expect(source[4].meta).toStrictEqual({ resolvedSourceIndex: 15, contextOffset: 0, sourceOffset: 0 });
+				expect(source[5].meta).toStrictEqual({ resolvedSourceIndex: 19, contextOffset: 0, sourceOffset: 0 });
+				expect(source[6].meta).toStrictEqual({ resolvedSourceIndex: 20, contextOffset: 0, sourceOffset: 0 });
+				expect(source[7].meta).toStrictEqual({ resolvedSourceIndex: 24, contextOffset: 0, sourceOffset: 0 });
 			});
 
 			it('Adjusts source indices within `@at-root` using `&` character', () => {
@@ -211,21 +211,21 @@ describe(resolveSelectorNodes, () => {
 				`, `&   span`);
 				// .block__element   span
 
-				const [{ sourceNodes }] = resolveSelectorNodes({ node });
+				const [{ source }] = resolveSelectorNodes({ node });
 
-				expect(sourceNodes[0].meta).toStrictEqual({
+				expect(source[0].meta).toStrictEqual({
 					resolvedSourceIndex: 14,
 					contextOffset: 9,
 					sourceOffset: 0,
 				});
 
-				expect(sourceNodes[1].meta).toStrictEqual({
+				expect(source[1].meta).toStrictEqual({
 					resolvedSourceIndex: 15,
 					contextOffset: 9,
 					sourceOffset: 0,
 				});
 
-				expect(sourceNodes[2].meta).toStrictEqual({
+				expect(source[2].meta).toStrictEqual({
 					resolvedSourceIndex: 18,
 					contextOffset: 9,
 					sourceOffset: 0,
@@ -242,21 +242,21 @@ describe(resolveSelectorNodes, () => {
 				`, `span    strong`);
 				// span    strong
 
-				const [{ sourceNodes }] = resolveSelectorNodes({ node });
+				const [{ source }] = resolveSelectorNodes({ node });
 
-				expect(sourceNodes[0].meta).toStrictEqual({
+				expect(source[0].meta).toStrictEqual({
 					resolvedSourceIndex: 0,
 					contextOffset: 9,
 					sourceOffset: 0,
 				});
 
-				expect(sourceNodes[1].meta).toStrictEqual({
+				expect(source[1].meta).toStrictEqual({
 					resolvedSourceIndex: 4,
 					contextOffset: 9,
 					sourceOffset: 0,
 				});
 
-				expect(sourceNodes[2].meta).toStrictEqual({
+				expect(source[2].meta).toStrictEqual({
 					resolvedSourceIndex: 8,
 					contextOffset: 9,
 					sourceOffset: 0,
@@ -276,15 +276,15 @@ describe(resolveSelectorNodes, () => {
 					}
 				`, `&-title`);
 
-				const [{ sourceNodes }] = resolveSelectorNodes({ node });
+				const [{ source }] = resolveSelectorNodes({ node });
 
-				expect(sourceNodes).toHaveLength(2);
+				expect(source).toHaveLength(2);
 
 				// .block__element:hover .block__bar-title
 				// &
-				expect(sourceNodes[0].meta).toStrictEqual({ resolvedSourceIndex: 32, contextOffset: 0, sourceOffset: 0 });
+				expect(source[0].meta).toStrictEqual({ resolvedSourceIndex: 32, contextOffset: 0, sourceOffset: 0 });
 				// -title
-				expect(sourceNodes[1].meta).toStrictEqual({ resolvedSourceIndex: 33, contextOffset: 0, sourceOffset: 0 });
+				expect(source[1].meta).toStrictEqual({ resolvedSourceIndex: 33, contextOffset: 0, sourceOffset: 0 });
 			});
 
 			it('Adjusts source index using `&` in compound selector', () => {
@@ -304,29 +304,29 @@ describe(resolveSelectorNodes, () => {
 
 				const [first, second] = resolveSelectorNodes({ node });
 
-				expect(stringifySelectorNodes(first.sourceNodes)).toStrictEqual(
+				expect(stringifySelectorNodes(first.source)).toStrictEqual(
 					['&', '-title'],
 				);
 
 				// &
-				expect(first.sourceNodes[0].meta)
+				expect(first.source[0].meta)
 					.toStrictEqual({ resolvedSourceIndex: 32, contextOffset: 0, sourceOffset: 0 });
 				// -title
-				expect(first.sourceNodes[1].meta)
+				expect(first.source[1].meta)
 					.toStrictEqual({ resolvedSourceIndex: 33, contextOffset: 0, sourceOffset: 0 });
 
-				expect(stringifySelectorNodes(second.sourceNodes)).toStrictEqual(
+				expect(stringifySelectorNodes(second.source)).toStrictEqual(
 					['span', ' ', '.block'],
 				);
 
 				// span
-				expect(second.sourceNodes[0].meta)
+				expect(second.source[0].meta)
 					.toStrictEqual({ resolvedSourceIndex: 34, contextOffset: 0, sourceOffset: 9 });
 				// ' '
-				expect(second.sourceNodes[1].meta)
+				expect(second.source[1].meta)
 					.toStrictEqual({ resolvedSourceIndex: 38, contextOffset: 0, sourceOffset: 9 });
 				// '.block'
-				expect(second.sourceNodes[2].meta)
+				expect(second.source[2].meta)
 					.toStrictEqual({ resolvedSourceIndex: 39, contextOffset: 0, sourceOffset: 9 });
 			});
 
@@ -343,22 +343,62 @@ describe(resolveSelectorNodes, () => {
 
 				const [first, second] = resolveSelectorNodes({ node });
 
-				expect(stringifySelectorNodes(first.sourceNodes)).toStrictEqual(['&', '__foo']);
-				expect(first.sourceNodes[0].meta)
+				expect(stringifySelectorNodes(first.source)).toStrictEqual(['&', '__foo']);
+				expect(first.source[0].meta)
 					.toStrictEqual({ resolvedSourceIndex: 10, contextOffset: 9, sourceOffset: 0 });
-				expect(first.sourceNodes[1].meta)
+				expect(first.source[1].meta)
 					.toStrictEqual({ resolvedSourceIndex: 11, contextOffset: 9, sourceOffset: 0 });
 
 
-				expect(stringifySelectorNodes(second.sourceNodes)).toStrictEqual(['&', '__bar']);
-				expect(second.sourceNodes[0].meta)
+				expect(stringifySelectorNodes(second.source)).toStrictEqual(['&', '__bar']);
+				expect(second.source[0].meta)
 					.toStrictEqual({ resolvedSourceIndex: 10, contextOffset: 9, sourceOffset: 8 });
-				expect(second.sourceNodes[1].meta)
+				expect(second.source[1].meta)
 					.toStrictEqual({ resolvedSourceIndex: 11, contextOffset: 9, sourceOffset: 8 });
 			});
 		});
 
-		describe('resolvedNodes', () => {
+		describe('resolved', () => {
+			it('Properly determines ranges of non-space combinators', () => {
+				const node = getRuleBySelector(`
+					.block > a {}
+				`);
+
+				const [{ resolved }] = resolveSelectorNodes({ node });
+
+				expect(getSourceMatches(resolved)).toStrictEqual([
+					[
+						{ value: '.block', sourceRange: [0, 6], resolvedRange: [0, 6], sourceOffset: 0, contextOffset: 0 },
+					],
+					[
+						{ value: '>', sourceRange: [7, 8], resolvedRange: [7, 8], sourceOffset: 0, contextOffset: 0 },
+					],
+					[
+						{ value: 'a', sourceRange: [9, 10], resolvedRange: [9, 10], sourceOffset: 0, contextOffset: 0 },
+					],
+				]);
+			});
+
+			it('Keeps space-only combinators', () => {
+				const node = getRuleBySelector(`
+					.block a {}
+				`);
+
+				const [{ resolved }] = resolveSelectorNodes({ node });
+
+				expect(getSourceMatches(resolved)).toStrictEqual([
+					[
+						{ value: '.block', sourceRange: [0, 6], resolvedRange: [0, 6], sourceOffset: 0, contextOffset: 0 },
+					],
+					[
+						{ value: ' ', sourceRange: [6, 7], resolvedRange: [6, 7], sourceOffset: 0, contextOffset: 0 },
+					],
+					[
+						{ value: 'a', sourceRange: [7, 8], resolvedRange: [7, 8], sourceOffset: 0, contextOffset: 0 },
+					],
+				]);
+			});
+
 			it('Adjusts source indices without `&` character', () => {
 				const node = getRuleBySelector(`
 					.block {
@@ -369,9 +409,9 @@ describe(resolveSelectorNodes, () => {
 				`, `span`);
 				// .block__element span
 
-				const [{ resolvedNodes }] = resolveSelectorNodes({ node });
+				const [{ resolved }] = resolveSelectorNodes({ node });
 
-				expect(getSourceMatches(resolvedNodes)).toStrictEqual([
+				expect(getSourceMatches(resolved)).toStrictEqual([
 					[],
 					[],
 					[
@@ -392,7 +432,7 @@ describe(resolveSelectorNodes, () => {
 
 				const [first, second] = resolveSelectorNodes({ node });
 
-				expect(getSourceMatches(first.resolvedNodes)).toStrictEqual([
+				expect(getSourceMatches(first.resolved)).toStrictEqual([
 					[],
 					[],
 					[
@@ -401,7 +441,7 @@ describe(resolveSelectorNodes, () => {
 				]);
 
 				// .block__element .foo
-				expect(getSourceMatches(second.resolvedNodes)).toStrictEqual([
+				expect(getSourceMatches(second.resolved)).toStrictEqual([
 					[],
 					[],
 					[
@@ -420,9 +460,9 @@ describe(resolveSelectorNodes, () => {
 				`, `&:hover`);
 				// .block__element:hover
 
-				const [{ resolvedNodes }] = resolveSelectorNodes({ node });
+				const [{ resolved }] = resolveSelectorNodes({ node });
 
-				expect(getSourceMatches(resolvedNodes)).toStrictEqual([
+				expect(getSourceMatches(resolved)).toStrictEqual([
 					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 15], contextOffset: 0, sourceOffset: 0 }],
 					[{ value: ':hover', sourceRange: [1, 7], resolvedRange: [15, 21], contextOffset: 0, sourceOffset: 0 }],
 				]);
@@ -435,11 +475,11 @@ describe(resolveSelectorNodes, () => {
 					}
 				`, `&:hover & & & .bar`);
 
-				const [{ resolvedNodes }] = resolveSelectorNodes({ node });
+				const [{ resolved }] = resolveSelectorNodes({ node });
 
 				// .foo:hover .foo .foo .bar
 				// &:hover & & & .bar
-				expect(getSourceMatches(resolvedNodes)).toStrictEqual([
+				expect(getSourceMatches(resolved)).toStrictEqual([
 					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 4], sourceOffset: 0, contextOffset: 0 }],
 					[{ value: ':hover', sourceRange: [1, 7], resolvedRange: [4, 10], sourceOffset: 0, contextOffset: 0 }],
 					[{ value: ' ', sourceRange: [7, 8], resolvedRange: [10, 11], sourceOffset: 0, contextOffset: 0 }],
@@ -463,9 +503,9 @@ describe(resolveSelectorNodes, () => {
 				`, `&   span`);
 				// .block__element   span
 
-				const [{ resolvedNodes }] = resolveSelectorNodes({ node });
+				const [{ resolved }] = resolveSelectorNodes({ node });
 
-				expect(getSourceMatches(resolvedNodes)).toStrictEqual([
+				expect(getSourceMatches(resolved)).toStrictEqual([
 					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 15], sourceOffset: 0, contextOffset: 9 }],
 					[{ value: '   ', sourceRange: [1, 4], resolvedRange: [15, 18], sourceOffset: 0, contextOffset: 9 }],
 					[{ value: 'span', sourceRange: [4, 8], resolvedRange: [18, 22], sourceOffset: 0, contextOffset: 9 }],
@@ -486,7 +526,7 @@ describe(resolveSelectorNodes, () => {
 				const [first, second] = resolveSelectorNodes({ node });
 
 				// .block__element .block__bar-title,
-				expect(getSourceMatches(first.resolvedNodes)).toStrictEqual([
+				expect(getSourceMatches(first.resolved)).toStrictEqual([
 					[
 						{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 15], sourceOffset: 0, contextOffset: 0 },
 					],
@@ -500,7 +540,7 @@ describe(resolveSelectorNodes, () => {
 				]);
 
 				// .block__element .block__bar span .block
-				expect(getSourceMatches(second.resolvedNodes)).toStrictEqual([
+				expect(getSourceMatches(second.resolved)).toStrictEqual([
 					[], // '.block__element'
 					[], // ' '
 					[], // '.block__bar'
@@ -524,7 +564,7 @@ describe(resolveSelectorNodes, () => {
 				const [first, second] = resolveSelectorNodes({ node });
 
 				// .foo .block__foo
-				expect(getSourceMatches(first.resolvedNodes)).toStrictEqual([
+				expect(getSourceMatches(first.resolved)).toStrictEqual([
 					[
 						{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 4], sourceOffset: 0, contextOffset: 9 },
 					],
@@ -538,7 +578,7 @@ describe(resolveSelectorNodes, () => {
 				]);
 
 				// .foo .block__bar
-				expect(getSourceMatches(second.resolvedNodes)).toStrictEqual([
+				expect(getSourceMatches(second.resolved)).toStrictEqual([
 					[
 						{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 4], sourceOffset: 8, contextOffset: 9 },
 					],
@@ -560,17 +600,17 @@ describe(resolveSelectorNodes, () => {
 				`, `&:has(&__foo, span.bar &__baz:is(&--foo))`);
 
 
-				const [{ resolvedNodes }] = resolveSelectorNodes({ node });
+				const [{ resolved }] = resolveSelectorNodes({ node });
 
 				// &:has(&__foo, span.bar &__baz:is(&--foo))
 				// .block:has(.block__foo, span.bar .block__baz:is(.block--foo))
-				expect(getSourceMatches(resolvedNodes)).toStrictEqual([
+				expect(getSourceMatches(resolved)).toStrictEqual([
 					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 6], sourceOffset: 0, contextOffset: 9 }],
 					[{ value: ':has(&__foo, span.bar &__baz:is(&--foo))', sourceRange: [1, 41], resolvedRange: [6, 61], sourceOffset: 0, contextOffset: 9 }],
 				]);
 
 				// @ts-expect-error -- Trust me this is `Pseudo.nodes`
-				const firstPseudo = resolvedNodes[1].nodes;
+				const firstPseudo = resolved[1].nodes;
 
 				// &:has(&__foo, span.bar &__baz:is(&--foo))
 				// .block:has(.block__foo, span.bar .block__baz:is(.block--foo))
