@@ -2,7 +2,7 @@ import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { isAtRule, isKeyframesRule, isRule } from '#modules/postcss';
-import { addNamespace, createRule, getRuleUrl, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { addNamespace, createRule, getRuleUrl, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { resolveSelectorNodes, selectorNodesToString } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
 import { trimBoundaryNodes } from './utils/trim-boundary-nodes';
@@ -27,14 +27,19 @@ export default createRule({
 		secondary: v.optional(
 			v.strictObject({
 				ignore: v.optional(v.array(vStringOrRegExpSchema), []),
+				messages: vMessagesSchema({
+					rejected: [v.string()],
+				}),
 			}),
 		),
 	},
-}, (primary, secondary, { report, messages, root }) => {
+}, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	// Identify the root BEM block for the current file.
 	// If not found, this file is not considered a component — skip the rule.
 	const bemBlock = getBemBlock(root);
 	if (!bemBlock) return;
+
+	const messages = mergeMessages(ruleMessages, secondary.messages);
 
 	const normalizedIgnore = secondary.ignore
 		.map((item) => toRegExp(item, { allowWildcard: true }));

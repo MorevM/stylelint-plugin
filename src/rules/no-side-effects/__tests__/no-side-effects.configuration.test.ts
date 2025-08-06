@@ -84,3 +84,37 @@ testRuleConfig({
 		},
 	],
 });
+
+// Secondary option > messages
+testRuleConfig({
+	description: 'Secondary option > messages',
+	accept: [
+		{
+			description: 'Valid messages object',
+			config: [true, {
+				messages: {
+					rejected: () => '',
+				},
+			}],
+		},
+	],
+	reject: [
+		{
+			description: 'Non-valid `messages[prop]`',
+			config: [true, {
+				messages: {
+					rejected: 1,
+				},
+			}],
+		},
+		{
+			description: 'Extra `messages` key',
+			config: [true, {
+				messages: {
+					rejected: () => '',
+					FOO: () => '',
+				},
+			}],
+		},
+	],
+});

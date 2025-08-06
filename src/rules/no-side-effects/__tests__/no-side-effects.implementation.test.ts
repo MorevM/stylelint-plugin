@@ -440,3 +440,26 @@ testRule({
 		},
 	],
 });
+
+// `messages` option
+testRule({
+	description: 'Custom messages',
+	config: [true, {
+		messages: {
+			rejected: (selector: string) => `Rejected ${selector}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.the-component {
+					> a {}
+				}
+			`,
+			warnings: [
+				{ message: `Rejected > a` },
+			],
+		},
+	],
+});
