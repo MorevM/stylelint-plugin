@@ -1,5 +1,6 @@
 import { arrayRemoveMutable, isEmpty } from '@morev/utils';
 import parser from 'postcss-selector-parser';
+import { selectorNodesToString } from '#modules/selectors/selector-nodes-to-string/selector-nodes-to-string';
 
 /**
  * Adds a custom `.toString()` implementation to an array of selector nodes.
@@ -14,10 +15,7 @@ import parser from 'postcss-selector-parser';
  */
 const setCustomToString = (nodes: parser.Node[]) => {
 	nodes.toString = function () {
-		return this.reduce((acc, node) => {
-			acc += node.toString();
-			return acc;
-		}, '');
+		return selectorNodesToString(this, { trim: false });
 	};
 
 	return nodes;
