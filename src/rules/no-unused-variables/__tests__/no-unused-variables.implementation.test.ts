@@ -407,3 +407,26 @@ testRule({
 		},
 	],
 });
+
+// `messages` option
+testRule({
+	description: 'Custom messages',
+	config: [true, {
+		messages: {
+			unused: (name: string) => `Unused ${name}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.the-component {
+					$b: #{&},
+				}
+			`,
+			warnings: [
+				{ message: `Unused $b` },
+			],
+		},
+	],
+});

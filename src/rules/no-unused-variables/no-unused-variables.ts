@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { addNamespace, createRule, getRuleUrl, isCssFile, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { addNamespace, createRule, getRuleUrl, isCssFile, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { toRegExp } from '#modules/shared';
 import type { Declaration, Node } from 'postcss';
 import type { Scope } from './no-unused-variables.types';
@@ -52,12 +52,17 @@ export default createRule({
 			v.strictObject({
 				checkRoot: v.optional(v.boolean(), false),
 				ignore: v.optional(v.array(vStringOrRegExpSchema), []),
+				messages: vMessagesSchema({
+					unused: [v.string()],
+				}),
 			}),
 		),
 	},
-}, (primary, secondary, { report, messages, root }) => {
+}, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	// The rule only applicable to SCSS files.
 	if (isCssFile(root)) return;
+
+	const messages = mergeMessages(ruleMessages, secondary.messages);
 
 	const seenVariables = new Set<Declaration>();
 	const scopesMap = new Map<Node, Scope>();

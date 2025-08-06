@@ -51,4 +51,19 @@ export type SecondaryOption = {
 	 * @default []
 	 */
 	ignore?: Array<string | RegExp>;
+
+	/**
+	 * Custom message functions for rule violations.
+	 * If provided, overrides the default error messages.
+	 */
+	messages?: {
+		/**
+		 * Custom message for an unused variable violation.
+		 *
+		 * @param   name   Variable name (with leading `$`).
+		 *
+		 * @returns        The error message to report.
+		 */
+		unused?: (name: string) => string;
+	};
 };
