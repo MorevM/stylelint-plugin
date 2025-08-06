@@ -1,24 +1,15 @@
 import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
-import { getRuleContentMeta, isAtRule, isKeyframesRule, isRule } from '#modules/postcss';
-import { addNamespace, createRule, getRuleUrl, isCssFile, vStringOrRegExpSchema } from '#modules/rule-utils';
-import { parseSelectors } from '#modules/selectors';
+import { isAtRule, isKeyframesRule, isRule } from '#modules/postcss';
+import { addNamespace, createRule, getRuleUrl, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { resolveSelectorNodes, selectorNodesToString } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
-import type parser from 'postcss-selector-parser';
+import { trimBoundaryNodes } from './utils/trim-boundary-nodes';
+import type postcss from 'postcss';
+import type { ResolvedNode } from '#modules/selectors/types';
 
 const RULE_NAME = 'no-side-effects';
-
-const hasNestingBefore = (selectorNode: parser.Node) => {
-	let prevNode = selectorNode.prev();
-	while (prevNode) {
-		if (prevNode.type === 'nesting') return true;
-		if (prevNode.type === 'combinator') return false;
-		prevNode = prevNode.prev();
-	}
-
-	return false;
-};
 
 export default createRule({
 	name: addNamespace(RULE_NAME),
@@ -28,95 +19,73 @@ export default createRule({
 		fixable: false,
 	},
 	messages: {
-		rejected: (selector: string) => `Unexpected side-effect to another element: "${selector}"`,
+		rejected: (selector: string) =>
+			`Unexpected side-effect to another element: "${selector}"`,
 	},
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
 			v.strictObject({
-				allow: v.optional(v.array(v.picklist(['<TAG>', '<ID>'])), []),
 				ignore: v.optional(v.array(vStringOrRegExpSchema), []),
 			}),
 		),
 	},
 }, (primary, secondary, { report, messages, root }) => {
-	const isCss = isCssFile(root);
-
+	// Identify the root BEM block for the current file.
+	// If not found, this file is not considered a component — skip the rule.
 	const bemBlock = getBemBlock(root);
 	if (!bemBlock) return;
 
-	const normalizedIgnore = secondary.ignore.map((item) => toRegExp(item));
+	const normalizedIgnore = secondary.ignore
+		.map((item) => toRegExp(item, { allowWildcard: true }));
+
+	// Just utility function to report a suspicious selector fragment,
+	// used instead of default `report`.
+	const reportNodes = (node: postcss.Node, nodes: ResolvedNode[]) => {
+		const selector = selectorNodesToString(nodes);
+		if (normalizedIgnore.some((pattern) => pattern.test(selector))) return;
+
+		const [firstMatch, lastMatch] = [
+			nodes[0].meta.sourceMatches.at(-1)!,
+			nodes.at(-1)!.meta.sourceMatches[0],
+		];
+		const offset = firstMatch.contextOffset + firstMatch.sourceOffset;
+
+		const index = firstMatch.sourceRange[0] + offset;
+		const endIndex = lastMatch.sourceRange[1] + offset;
+		const message = messages.rejected(selector);
+
+		report({ node, index, endIndex, message });
+	};
 
 	root.walk((node) => {
+		// Do not check the block itself
 		if (node === bemBlock.rule) return;
 		if (isKeyframesRule(node)) return;
+		// // All other constructs are irrelevant to selector analysis.
 		if (!isAtRule(node, ['nest', 'at-root']) && !isRule(node)) return;
 
-		const { source, offset } = getRuleContentMeta(node);
+		resolveSelectorNodes({ node }).forEach(({ resolved }) => {
+			// Find the last mention of the current BEM block in the resolved selector.
+			// Anything after it may represent a side-effect.
+			const lastBlockIndex = resolved.findLastIndex((resolvedNode) => {
+				return resolvedNode.type === 'class'
+					&& resolvedNode.value.startsWith(bemBlock.blockName);
+			});
 
-		const selectors = parseSelectors(source);
-
-		selectors.forEach((selectorNodes) => {
-			if (isEmpty(selectorNodes)) return;
-
-			const lastSideEffectIndex = selectorNodes
-				.findLastIndex((selectorNode) => {
-					return (
-						(
-							selectorNode.type === 'id'
-							&& !secondary.allow.includes('<ID>')
-						)
-						|| selectorNode.type === 'class'
-						|| (
-							selectorNode.type === 'tag'
-							// Allow `#{$element} { ... }`
-							&& !selectorNode.value.startsWith('#{')
-							&& !secondary.allow.includes('<TAG>')
-						)
-					// Allow `&.is-active`, `&#id` and so on
-					) && !hasNestingBefore(selectorNode);
-				});
-
-			if (lastSideEffectIndex === -1) return;
-
-			const lastNestingIndex = selectorNodes
-				.findLastIndex((selectorNode) => selectorNode.type === 'nesting');
-
-			if (lastNestingIndex > lastSideEffectIndex - 1) return;
-
-			let errorIndex = selectorNodes[lastSideEffectIndex].sourceIndex;
-			const selector = (() => {
-				let current: parser.Node | undefined = selectorNodes[lastSideEffectIndex];
-				const result = [current.toString().trim()];
-
-				while (
-					current
-					&& (current.prev()?.type === 'class'
-						|| current.prev()?.type === 'tag'
-						|| current.prev()?.type === 'id')
-				) {
-					current = current.prev();
-					if (current) {
-						errorIndex = current.sourceIndex;
-					}
-					result.push(current!.toString());
-				}
-
-				return result;
-			})().reverse().join('');
-
-			if (normalizedIgnore.some((regExp) => regExp.test(selector))) return;
-			if (
-				(isCss && !selector.includes(bemBlock.selector))
-				|| (!isCss && !selector.startsWith(bemBlock.selector))
-			) {
-				report({
-					message: messages.rejected(selector),
-					node,
-					index: errorIndex + offset,
-					endIndex: errorIndex + offset + selector.length,
-				});
+			// Every node is a side-effect
+			if (lastBlockIndex === -1) {
+				return reportNodes(node, resolved);
 			}
+
+			const sideEffectCandidates = resolved.slice(lastBlockIndex + 1);
+			const sideEffectNodes = trimBoundaryNodes(sideEffectCandidates);
+			if (isEmpty(sideEffectNodes)) return;
+
+			// TODO: Skip interpolated selectors for now
+			if (sideEffectNodes.some((sideEffectNode) => sideEffectNode.value?.includes('#{'))) return;
+
+			reportNodes(node, sideEffectNodes);
 		});
 	});
 });
