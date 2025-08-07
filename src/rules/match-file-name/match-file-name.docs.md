@@ -25,6 +25,8 @@ Requires the file name to begin with the name of the BEM block it represents.
 If no BEM block is detected in the file, this rule does nothing.
 :::
 
+<!-- @include: @/docs/_parts/bem-block.md -->
+
 ## Motivation
 
 A well-structured component (especially in modern component-based frameworks)
@@ -76,12 +78,20 @@ export default {
     '@morev/bem/match-file-name': [true, {
       caseSensitive: true,
       matchDirectory: false,
+      messages: {
+        match: (entity, blockName) =>
+          `The ${entity} name must start with its block name: "${blockName}"`,
+        matchCase: (entity, blockName) =>
+          `The ${entity} name must start with its block name: "${blockName}", including case`,
+      }
     }],
   }
 }
 ```
 
 :::
+
+---
 
 ### `caseSensitive`
 
@@ -136,6 +146,8 @@ type CaseSensitiveOption = boolean;
 
 :::
 
+---
+
 ### `matchDirectory`
 
 Whether to use the name of the containing directory instead of the file name for block name comparison.
@@ -164,3 +176,61 @@ type MatchDirectoryOption = boolean;
 * The `caseSensitive` option applies regardless of whether `matchDirectory` is enabled.
 * When both options are enabled, the rule compares the directory name to the block name,
   respecting case sensitivity if `caseSensitive` is `true`.
+
+---
+
+### `messages`
+
+<!-- @include: @/docs/_parts/custom-messages.md#header -->
+
+Message functions receive the checked entity type ("file" or "directory")
+and the BEM block name as arguments.
+
+#### Example
+
+```js
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/bem/match-file-name': [true, {
+      messages: {
+        match: (entity, block) =>
+          `🚫 The ${entity} name must start with "${block}".`,
+        matchCase: (entity, block) =>
+          `🔠 The ${entity} name must exactly match "${block}" including case.`,
+      },
+    }],
+  },
+}
+```
+
+::: details Show function signatures
+
+```ts
+export type MessagesOption = {
+  /**
+   * Custom message for when the name does not match the block name at all.
+   *
+   * @param   entity     Either `'file'` or `'directory'`, depending on which name is being checked.
+   * @param   blockName  The name of the BEM block.
+   *
+   * @returns            The error message to report.
+   */
+  match?: (entity: 'file' | 'directory', blockName: string) => string;
+
+  /**
+   * Custom message for when the name structurally matches the block name,
+   * but fails due to a case mismatch (if `caseSensitive: true`).
+   *
+   * @param   entity     Either `'file'` or `'directory'`, depending on which name is being checked.
+   * @param   blockName  The name of the BEM block.
+   *
+   * @returns            The error message to report.
+   */
+  matchCase?: (entity: 'file' | 'directory', blockName: string) => string;
+};
+```
+
+:::
+
+<!-- @include: @/docs/_parts/custom-messages.md#formatting -->
