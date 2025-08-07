@@ -793,3 +793,27 @@ testRule({
 		},
 	],
 });
+
+// `messages` option
+testRule({
+	description: 'Custom messages',
+	config: [true, {
+		messages: {
+			unexpected: (name: string, atRuleName: string) =>
+				`Unexpected ${name} ${atRuleName}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				@media (width >= 768px) {
+					.block {}
+				}
+			`,
+			warnings: [
+				{ message: `Unexpected .block media` },
+			],
+		},
+	],
+});

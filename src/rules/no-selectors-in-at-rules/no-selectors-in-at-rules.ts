@@ -1,6 +1,7 @@
 import { toArray, tsObject } from '@morev/utils';
 import * as v from 'valibot';
-import { addNamespace, createRule, getRuleUrl, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { isRule } from '#modules/postcss';
+import { addNamespace, createRule, getRuleUrl, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { toRegExp } from '#modules/shared';
 
 const RULE_NAME = 'no-selectors-in-at-rules';
@@ -15,8 +16,8 @@ export default createRule({
 		fixable: false,
 	},
 	messages: {
-		unexpected: (blockName: string, atRuleName: string) =>
-			`Unexpected rule "${blockName}" inside at-rule "${atRuleName}".`,
+		unexpected: (ruleName: string, atRuleName: string) =>
+			`Unexpected rule "${ruleName}" inside at-rule "${atRuleName}".`,
 	},
 	schema: {
 		primary: v.literal(true),
@@ -31,10 +32,15 @@ export default createRule({
 						]),
 					), {},
 				),
+				messages: vMessagesSchema({
+					unexpected: [v.string(), v.string()],
+				}),
 			}),
 		),
 	},
-}, (primary, secondary, { report, messages, root }) => {
+}, (primary, secondary, { report, messages: ruleMessages, root }) => {
+	const messages = mergeMessages(ruleMessages, secondary.messages);
+
 	const normalizedIgnore = tsObject.entries(secondary.ignore)
 		.map(([key, value]) => ({
 			nameRegex: toRegExp(key, { allowWildcard: true }),
@@ -51,7 +57,7 @@ export default createRule({
 		if (atRule.name === 'keyframes') return;
 
 		(atRule.nodes ?? []).forEach((node) => {
-			if (node.type !== 'rule') return;
+			if (!isRule(node)) return;
 			if (shouldIgnore(atRule.name, atRule.params)) return;
 
 			report({
