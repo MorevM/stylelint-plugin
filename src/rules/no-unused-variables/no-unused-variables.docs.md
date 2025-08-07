@@ -30,6 +30,40 @@ This rule helps keep your component code clean and intentional by reporting vari
 
 All options are optional and have sensible default values.
 
+::: code-group
+
+```js [Enabling a rule without options]
+// 📄 .stylelintrc.js
+
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/sass/no-unused-variables': true,
+  }
+}
+```
+
+```js [Enabling a rule with custom options]
+// 📄 .stylelintrc.js
+
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/sass/no-unused-variables': [true, {
+      ignore: ['b'],
+      messages: {
+        unused: (name) =>
+          `Found unused variable "${name}".`,
+      }
+    }],
+  }
+}
+```
+
+:::
+
+::: details Show full type of the options
+
 ```ts
 type NoUnusedVariablesOptions = {
   /**
@@ -50,8 +84,25 @@ type NoUnusedVariablesOptions = {
    * @default []
    */
   ignore?: Array<string | RegExp>;
+
+  /**
+   * Custom message functions for rule violations.
+   * If provided, overrides the default error messages.
+   */
+  messages?: {
+    /**
+     * Custom message for an unused variable violation.
+     *
+     * @param   name   Variable name (with leading `$`).
+     *
+     * @returns        The error message to report.
+     */
+    unused?: (name: string) => string;
+  };
 };
 ```
+
+:::
 
 ---
 
@@ -67,7 +118,7 @@ type CheckRootOption = boolean;
 ```
 
 By default, the rule skips root-level variables,
-assuming they might be imported or used across multiple files. \
+assuming they might be imported or used across multiple files.
 Enable this option if you want to enforce that all root-level variables
 are actually used within the same file.
 
@@ -144,6 +195,49 @@ you need to set `ignore: ['b']` to ensure consistency across all style files.
 ```
 
 :::
+
+
+### `messages`
+
+<!-- @include: @/docs/_parts/custom-messages.md#header -->
+
+Message function receives the detected unused variable name with leading `$` as an argument.
+
+#### Example
+
+```js
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/sass/no-unused-variables': [true, {
+      messages: {
+        unused: (name) =>
+          `⛔ Unused variable "${name}" found.`,
+        },
+      },
+    }],
+  },
+}
+```
+
+::: details Show function signature
+
+```ts
+export type MessagesOption = {
+  /**
+   * Custom message for an unused variable violation.
+   *
+   * @param   name   Variable name (with leading `$`).
+   *
+   * @returns        The error message to report.
+   */
+  unused?: (name: string) => string;
+};
+```
+
+:::
+
+<!-- @include: @/docs/_parts/custom-messages.md#formatting -->
 
 ## Additional notes
 
