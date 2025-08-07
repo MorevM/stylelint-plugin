@@ -1,7 +1,7 @@
 # @morev/best-practices/no-selectors-in-at-rules
 <!-- TODO: Нейминг правил подумой -->
 
-Disallows block declarations inside at-rules.
+Disallows placing rules (selectors) inside at-rules.
 
 ::: code-group
 
@@ -58,7 +58,7 @@ Before [native CSS nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS
 duplicating selectors inside at-rules, spreading related styles across the file. \
 This made searching, reading, and editing styles more tedious.
 
-```scss
+```scss{1,6,12}
 .the-component {
   color: red;
 }
@@ -100,7 +100,8 @@ leading to simpler navigation and a more predictable editing experience.
 By default, this rule disallows placing selectors inside any block-level at-rule
 (except for SASS control structures - for example, content inside `@if` or `@else` blocks is not checked, as well as `@mixin`, `@function`, etc.).
 
-The rule does not differentiate between CSS at-rules and SASS mixins - both are treated as equally invalid:
+The rule treats CSS at-rules and SASS mixins equally — both are considered invalid
+containers for selector blocks unless explicitly ignored.
 
 ```scss
 @media (max-width: 480px) {
@@ -122,16 +123,100 @@ or when working with at-rules like `@layer` or `@scope`.
 
 ## Rule options
 
-The rule has a second argument in the form of object with (so far) a single "ignore" key.
+The rule has a second optional argument in the form of object.
 
-### ignore
+::: code-group
+
+```js [Enabling a rule without options]
+// 📄 .stylelintrc.js
+
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/best-practices/no-selectors-in-at-rules': true,
+  }
+}
+```
+
+```js [Enabling a rule with custom options]
+// 📄 .stylelintrc.js
+
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/best-practices/no-selectors-in-at-rules': [true, {
+      ignore: {
+        media: ['print'],
+        layer: '*',
+      },
+      messages: {
+        unexpected: (ruleName, atRuleName) =>
+          `Unexpected "${ruleName}" inside "${atRuleName}".`,
+      }
+    }],
+  }
+}
+```
+
+:::
+
+::: details Show full type of the options
+
+```ts
+type NoSelectorsInAtRulesOptions = {
+  /**
+   * A map of at-rule names to parameter patterns that should be ignored.
+   *
+   * The key is the name of the at-rule (e.g., `'media'`, `'layer'`, `'include'`).
+   * The value defines which parameter values for that at-rule should be skipped:
+   *
+   * - A string: exact match or wildcard (`'*'`) for any parameter;
+   * - A RegExp: pattern to match the at-rule parameters;
+   * - An array of strings and/or RegExps.
+   *
+   * @default {}
+   */
+  ignore?: {
+    /**
+     * At-rule name.
+     *
+     * @example 'media'
+     * @example 'layer'
+     * @example 'include'
+     */
+    [atRuleName: string]: string | RegExp | Array<string | RegExp>;
+  };
+
+  /**
+   * Custom message functions for rule violations.
+   * If provided, overrides the default error messages.
+   */
+  messages?: {
+    /**
+     * Custom message for encountering a rule inside an at-rule.
+     *
+     * @param   ruleName     Rule name (e.g. `.block`).
+     * @param   atRuleName   At-rule name (e.g. `media`).
+     *
+     * @returns              The error message to report.
+     */
+    unexpected?: (ruleName: string, atRuleName: string) => string;
+  };
+}
+```
+
+:::
+
+---
+
+### `ignore`
 
 ::: tip Info
 The description might seem a bit complex at first, but the following examples will make it clearer.
 :::
 
 The `ignore` option is an object where keys are at-rule names
-and values define which usages of those at-rules should be ignored.
+and values define which parameter values for those at-rules should be ignored.
 
 Values can be:
 
@@ -154,9 +239,9 @@ This flexibility is necessary to support various user needs and to accommodate c
 
 All variations produce the same result - this example demonstrates the flexibility of the configuration.
 
-```json
+```json{4,12,20}
 {
-  "@morev/plugin/at-rule-no-children": [true, {
+  "@morev/best-practices/no-selectors-in-at-rules": [true, {
     "ignore": {
       "layer": "*" // String wildcard
     }
@@ -164,7 +249,7 @@ All variations produce the same result - this example demonstrates the flexibili
 }
 
 {
-  "@morev/plugin/at-rule-no-children": [true, {
+  "@morev/best-practices/no-selectors-in-at-rules": [true, {
     "ignore": {
       "layer": "/.*/" // String representing RegExp
     }
@@ -172,7 +257,7 @@ All variations produce the same result - this example demonstrates the flexibili
 }
 
 {
-  "@morev/plugin/at-rule-no-children": [true, {
+  "@morev/best-practices/no-selectors-in-at-rules": [true, {
     "ignore": {
       "layer": /.*/ // RegExp itself (only for `js` configuration)
     }
@@ -182,15 +267,58 @@ All variations produce the same result - this example demonstrates the flexibili
 
 ##### Ignore only certain `@media` at-rules
 
-```json
+```json{4}
 {
-  "@morev/plugin/at-rule-no-children": [true, {
+  "@morev/best-practices/no-selectors-in-at-rules": [true, {
     "ignore": {
       "media": ["print"]
     }
   }]
 }
 ```
+
+### `messages`
+
+<!-- @include: @/docs/_parts/custom-messages.md#header -->
+
+Message function receives the detected rule and at-rule names as an arguments.
+
+#### Example
+
+```js
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/best-practices/no-selectors-in-at-rules': [true, {
+      messages: {
+        unexpected: (ruleName, atRuleName) =>
+          `⛔ Unexpected "${ruleName}" within "${atRuleName}".`,
+        },
+      },
+    }],
+  },
+}
+```
+
+::: details Show function signature
+
+```ts
+export type MessagesOption = {
+  /**
+   * Custom message for encountering a rule inside an at-rule.
+   *
+   * @param   ruleName     Rule name (e.g. `.block`).
+   * @param   atRuleName   At-rule name (e.g. `media`).
+   *
+   * @returns              The error message to report.
+   */
+  unexpected?: (ruleName: string, atRuleName: string) => string;
+};
+```
+
+:::
+
+<!-- @include: @/docs/_parts/custom-messages.md#formatting -->
 
 ## Acknowledgements
 
