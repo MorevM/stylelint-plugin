@@ -3,6 +3,7 @@ import rule from '../match-file-name';
 const { ruleName } = rule;
 const testRuleConfig = createTestRuleConfig({ ruleName });
 
+// Primary option
 testRuleConfig({
 	description: 'Primary option',
 	accept: [
@@ -22,6 +23,33 @@ testRuleConfig({
 	],
 });
 
+
+// Secondary options object
+testRuleConfig({
+	description: 'Secondary options object',
+	accept: [
+		{
+			description: 'Empty object (all defaults)',
+			config: [true, {}],
+		},
+		{
+			description: 'No value',
+			config: [true],
+		},
+	],
+	reject: [
+		{
+			description: 'Unknown option',
+			config: [true, { foo: 'bar' }],
+		},
+		{
+			description: 'Secondary is not an object',
+			config: [true, 'always'],
+		},
+	],
+});
+
+// Secondary option > caseSensitive
 testRuleConfig({
 	description: 'Secondary option > caseSensitive',
 	accept: [
@@ -50,7 +78,7 @@ testRuleConfig({
 	],
 });
 
-
+// Secondary option > matchDirectory
 testRuleConfig({
 	description: 'Secondary option > matchDirectory',
 	accept: [
@@ -75,6 +103,42 @@ testRuleConfig({
 		{
 			description: 'Unknown additional option',
 			config: [true, { matchDirectory: true, foo: 'bar' }],
+		},
+	],
+});
+
+// Secondary option > messages
+testRuleConfig({
+	description: 'Secondary option > messages',
+	accept: [
+		{
+			description: 'Valid messages object (arguments and return value are not checked)',
+			config: [true, {
+				messages: {
+					match: () => '',
+					matchCase: () => '',
+				},
+			}],
+		},
+	],
+	reject: [
+		{
+			description: 'Non-valid `messages[prop]`',
+			config: [true, {
+				messages: {
+					match: 1,
+				},
+			}],
+		},
+		{
+			description: 'Extra `messages` key',
+			config: [true, {
+				messages: {
+					match: () => '',
+					matchCase: () => '',
+					FOO: () => '',
+				},
+			}],
 		},
 	],
 });

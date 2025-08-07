@@ -2,7 +2,7 @@ import path from 'node:path';
 import { kebabCase } from '@morev/utils';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
-import { addNamespace, createRule, getRuleUrl } from '#modules/rule-utils';
+import { addNamespace, createRule, getRuleUrl, mergeMessages, vMessagesSchema } from '#modules/rule-utils';
 
 const RULE_NAME = 'match-file-name';
 
@@ -25,10 +25,14 @@ export default createRule({
 			v.strictObject({
 				caseSensitive: v.optional(v.boolean(), true),
 				matchDirectory: v.optional(v.boolean(), false),
+				messages: vMessagesSchema({
+					match: [v.picklist(['file', 'directory']), v.string()],
+					matchCase: [v.picklist(['file', 'directory']), v.string()],
+				}),
 			}),
 		),
 	},
-}, (primary, secondary, { report, messages, root }) => {
+}, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	const filePath = root.source?.input.file ?? '';
 	const sourceName = secondary.matchDirectory
 		? path.basename(path.dirname(filePath))
@@ -37,6 +41,8 @@ export default createRule({
 
 	const bemBlock = getBemBlock(root);
 	if (!bemBlock) return;
+
+	const messages = mergeMessages(ruleMessages, secondary.messages);
 
 	const entity = secondary.matchDirectory ? 'directory' : 'file';
 

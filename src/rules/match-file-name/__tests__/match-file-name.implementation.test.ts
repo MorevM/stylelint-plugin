@@ -3,6 +3,7 @@ import rule from '../match-file-name';
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 
+// Default options
 testRule({
 	description: 'Default options',
 	config: [true],
@@ -67,6 +68,7 @@ testRule({
 	],
 });
 
+// Case insensitive mode, file name in PascalCase
 testRule({
 	description: 'Case insensitive mode, file name in PascalCase',
 	config: [true, { caseSensitive: false }],
@@ -112,6 +114,7 @@ testRule({
 	],
 });
 
+// Case sensitive mode, matches directory name instead of file name
 testRule({
 	description: 'Case sensitive mode, matches directory name instead of file name',
 	config: [true, { matchDirectory: true, caseSensitive: true }],
@@ -152,9 +155,9 @@ testRule({
 	],
 });
 
-
+// Case insensitive mode, matches directory name instead of file name
 testRule({
-	description: 'Case sensitive mode, matches directory name instead of file name',
+	description: 'Case insensitive mode, matches directory name instead of file name',
 	config: [true, { matchDirectory: true, caseSensitive: false }],
 	codeFilename: '/the-component/index.styles.scss',
 	accept: [
@@ -183,6 +186,39 @@ testRule({
 				{
 					message: messages.match('directory', 'foo-component'),
 				},
+			],
+		},
+	],
+});
+
+// `messages` option
+testRule({
+	description: '`messages` option',
+	config: [true, {
+		messages: {
+			match: (entity: string, blockName: string) => `Match ${entity} ${blockName}`,
+			matchCase: (entity: string, blockName: string) => `Match case ${entity} ${blockName}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided (match)',
+			codeFilename: 'foo-component.scss',
+			code: `
+				.the-component {}
+			`,
+			warnings: [
+				{ message: `Match file the-component` },
+			],
+		},
+		{
+			description: 'Uses custom messages if provided (matchCase)',
+			codeFilename: 'the-component.scss',
+			code: `
+				.TheComponent {}
+			`,
+			warnings: [
+				{ message: `Match case file TheComponent` },
 			],
 		},
 	],
