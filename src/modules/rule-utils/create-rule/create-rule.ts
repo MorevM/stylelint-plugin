@@ -1,3 +1,4 @@
+import { stripIndent, tsObject } from '@morev/utils';
 import stylelint from 'stylelint';
 import { validateOptions } from '#modules/rule-utils/validate-options/validate-options';
 import type { Root } from 'postcss';
@@ -54,7 +55,13 @@ export const createRule = <
 	options: Options<Primary, Secondary, Messages>,
 	callback: Callback<Primary, Secondary, Messages>,
 ) => {
-	const messages = ruleMessages(options.name, options.messages) as unknown as Messages;
+	const stripIndentMessages = tsObject.fromEntries(
+		tsObject.entries(options.messages).map(([key, value]) => {
+			const clean = (...args: any[]) => stripIndent(value(...args));
+			return [key, clean];
+		}),
+	);
+	const messages = ruleMessages(options.name, stripIndentMessages) as unknown as Messages;
 
 	const rule: Rule = (primary_, secondary_, context) => {
 		return (root, result) => {
