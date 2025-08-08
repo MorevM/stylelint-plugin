@@ -21,10 +21,6 @@ Requires the file name to begin with the name of the BEM block it represents.
 
 :::
 
-::: tip
-If no BEM block is detected in the file, this rule does nothing.
-:::
-
 <!-- @include: @/docs/_parts/bem-block.md -->
 
 ## Motivation

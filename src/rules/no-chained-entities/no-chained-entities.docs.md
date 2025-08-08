@@ -1,8 +1,6 @@
-# @morev/bem/no-chained-entities
+# @morev/bem/no-chained-entities <!-- @include: @/docs/_parts/sass-only.md -->
 
 Disallows splitting BEM entities across multiple chained `&` selectors in SCSS.
-
-<!-- @include: @/docs/_parts/sass-only.md -->
 
 ::: code-group
 

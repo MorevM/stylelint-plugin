@@ -1,9 +1,14 @@
-# @morev/bem/block-variable
+# @morev/bem/block-variable <!-- @include: @/docs/_parts/sass-only.md -->
 
 Ensures that the top-level block selector (assumed to be the component's root selector)
 includes a variable that references the block name.
 
-<!-- @include: @/docs/_parts/sass-only.md -->
+```scss
+.the-component {
+  $b: #{&}; // <- This block reference variable
+}
+```
+
 
 <!-- @include: @/docs/_parts/bem-block.md -->
 

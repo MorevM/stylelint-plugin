@@ -699,45 +699,19 @@ This is useful for:
 
 ---
 
-### `messages`
+### `separators`
 
-```ts
-/**
- * @default {}
- */
-export type MessagesOption = {
-  unexpected?: (
-    property: string,
-    selector: string,
-    context: 'block' | 'modifier',
-    preset: string | undefined,
-  ) => string | undefined;
-}
-```
+<!-- @include: @/docs/_parts/separators.md#formatting -->
 
-The `messages` option allows you to override the default messages reported by the rule when a restricted property is detected.
-
-**This can be useful to:**
-
-* Adjust the tone of voice to match your team's style;
-* Translate messages to another language;
-* Provide additional project-specific context or documentation links;
-* Customize messages differently based on the affected property, selector, context, or preset name.
-
-#### Function arguments
-
-| Argument   | Description                                                                                                                 |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `property` | The name of the restricted CSS property. <br /> *Examples:* `'margin-top'`, `'margin-block-start'`, `'margin-inline'`, etc. |
-| `selector` | The full selector that triggered the rule. <br /> `'.the-component'`, `'.the-component--mod'`                               |
-| `context`  | The BEM entity type of selector. <br />`'block'` or `'modifier'`.                                                           |
-| `preset`   | The name of the preset that the property belongs to, if available. <br />*Examples:* `'EXTERNAL_GEOMETRY'`, `undefined`.    |
-
-#### Examples
+<!-- TODO: Pattern link related -->
 
 ---
 
-##### Custom localized message with contextual details (in Russian)
+### `messages`
+
+<!-- @include: @/docs/_parts/custom-messages.md#header -->
+
+##### Example of custom localized message with contextual details (in Russian)
 
 ```js
 // 📄 .stylelintrc.js
@@ -771,12 +745,49 @@ export default {
 }
 ```
 
+::: details Show function signature
+
+```ts
+export type MessagesOption = {
+  /**
+   * Custom message for an unexpected property at block/modifier level.
+   *
+   * @param   propertyName
+   *
+   * @returns                The error message to report.
+   */
+  unexpected?: (
+    /**
+     * The name of the restricted CSS property.
+     *
+     * @example 'margin-block-start'
+     */
+    propertyName: string,
+
+    /**
+     * The full selector that triggered the rule.
+     *
+     * @example '.the-component'
+     */
+    selector: string,
+
+    /**
+     * The BEM entity type of selector.
+     *
+     * @example 'block'
+     */
+    context: 'block' | 'modifier',
+
+    /**
+     * The name of the preset that the property belongs to, if available.
+     *
+     * @example EXTERNAL_GEOMETRY
+     */
+    presetName: string | undefined,
+  ) => string;
+}
+```
+
+:::
+
 <!-- @include: @/docs/_parts/custom-messages.md#formatting -->
-
----
-
-### Separators
-
-<!-- @include: @/docs/_parts/separators.md#formatting -->
-
-<!-- TODO: Pattern link related -->

@@ -1,0 +1,49 @@
+.sass-only {
+	$b: #{&};
+
+	--background-color: rgb(0 0 0 / .06);
+	--border-color: rgb(32 91 253);
+	--tooltip--border-color: rgb(32 91 253 / .3);
+	position: relative;
+	display: inline-block;
+	vertical-align: top;
+	margin-left: 8px;
+	padding: 8px;
+	font-size: 14px;
+	line-height: 1;
+	background-color: var(--background-color);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	cursor: help;
+
+	&::before {
+		content: attr(data-tooltip);
+		position: absolute;
+		bottom: calc(100% + 8px);
+		left: 50%;
+		visibility: hidden;
+		padding: 8px;
+		white-space: nowrap;
+		background-color: var(--background-color);
+		border: 1px solid var(--tooltip--border-color);
+		border-radius: 4px;
+		box-shadow: 0 2px 4px rgb(0 0 0 / .1);
+		opacity: 0;
+		transform: translate(-50%, 8px);
+		transition-property: visibility, opacity, transform;
+		transition-duration: .2s;
+		pointer-events: none;
+
+		@at-root #{$b}:hover::before {
+			visibility: visible;
+			opacity: 1;
+			transform: translate(-50%, 0);
+		}
+	}
+
+	.dark & {
+		--background-color: rgb(255 255 255 / .05);
+		--border-color: rgb(47 78 163);
+		--tooltip--border-color: rgb(32 91 253 / .2);
+	}
+}

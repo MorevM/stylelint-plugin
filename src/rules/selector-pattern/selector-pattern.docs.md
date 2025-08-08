@@ -212,7 +212,7 @@ type BemPatternOptions = {
 
 :::
 
-### Patterns
+### `patterns`
 
 All of the keys of `patterns` property define the allowed naming patterns
 for different parts of your selectors.
@@ -422,7 +422,7 @@ and validated against `pattern.modifierName`.
 
 ---
 
-### Separators
+### `separators`
 
 <!-- @include: @/docs/_parts/separators.md#header -->
 
@@ -524,7 +524,7 @@ export default {
 
 <!-- @include: @/docs/_parts/separators.md#footer -->
 
-### Ignoring specific blocks (`ignoreBlocks`)
+### `ignoreBlocks`
 
 In some projects, not all class names are strictly controlled by your codebase or team conventions.
 **For example, you might need to override:**
@@ -612,7 +612,7 @@ export default {
 
 ---
 
-### Custom messages (`messages`)
+### `messages`
 
 <!-- @include: @/docs/_parts/custom-messages.md#header -->
 

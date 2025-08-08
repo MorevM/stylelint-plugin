@@ -113,17 +113,46 @@ export type SecondaryOption = {
 	ignoreBlocks?: Array<string | RegExp>;
 
 	/**
-	 * Customizable error message templates.
-	 * The `unexpected` message receives three arguments:
-	 * [propertyName, selector, context, presetName]
+	 * Custom message functions for rule violations.
+	 * If provided, overrides the default error messages.
 	 *
 	 * @default {}
 	 */
 	messages?: {
+		/**
+		 * Custom message for an unexpected property at block/modifier level.
+		 *
+		 * @param   propertyName
+		 *
+		 * @returns                The error message to report.
+		 */
 		unexpected?: (
+			/**
+			 * The name of the restricted CSS property.
+			 *
+			 * @example 'margin-block-start'
+			 */
 			propertyName: string,
+
+			/**
+			 * The full selector that triggered the rule.
+			 *
+			 * @example '.the-component'
+			 */
 			selector: string,
+
+			/**
+			 * The BEM entity type of selector.
+			 *
+			 * @example 'block'
+			 */
 			context: 'block' | 'modifier',
+
+			/**
+			 * The name of the preset that the property belongs to, if available.
+			 *
+			 * @example EXTERNAL_GEOMETRY
+			 */
 			presetName: string | undefined,
 		) => string;
 	};
