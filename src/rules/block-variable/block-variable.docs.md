@@ -1,9 +1,11 @@
-# @morev/block-variable
+# @morev/bem/block-variable
 
 Ensures that the top-level block selector (assumed to be the component's root selector)
 includes a variable that references the block name.
 
 <!-- @include: @/docs/_parts/sass-only.md -->
+
+<!-- @include: @/docs/_parts/bem-block.md -->
 
 ## Motivation
 
@@ -27,7 +29,7 @@ This increases the risk of typos, dead code during refactoring (e.g., when renam
 Defining a default variable in each component that references the block name is a good practice -
 it establishes a consistent convention across all components and helps avoid these issues.
 
-```scss{1,2,7} [With variable]
+```scss{2,7} [With variable]
 .the-component {
   $b: #{&}; // $b - first letter in the BEM abbreviation
 
@@ -43,30 +45,68 @@ it establishes a consistent convention across all components and helps avoid the
 
 ## Rule options
 
-All options are optional and have sensible default values.
+All options are optional and have sensible default values. \
+Almost all rule warnings are auto-fixable, except for multiple references to an element.
+
+::: code-group
+
+```js [Enabling a rule with recommended defaults]
+// 📄 .stylelintrc.js
+
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/bem/block-variable': true,
+  }
+}
+```
+
+```js [Enabling a rule with custom options]
+// 📄 .stylelintrc.js
+
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/bem/block-variable': [true, {
+      name: 'b',
+      interpolation: 'always',
+      firstChild: true,
+      replaceBlockName: true,
+      messages: {
+        missingVariable: (validName) =>
+          `Missing block reference variable "${validName}".`
+      }
+    }],
+  },
+}
+```
+
+:::
+
+::: details Show full type of the options
 
 ```ts
-type BlockVariableOptions = Partial<{
+type BlockVariableOptions = {
   /**
    * The name of the variable containing the block reference.
    *
    * @default 'b' // based on the first letter of the BEM abbreviation.
    */
-  name: string;
+  name?: string;
 
   /**
    * Whether the reference must contain an interpolation.
    *
    * @default 'always'
    */
-  interpolation: 'always' | 'never' | 'ignore';
+  interpolation?: 'always' | 'never' | 'ignore';
 
   /**
    * Whether a block reference should be the first declaration of an element.
    *
    * @default true
    */
-  firstChild: boolean;
+  firstChild?: boolean;
 
   /**
    * Whether to automatically replace hardcoded occurrences of the block name
@@ -74,11 +114,78 @@ type BlockVariableOptions = Partial<{
    *
    * @default true
    */
-  replaceBlockName: boolean;
-}>;
+  replaceBlockName?: boolean;
+
+  /**
+   * Custom message functions for rule violations.
+   * If provided, they override the default error messages.
+   */
+  messages?: {
+    /**
+     * Reported when the component is missing the required block reference variable.
+     *
+     * @param   validName   The expected variable name (with leading `$`), e.g. `"$b"`.
+     *
+     * @returns             The error message to report.
+     */
+    missingVariable?: (validName: string) => string;
+
+    /**
+     * Reported when the block reference variable exists but is not the
+     * first declaration in the component's root selector.
+     *
+     * @param   validName   The expected variable name (with leading `$`), e.g. `"$b"`.
+     * @param   selector    The component root selector (e.g., ".the-component").
+     *
+     * @returns             The error message to report.
+     */
+    variableNotFirst?: (validName: string, selector: string) => string;
+
+    /**
+     * Reported when the variable exists but its name does not match the expected one.
+     *
+     * @param   expected   The expected variable name (with leading `$`), e.g. `"$b"`.
+     * @param   actual     The actual variable name found (with leading `$`).
+     *
+     * @returns            The error message to report.
+     */
+    invalidVariableName?: (expected: string, actual: string) => string;
+
+    /**
+     * Reported when the variable exists but its value is invalid for the current `interpolation` setting.
+     *
+     * @param   actual    The value found (e.g., ".the-component" or "&").
+     * @param   allowed   List of allowed values (e.g., ['"#{&}"', '"&"'] after quoting).
+     *
+     * @returns           The error message to report.
+     */
+    invalidVariableValue?: (actual: string, allowed: string[]) => string;
+
+    /**
+     * Reported when multiple variables that reference the block are defined.
+     *
+     * @param   foundName      A non-expected variable name encountered (with leading `$`).
+     * @param   expectedName   The single expected variable name (with leading `$`).
+     *
+     * @returns                The error message to report.
+     */
+    duplicatedVariable?: (foundName: string, expectedName: string) => string;
+
+    /**
+     * Reported when a hardcoded block name is used inside a nested selector
+     * instead of the block reference variable.
+     *
+     * @param   blockSelector   The hardcoded block selector found (e.g., ".the-component").
+     * @param   variableRef     The variable reference that should be used (e.g., "#{$b}").
+     *
+     * @returns                 The error message to report.
+     */
+    hardcodedBlockName?: (blockSelector: string, variableRef: string) => string;
+  };
+};
 ```
 
-Almost all rule warnings are auto-fixable, except for multiple references to an element.
+:::
 
 ---
 
@@ -317,3 +424,107 @@ This prevents typos, improves maintainability, and ensures consistent use of var
 ::: info
 This applies only to occurrences of the block name inside the current component's scope.
 :::
+
+---
+
+### `messages`
+
+<!-- @include: @/docs/_parts/custom-messages.md#header -->
+
+Each message function lets you override a specific violation. \
+Refer to the function signatures below to see which arguments are passed
+for each case and how you can use them in your custom messages.
+
+#### Example
+
+```js
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/bem/block-variable': [true, {
+      messages: {
+        missingVariable: (validName) =>
+          `⛔ Define ${validName} in the component root selector.`,
+
+        variableNotFirst: (validName, selector) =>
+          `⚠️ ${validName} must be the first declaration in "${selector}".`,
+
+        invalidVariableName: (expected, actual) =>
+          `⛔ Wrong variable name: expected "${expected}", got "${actual}".`,
+
+        invalidVariableValue: (actual, allowed) =>
+          `⛔ Invalid value "${actual}". Allowed: ${allowed.join(' or ')}.`,
+
+        duplicatedVariable: (foundName, expectedName) =>
+          `⛔ Duplicate block variables (e.g., "${foundName}"). Keep a single "${expectedName}".`,
+
+        hardcodedBlockName: (blockSelector, variableRef) =>
+          `⛔ Hardcoded block "${blockSelector}" found. Use ${variableRef} instead.`,
+      },
+    }],
+  },
+}
+```
+
+::: details Show function signatures
+
+```ts
+export type MessagesOption = {
+  /**
+   * Missing block reference variable in the component root.
+   *
+   * @param validName  Expected variable name with a leading `$`, e.g. `"$b"`.
+   * @returns          Error message.
+   */
+  missingVariable?: (validName: string) => string;
+
+  /**
+   * Variable exists but is not the first declaration in the root selector.
+   *
+   * @param validName  Expected variable name with `$`, e.g. `"$b"`.
+   * @param selector   Component root selector, e.g. ".the-component".
+   * @returns          Error message.
+   */
+  variableNotFirst?: (validName: string, selector: string) => string;
+
+  /**
+   * Variable exists but its name is different from the expected one.
+   *
+   * @param expected   Expected name with `$`, e.g. `"$b"`.
+   * @param actual     Actual name found with `$`.
+   * @returns          Error message.
+   */
+  invalidVariableName?: (expected: string, actual: string) => string;
+
+  /**
+   * Variable exists but its value doesn't match the `interpolation` setting.
+   *
+   * @param actual     Value found (e.g., ".the-component" or "&").
+   * @param allowed    List of allowed values (e.g., ['#{&}', '&']).
+   * @returns          Error message.
+   */
+  invalidVariableValue?: (actual: string, allowed: string[]) => string;
+
+  /**
+   * Multiple variables that reference the block are defined.
+   *
+   * @param foundName      An extra variable name encountered with `$`.
+   * @param expectedName   The single expected variable name with `$`.
+   * @returns              Error message.
+   */
+  duplicatedVariable?: (foundName: string, expectedName: string) => string;
+
+  /**
+   * Hardcoded block name used in a nested selector instead of the variable.
+   *
+   * @param blockSelector  Hardcoded selector, e.g. ".the-component".
+   * @param variableRef    Variable reference to use, e.g. "#{$b}".
+   * @returns              Error message.
+   */
+  hardcodedBlockName?: (blockSelector: string, variableName: string) => string;
+};
+```
+
+:::
+
+<!-- @include: @/docs/_parts/custom-messages.md#formatting -->
