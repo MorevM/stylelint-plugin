@@ -196,6 +196,7 @@ you need to set `ignore: ['b']` to ensure consistency across all style files.
 
 :::
 
+---
 
 ### `messages`
 

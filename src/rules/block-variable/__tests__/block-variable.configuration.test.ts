@@ -3,6 +3,7 @@ import rule from '../block-variable';
 const { ruleName } = rule;
 const testRuleConfig = createTestRuleConfig({ ruleName });
 
+// Primary option
 testRuleConfig({
 	description: 'Primary option',
 	accept: [
@@ -22,8 +23,9 @@ testRuleConfig({
 	],
 });
 
+// Secondary option object
 testRuleConfig({
-	description: 'Secondary options',
+	description: 'Secondary option object',
 	accept: [
 		{
 			description: 'No property (has a default)',
@@ -42,6 +44,7 @@ testRuleConfig({
 	],
 });
 
+// Secondary option > name
 testRuleConfig({
 	description: 'Secondary option > name',
 	accept: [
@@ -62,6 +65,7 @@ testRuleConfig({
 	],
 });
 
+// Secondary option > interpolation
 testRuleConfig({
 	description: 'Secondary option > interpolation',
 	accept: [
@@ -90,6 +94,7 @@ testRuleConfig({
 	],
 });
 
+// Secondary option > firstChild
 testRuleConfig({
 	description: 'Secondary option > firstChild',
 	accept: [
@@ -114,7 +119,7 @@ testRuleConfig({
 	],
 });
 
-
+// Secondary option > replaceBlockName
 testRuleConfig({
 	description: 'Secondary option > replaceBlockName',
 	accept: [
@@ -135,6 +140,50 @@ testRuleConfig({
 		{
 			description: 'String option',
 			config: [true, { replaceBlockName: 'always' }],
+		},
+	],
+});
+
+// Secondary option > messages
+testRuleConfig({
+	description: 'Secondary option > messages',
+	accept: [
+		{
+			description: 'Valid messages object',
+			config: [true, {
+				messages: {
+					missingVariable: () => '',
+					variableNotFirst: () => '',
+					invalidVariableName: () => '',
+					invalidVariableValue: () => '',
+					duplicatedVariable: () => '',
+					hardcodedBlockName: () => '',
+				},
+			}],
+		},
+	],
+	reject: [
+		{
+			description: 'Non-valid `messages[prop]`',
+			config: [true, {
+				messages: {
+					missingVariable: 1,
+				},
+			}],
+		},
+		{
+			description: 'Extra `messages` key',
+			config: [true, {
+				messages: {
+					FOO: () => '',
+					missingVariable: () => '',
+					variableNotFirst: () => '',
+					invalidVariableName: () => '',
+					invalidVariableValue: () => '',
+					duplicatedVariable: () => '',
+					hardcodedBlockName: () => '',
+				},
+			}],
 		},
 	],
 });

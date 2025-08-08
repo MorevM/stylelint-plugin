@@ -3,7 +3,7 @@ import { Declaration } from 'postcss';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { getRuleDeclarations } from '#modules/postcss';
-import { addNamespace, createRule, getRuleUrl, isCssFile } from '#modules/rule-utils';
+import { addNamespace, createRule, getRuleUrl, isCssFile, mergeMessages, vMessagesSchema } from '#modules/rule-utils';
 import { parseSelectors } from '#modules/selectors';
 import type { Rule } from 'postcss';
 
@@ -24,48 +24,67 @@ export default createRule({
 				interpolation: v.optional(v.picklist(['always', 'never', 'ignore']), 'always'),
 				firstChild: v.optional(v.boolean(), true),
 				replaceBlockName: v.optional(v.boolean(), true),
+				messages: vMessagesSchema({
+					missingVariable: [v.string()],
+					variableNotFirst: [v.string(), v.string()],
+					invalidVariableName: [v.string(), v.string()],
+					invalidVariableValue: [v.string(), v.array(v.string())],
+					duplicatedVariable: [v.string(), v.string()],
+					hardcodedBlockName: [v.string(), v.string()],
+				}),
 			}),
 		),
 	},
 	messages: {
-		lack: (validValue: string) => {
-			return `The component lacks a variable referencing the block: "${validValue}"`;
-		},
-		first: (validValue: string, selector: string) => {
-			return `The variable "${validValue}" referencing the block should be the first child of selector "${selector}"`;
-		},
-		wrongName: (validName: string, actualName: string) => {
+		missingVariable: (validName: string) => {
 			return `
-				The component has the variable referencing the block, but its name is wrong.
+				Missing block reference variable "${validName}".
+				Declare it in the component's root selector to reference the block consistently.
+			`;
+		},
+		variableNotFirst: (validName: string, selector: string) => {
+			return `
+				Block reference variable "${validName}" is not the first declaration in selector "${selector}".
+				Place it at the top to keep a consistent structure across components.
+			`;
+		},
+		invalidVariableName: (validName: string, actualName: string) => {
+			return `
+				Block reference variable is present, but its name is invalid.
 				Expected "${validName}", but got "${actualName}".
 			`;
 		},
-		wrongValue: (actualValue: string, availableValues: string[]) => {
-			const neededValues = availableValues.map((value) => quote(value, '"')).join(' or ');
+		invalidVariableValue: (actualValue: string, allowedValues: string[]) => {
+			const allowedValuesString = allowedValues
+				.map((value) => quote(value, '"'))
+				.join(' or ');
+
 			return `
-				The component has the variable referencing the block, but its value is wrong.
-				Expected ${neededValues}, but got "${actualValue}".
+				Block reference variable value is invalid.
+				Expected ${allowedValuesString}, but got "${actualValue}".
 			`;
 		},
-		extra: (nonValid: string, validName: string) => {
+		duplicatedVariable: (foundName: string, validName: string) => {
 			return `
-				Unexpected extra variable referencing the block "${nonValid}".
+				Multiple block reference variables detected, including "${foundName}".
 				Expected a single one named "${validName}".
 			`;
 		},
-		replacement: (blockName: string, variableName: string) => {
+		hardcodedBlockName: (blockSelector: string, variableName: string) => {
 			return `
-				Unexpected inline notation of the component name "${blockName}".
-				Replace it with a variable "${variableName}".
+				Hardcoded block name "${blockSelector}" found inside a nested selector.
+				Replace it with the block reference variable ${variableName} for consistency.
 			`;
 		},
 	},
-}, (primary, secondary, { root, report, messages }) => {
+}, (primary, secondary, { root, report, messages: ruleMessages }) => {
 	// The rule only applicable to `scss` files.
 	if (isCssFile(root)) return;
 
 	const bemBlock = getBemBlock(root);
 	if (!bemBlock) return;
+
+	const messages = mergeMessages(ruleMessages, secondary.messages);
 
 	const VARIABLE_NAME = `$${secondary.name.replace(/^\$/, '')}`;
 	const VALID_VALUES = (() => {
@@ -92,7 +111,7 @@ export default createRule({
 
 		if (variableDeclaration.prop !== VARIABLE_NAME) {
 			report({
-				message: messages.wrongName(VARIABLE_NAME, variableDeclaration.prop),
+				message: messages.invalidVariableName(VARIABLE_NAME, variableDeclaration.prop),
 				node: variableDeclaration,
 				fix: () => {
 					variableDeclaration.prop = VARIABLE_NAME;
@@ -104,7 +123,7 @@ export default createRule({
 
 	if (allBlockVariableDeclarations.length === 0) {
 		report({
-			message: messages.lack(VARIABLE_NAME),
+			message: messages.missingVariable(VARIABLE_NAME),
 			node: bemBlock.rule,
 			word: bemBlock.selector,
 			fix: () => {
@@ -135,7 +154,7 @@ export default createRule({
 			if (declaration.prop === VARIABLE_NAME) return;
 
 			report({
-				message: messages.extra(declaration.prop, VARIABLE_NAME),
+				message: messages.duplicatedVariable(declaration.prop, VARIABLE_NAME),
 				node: declaration,
 			});
 		});
@@ -143,14 +162,13 @@ export default createRule({
 	}
 
 	if (validBlockVariable?.value && !VALID_VALUES.includes(validBlockVariable.value)) {
-		report({
-			message: messages.wrongValue(validBlockVariable.value, VALID_VALUES),
+		return report({
+			message: messages.invalidVariableValue(validBlockVariable.value, VALID_VALUES),
 			node: validBlockVariable,
 			fix: () => {
 				validBlockVariable.value = VALID_VALUES[0];
 			},
 		});
-		return;
 	}
 
 	if (
@@ -159,7 +177,7 @@ export default createRule({
 		&& nodeChildDeclarations[0] !== validBlockVariable
 	) {
 		report({
-			message: messages.first(VARIABLE_NAME, bemBlock.rule.selector),
+			message: messages.variableNotFirst(VARIABLE_NAME, bemBlock.rule.selector),
 			node: validBlockVariable,
 			fix: () => {
 				bemBlock.rule.prepend(validBlockVariable.clone());
@@ -191,7 +209,7 @@ export default createRule({
 
 			nodesToReport.forEach((node) => {
 				report({
-					message: messages.replacement(bemBlock.selector, `#{${VARIABLE_NAME}}`),
+					message: messages.hardcodedBlockName(bemBlock.selector, `#{${VARIABLE_NAME}}`),
 					node: rule,
 					index: node.sourceIndex,
 					endIndex: node.sourceIndex + bemBlock.selector.length,

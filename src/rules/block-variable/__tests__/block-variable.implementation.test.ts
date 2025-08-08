@@ -3,6 +3,7 @@ import rule from '../block-variable';
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 
+// Default options
 testRule({
 	description: 'Default options',
 	config: [true],
@@ -68,7 +69,7 @@ testRule({
 				{
 					line: 1, column: 1,
 					endLine: 1, endColumn: 15,
-					message: messages.lack('$b'),
+					message: messages.missingVariable('$b'),
 				},
 			],
 		},
@@ -88,7 +89,7 @@ testRule({
 				{
 					line: 2, column: 2,
 					endLine: 2, endColumn: 15,
-					message: messages.wrongName('$b', '$block'),
+					message: messages.invalidVariableName('$b', '$block'),
 				},
 			],
 		},
@@ -108,7 +109,7 @@ testRule({
 				{
 					line: 2, column: 2,
 					endLine: 2, endColumn: 21,
-					message: messages.wrongValue('.the-component', ['#{&}']),
+					message: messages.invalidVariableValue('.the-component', ['#{&}']),
 				},
 			],
 		},
@@ -125,12 +126,12 @@ testRule({
 				{
 					line: 3, column: 2,
 					endLine: 3, endColumn: 12,
-					message: messages.extra('$bl', '$b'),
+					message: messages.duplicatedVariable('$bl', '$b'),
 				},
 				{
 					line: 4, column: 2,
 					endLine: 4, endColumn: 15,
-					message: messages.extra('$block', '$b'),
+					message: messages.duplicatedVariable('$block', '$b'),
 				},
 			],
 		},
@@ -152,7 +153,7 @@ testRule({
 				{
 					line: 3, column: 2,
 					endLine: 3, endColumn: 11,
-					message: messages.first('$b', '.the-component'),
+					message: messages.variableNotFirst('$b', '.the-component'),
 				},
 			],
 		},
@@ -184,12 +185,12 @@ testRule({
 				{
 					line: 5, column: 3,
 					endLine: 5, endColumn: 17,
-					message: messages.replacement('.the-component', '#{$b}'),
+					message: messages.hardcodedBlockName('.the-component', '#{$b}'),
 				},
 				{
 					line: 5, column: 25,
 					endLine: 5, endColumn: 39,
-					message: messages.replacement('.the-component', '#{$b}'),
+					message: messages.hardcodedBlockName('.the-component', '#{$b}'),
 				},
 			],
 		},
@@ -223,12 +224,12 @@ testRule({
 				{
 					line: 6, column: 3,
 					endLine: 6, endColumn: 17,
-					message: messages.replacement('.the-component', '#{$b}'),
+					message: messages.hardcodedBlockName('.the-component', '#{$b}'),
 				},
 				{
 					line: 6, column: 25,
 					endLine: 6, endColumn: 39,
-					message: messages.replacement('.the-component', '#{$b}'),
+					message: messages.hardcodedBlockName('.the-component', '#{$b}'),
 				},
 			],
 		},
@@ -259,7 +260,7 @@ testRule({
 				{
 					line: 1, column: 1,
 					endLine: 1, endColumn: 15,
-					message: messages.lack('$block'),
+					message: messages.missingVariable('$block'),
 				},
 			],
 		},
@@ -274,7 +275,7 @@ testRule({
 				{
 					line: 2, column: 2,
 					endLine: 2, endColumn: 11,
-					message: messages.wrongName('$block', '$b'),
+					message: messages.invalidVariableName('$block', '$b'),
 				},
 			],
 		},
@@ -290,7 +291,7 @@ testRule({
 				{
 					line: 3, column: 2,
 					endLine: 3, endColumn: 11,
-					message: messages.extra('$b', '$block'),
+					message: messages.duplicatedVariable('$b', '$block'),
 				},
 			],
 		},
@@ -352,7 +353,7 @@ testRule({
 				{
 					line: 2, column: 2,
 					endLine: 2, endColumn: 11,
-					message: messages.wrongValue('#{&}', ['&']),
+					message: messages.invalidVariableValue('#{&}', ['&']),
 				},
 			],
 		},
@@ -409,8 +410,176 @@ testRule({
 				{
 					line: 1, column: 1,
 					endLine: 1, endColumn: 15,
-					message: rule.messages.lack('$b'),
+					message: rule.messages.missingVariable('$b'),
 				},
+			],
+		},
+	],
+});
+
+// Custom messages > `missingVariable`
+testRule({
+	description: 'Custom messages > `missingVariable`',
+	config: [true, {
+		messages: {
+			missingVariable: (validName: string) => `Missing ${validName}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.the-component {}
+			`,
+			warnings: [
+				{ message: `Missing $b` },
+			],
+		},
+	],
+});
+
+// Custom messages > `missingVariable`
+testRule({
+	description: 'Custom messages > `missingVariable`',
+	config: [true, {
+		messages: {
+			missingVariable: (validName: string) => `Missing ${validName}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.the-component {}
+			`,
+			warnings: [
+				{ message: `Missing $b` },
+			],
+		},
+	],
+});
+
+// Custom messages > `variableNotFirst`
+testRule({
+	description: 'Custom messages > `variableNotFirst`',
+	config: [true, {
+		messages: {
+			variableNotFirst: (validValue: string, selector: string) => `Not first ${validValue} ${selector}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.the-component {
+					color: red;
+					$b: #{&};
+				}
+			`,
+			warnings: [
+				{ message: `Not first $b .the-component` },
+			],
+		},
+	],
+});
+
+// Custom messages > `invalidVariableName`
+testRule({
+	description: 'Custom messages > `invalidVariableName`',
+	config: [true, {
+		messages: {
+			invalidVariableName: (validName: string, actualName: string) => `Invalid name ${validName} ${actualName}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.the-component {
+					$block: #{&};
+				}
+			`,
+			warnings: [
+				{ message: `Invalid name $b $block` },
+			],
+		},
+	],
+});
+
+// Custom messages > `invalidVariableValue`
+testRule({
+	description: 'Custom messages > `invalidVariableValue`',
+	config: [true, {
+		messages: {
+			invalidVariableValue: (actualValue: string, availableValues: string[]) =>
+				`Invalid value ${actualValue} ${availableValues.join('|')}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.the-component {
+					$b: .the-component;
+				}
+			`,
+			warnings: [
+				{ message: `Invalid value .the-component #{&}` },
+			],
+		},
+	],
+});
+
+// Custom messages > `duplicatedVariable`
+testRule({
+	description: 'Custom messages > `duplicatedVariable`',
+	config: [true, {
+		messages: {
+			duplicatedVariable: (foundName: string, validName: string) =>
+				`Duplicated ${foundName} ${validName}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.the-component {
+					$b: #{&};
+					$bl: #{&};
+					$block: #{&};
+				}
+			`,
+			warnings: [
+				{ message: `Duplicated $bl $b` },
+				{ message: `Duplicated $block $b` },
+			],
+		},
+	],
+});
+
+// Custom messages > `hardcodedBlockName`
+testRule({
+	description: 'Custom messages > `hardcodedBlockName`',
+	config: [true, {
+		messages: {
+			hardcodedBlockName: (blockSelector: string, variableName: string) =>
+				`Hardcoded ${blockSelector} ${variableName}`,
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses custom messages if provided',
+			code: `
+				.the-component {
+					$b: #{&};
+
+					&__foo {
+						.the-component--active & {}
+					}
+				}
+			`,
+			warnings: [
+				{ message: `Hardcoded .the-component #{$b}` },
 			],
 		},
 	],
