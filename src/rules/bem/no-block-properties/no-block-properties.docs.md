@@ -2,7 +2,7 @@
 
 # @morev/bem/no-block-properties
 
-**Prevents layout-affecting CSS properties within BEM block selectors.**
+Prevents layout-affecting CSS properties within BEM block selectors.
 
 ::: info In other words
 

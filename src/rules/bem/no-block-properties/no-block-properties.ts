@@ -2,7 +2,7 @@ import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
 import { resolveBemEntities } from '#modules/bem';
 import { getRuleDeclarations, isPseudoElementNode } from '#modules/postcss';
-import { addNamespace, createRule, extractSeparators, getRuleUrl, mergeMessages, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { addNamespace, createRule, extractSeparators, mergeMessages, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { parseSelectors, resolveNestedSelector } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
 import { createPropertiesRegistry } from './utils';
@@ -12,7 +12,7 @@ const RULE_NAME = 'bem/no-block-properties';
 export default createRule({
 	name: addNamespace(RULE_NAME),
 	meta: {
-		url: getRuleUrl(RULE_NAME),
+		description: 'Prevents layout-affecting CSS properties within BEM block selectors.',
 		deprecated: false,
 		fixable: false,
 	},

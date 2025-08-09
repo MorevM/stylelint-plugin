@@ -1,8 +1,9 @@
 import { stripIndent, tsObject } from '@morev/utils';
 import stylelint from 'stylelint';
+import { getRuleUrl } from '#modules/rule-utils/get-rule-url/get-rule-url';
 import { validateOptions } from '#modules/rule-utils/validate-options/validate-options';
 import type { Root } from 'postcss';
-import type { PostcssResult, Problem, Rule, RuleMeta } from 'stylelint';
+import type { PostcssResult, Problem, Rule } from 'stylelint';
 import type { GenericSchema, InferOutput } from 'valibot';
 
 const { utils: { report, ruleMessages } } = stylelint;
@@ -18,7 +19,11 @@ type Options<
 > = {
 	name: string;
 	messages: Messages;
-	meta: RuleMeta;
+	meta: {
+		description: string;
+		deprecated: boolean;
+		fixable: boolean;
+	};
 	schema: {
 		primary: PrimaryOptionSchema;
 		secondary?: SecondaryOptionsSchema;
@@ -92,7 +97,10 @@ export const createRule = <
 
 	rule.ruleName = options.name;
 	rule.messages = messages;
-	rule.meta = options.meta;
+	rule.meta = {
+		...options.meta,
+		url: getRuleUrl(options.name),
+	};
 
 	return rule as Rule & { messages: Messages };
 };

@@ -2,7 +2,7 @@ import { assert } from '@morev/utils';
 import * as v from 'valibot';
 import { resolveBemChain } from '#modules/bem';
 import { getRuleContentMeta, isAtRule, isRule } from '#modules/postcss';
-import { addNamespace, createRule, extractSeparators, getRuleUrl, isCssFile, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
+import { addNamespace, createRule, extractSeparators, isCssFile, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
 import type { Root } from 'postcss';
 import type { Separators } from '#modules/shared';
 import type { RepeatingGroup, RepeatingGroupItem, SecondaryOption, Violation } from './no-chained-entities.types';
@@ -172,7 +172,7 @@ const getViolationsFromGroups = (
 export default createRule({
 	name: addNamespace(RULE_NAME),
 	meta: {
-		url: getRuleUrl(RULE_NAME),
+		description: 'Disallows splitting BEM entities across multiple chained `&` selectors in SCSS.',
 		deprecated: false,
 		fixable: false,
 	},

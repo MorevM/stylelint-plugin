@@ -3,7 +3,7 @@ import { Declaration } from 'postcss';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { getRuleDeclarations } from '#modules/postcss';
-import { addNamespace, createRule, getRuleUrl, isCssFile, mergeMessages, vMessagesSchema } from '#modules/rule-utils';
+import { addNamespace, createRule, isCssFile, mergeMessages, vMessagesSchema } from '#modules/rule-utils';
 import { parseSelectors } from '#modules/selectors';
 import type { Rule } from 'postcss';
 
@@ -12,7 +12,7 @@ const RULE_NAME = 'bem/block-variable';
 export default createRule({
 	name: addNamespace(RULE_NAME),
 	meta: {
-		url: getRuleUrl(RULE_NAME),
+		description: 'Requires the component\'s root selector to define a variable referencing the block name.',
 		deprecated: false,
 		fixable: true,
 	},

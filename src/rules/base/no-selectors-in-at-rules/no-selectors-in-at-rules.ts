@@ -1,7 +1,7 @@
 import { toArray, tsObject } from '@morev/utils';
 import * as v from 'valibot';
 import { isRule } from '#modules/postcss';
-import { addNamespace, createRule, getRuleUrl, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { addNamespace, createRule, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { toRegExp } from '#modules/shared';
 
 const RULE_NAME = 'base/no-selectors-in-at-rules';
@@ -11,7 +11,7 @@ const SASS_CONTROL_STRUCTURES = ['if', 'else', 'else if', 'for', 'while', 'mixin
 export default createRule({
 	name: addNamespace(RULE_NAME),
 	meta: {
-		url: getRuleUrl(RULE_NAME),
+		description: 'Disallows placing rules (selectors) inside at-rules.',
 		deprecated: false,
 		fixable: false,
 	},

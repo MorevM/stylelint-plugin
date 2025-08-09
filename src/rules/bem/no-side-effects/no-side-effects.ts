@@ -2,7 +2,7 @@ import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { isAtRule, isKeyframesRule, isRule } from '#modules/postcss';
-import { addNamespace, createRule, getRuleUrl, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { addNamespace, createRule, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { resolveSelectorNodes, selectorNodesToString } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
 import { trimBoundaryNodes } from './utils/trim-boundary-nodes';
@@ -14,7 +14,7 @@ const RULE_NAME = 'bem/no-side-effects';
 export default createRule({
 	name: addNamespace(RULE_NAME),
 	meta: {
-		url: getRuleUrl(RULE_NAME),
+		description: 'Disallows selectors that apply styles outside the scope of the current BEM block.',
 		deprecated: false,
 		fixable: false,
 	},
