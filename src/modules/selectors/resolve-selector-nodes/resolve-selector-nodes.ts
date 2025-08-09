@@ -1,3 +1,4 @@
+import { isEmpty } from '@morev/utils';
 import { getRuleContentMeta } from '#modules/postcss/get-rule-content-meta/get-rule-content-meta';
 import { parseSelectors } from '#modules/selectors/parse-selectors/parse-selectors';
 import { resolveNestedSelector } from '#modules/selectors/resolve-nested-selector/resolve-nested-selector';
@@ -12,14 +13,19 @@ import type { MappedSelector, Options } from './resolve-selector-nodes.types';
  *
  * @returns           Array of mapped selectors with enriched source and resolved nodes.
  */
-export const resolveSelectorNodes = (options: Options) => {
+export const resolveSelectorNodes = (options: Options): MappedSelector[] => {
 	const contextOffset = getRuleContentMeta(options.node).offset;
 
-	return resolveNestedSelector(options).map<MappedSelector>((selector) => {
+	return resolveNestedSelector(options).flatMap<MappedSelector>((selector) => {
 		// `resolveNestedSelector` splits selectors by `,` internally,
 		// so it's safe to take the first one directly.
 		const sourceSelectorNodes = parseSelectors(selector.source)[0];
 		const resolvedSelectorNodes = parseSelectors(selector.resolved)[0];
+
+		// Filter out incomplete/invalid input.
+		if (isEmpty(sourceSelectorNodes) || isEmpty(resolveSelectorNodes)) {
+			return [];
+		}
 
 		const sourceOffset = selector.offset;
 

@@ -8,6 +8,20 @@ const getSourceMatches = (nodes: ResolvedNode[]) => {
 };
 
 describe(resolveSelectorNodes, () => {
+	describe('Common mechanics, edge cases', () => {
+		it('Does not validate incomplete/invalid input', () => {
+			const node = getRuleBySelector(`
+				.bar-component {
+					@at-root /
+				}
+			`, '/');
+
+			const selectors = resolveSelectorNodes({ node });
+
+			expect(selectors).toHaveLength(0);
+		});
+	});
+
 	describe('Structure tests', () => {
 		it('Source and resolved nodes count is equal if selector is flat', () => {
 			const node = getRuleBySelector(`
