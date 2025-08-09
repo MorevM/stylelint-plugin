@@ -7,7 +7,7 @@ import type { Root } from 'postcss';
 import type { Separators } from '#modules/shared';
 import type { RepeatingGroup, RepeatingGroupItem, SecondaryOption, Violation } from './no-chained-entities.types';
 
-const RULE_NAME = 'no-chained-entities';
+const RULE_NAME = 'bem/no-chained-entities';
 
 /**
  * Generates a standardized violation message for a chained BEM entity.

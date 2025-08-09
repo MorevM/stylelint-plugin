@@ -9,7 +9,7 @@ import { trimBoundaryNodes } from './utils/trim-boundary-nodes';
 import type postcss from 'postcss';
 import type { ResolvedNode } from '#modules/selectors/types';
 
-const RULE_NAME = 'no-side-effects';
+const RULE_NAME = 'bem/no-side-effects';
 
 export default createRule({
 	name: addNamespace(RULE_NAME),

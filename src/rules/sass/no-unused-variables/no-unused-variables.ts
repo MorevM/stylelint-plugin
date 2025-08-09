@@ -4,7 +4,7 @@ import { toRegExp } from '#modules/shared';
 import type { Declaration, Node } from 'postcss';
 import type { Scope } from './no-unused-variables.types';
 
-const RULE_NAME = 'no-unused-variables';
+const RULE_NAME = 'sass/no-unused-variables';
 
 /**
  * Extracts SASS variable references from the given string.

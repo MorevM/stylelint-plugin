@@ -11,7 +11,7 @@ import type { ProcessedPattern } from './selector-pattern.types';
  * * Требовать значение модификатора, если название модификатора не удовлетворяет чему-то?
  */
 
-const RULE_NAME = 'selector-pattern';
+const RULE_NAME = 'bem/selector-pattern';
 
 export default createRule({
 	name: addNamespace(RULE_NAME),

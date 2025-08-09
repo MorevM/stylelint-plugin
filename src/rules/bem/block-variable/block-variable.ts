@@ -7,7 +7,7 @@ import { addNamespace, createRule, getRuleUrl, isCssFile, mergeMessages, vMessag
 import { parseSelectors } from '#modules/selectors';
 import type { Rule } from 'postcss';
 
-const RULE_NAME = 'block-variable';
+const RULE_NAME = 'bem/block-variable';
 
 export default createRule({
 	name: addNamespace(RULE_NAME),

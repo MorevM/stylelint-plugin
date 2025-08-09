@@ -4,7 +4,7 @@ import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { addNamespace, createRule, getRuleUrl, mergeMessages, vMessagesSchema } from '#modules/rule-utils';
 
-const RULE_NAME = 'match-file-name';
+const RULE_NAME = 'bem/match-file-name';
 
 export default createRule({
 	name: addNamespace(RULE_NAME),

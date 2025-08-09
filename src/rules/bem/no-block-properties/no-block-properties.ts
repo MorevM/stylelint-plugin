@@ -7,7 +7,7 @@ import { parseSelectors, resolveNestedSelector } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
 import { createPropertiesRegistry } from './utils';
 
-const RULE_NAME = 'no-block-properties';
+const RULE_NAME = 'bem/no-block-properties';
 
 export default createRule({
 	name: addNamespace(RULE_NAME),

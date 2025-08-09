@@ -4,7 +4,7 @@ import { isRule } from '#modules/postcss';
 import { addNamespace, createRule, getRuleUrl, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { toRegExp } from '#modules/shared';
 
-const RULE_NAME = 'no-selectors-in-at-rules';
+const RULE_NAME = 'base/no-selectors-in-at-rules';
 
 const SASS_CONTROL_STRUCTURES = ['if', 'else', 'else if', 'for', 'while', 'mixin', 'function'];
 

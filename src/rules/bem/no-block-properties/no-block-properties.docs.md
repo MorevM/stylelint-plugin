@@ -711,7 +711,7 @@ This is useful for:
 
 <!-- @include: @/docs/_parts/custom-messages.md#header -->
 
-##### Example of custom localized message with contextual details (in Russian)
+#### Example of custom localized message with contextual details (in Russian)
 
 ```js
 // 📄 .stylelintrc.js
