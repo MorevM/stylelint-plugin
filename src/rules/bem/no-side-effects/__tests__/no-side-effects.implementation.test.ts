@@ -399,6 +399,28 @@ testRule({
 				},
 			],
 		},
+		{
+			description: 'Reports full side effect in case if side-effect is splitted via nesting',
+			code: `
+				.the-component {
+					.block {
+						span {}
+					}
+				}
+			`,
+			warnings: [
+				{
+					message: messages.rejected('.block'),
+					line: 2, column: 2,
+					endLine: 2, endColumn: 8,
+				},
+				{
+					message: messages.rejected('.block span'),
+					line: 3, column: 3,
+					endLine: 3, endColumn: 7,
+				},
+			],
+		},
 	],
 });
 

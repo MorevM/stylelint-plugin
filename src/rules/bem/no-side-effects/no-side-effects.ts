@@ -50,9 +50,12 @@ export default createRule({
 		const selector = selectorNodesToString(nodes);
 		if (normalizedIgnore.some((pattern) => pattern.test(selector))) return;
 
+		const sourcePresentedNodes = nodes
+			.filter((resolvedNode) => !isEmpty(resolvedNode.meta.sourceMatches));
+
 		const [firstMatch, lastMatch] = [
-			nodes[0].meta.sourceMatches.at(-1)!,
-			nodes.at(-1)!.meta.sourceMatches[0],
+			sourcePresentedNodes[0].meta.sourceMatches.at(-1)!,
+			sourcePresentedNodes.at(-1)!.meta.sourceMatches[0],
 		];
 		const offset = firstMatch.contextOffset + firstMatch.sourceOffset;
 
