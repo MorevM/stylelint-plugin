@@ -134,16 +134,23 @@ export default createRule({
 						// @ts-expect-error -- Not described in types,
 						// but for compatibility with other rules it should be here,
 						// since Declaration is just a superset of Node.
+						// Blocker: https://github.com/stylelint-scss/stylelint-scss/pull/1159
 						source: bemBlock.rule.source,
 						raws: {
 							before: '\n\t',
+							between: ': ',
 							value: {
 								value: VALID_VALUES[0],
-								raw: `${VALID_VALUES[0]};\n`,
+								raw: VALID_VALUES[0],
 							},
 						},
 					}),
 				);
+
+				if (bemBlock.rule.nodes.length === 1) {
+					bemBlock.rule.raws.semicolon = true;
+					bemBlock.rule.raws.after = '\n';
+				}
 			},
 		});
 	}
