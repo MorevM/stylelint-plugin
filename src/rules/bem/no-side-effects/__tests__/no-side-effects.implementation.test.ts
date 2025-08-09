@@ -13,6 +13,14 @@ testRule({
 			code: `.the-component {}`,
 		},
 		{
+			description: 'Does not validate incomplete input',
+			code: `
+				.the-component {
+					@at-root
+				}
+			`,
+		},
+		{
 			description: 'Do not report content without side-effects and nesting',
 			code: `
 				.the-component {}

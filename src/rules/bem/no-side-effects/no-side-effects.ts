@@ -74,6 +74,9 @@ export default createRule({
 		if (!isAtRule(node, ['nest', 'at-root']) && !isRule(node)) return;
 
 		resolveSelectorNodes({ node }).forEach(({ resolved }) => {
+			// Incomplete input
+			if (isEmpty(resolved)) return;
+
 			// Find the last mention of the current BEM block in the resolved selector.
 			// Anything after it may represent a side-effect.
 			const lastBlockIndex = resolved.findLastIndex((resolvedNode) => {
