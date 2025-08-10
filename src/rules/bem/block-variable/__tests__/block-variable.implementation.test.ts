@@ -53,6 +53,16 @@ testRule({
 				.the-component__element {}
 			`,
 		},
+		{
+			description: 'Does not replace nested declaration with block variable if declaration is not a state of component',
+			code: `
+				.the-component {
+					$b: #{&};
+
+					.the-component-foo {}
+				}
+			`,
+		},
 	],
 	reject: [
 		{

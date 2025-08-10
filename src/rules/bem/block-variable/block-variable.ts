@@ -3,9 +3,10 @@ import { Declaration } from 'postcss';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { getRuleDeclarations } from '#modules/postcss';
-import { addNamespace, createRule, isCssFile, mergeMessages, vMessagesSchema } from '#modules/rule-utils';
+import { addNamespace, createRule, extractSeparators, isCssFile, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
 import { parseSelectors } from '#modules/selectors';
 import type { Rule } from 'postcss';
+import type parser from 'postcss-selector-parser';
 
 const RULE_NAME = 'bem/block-variable';
 
@@ -24,6 +25,7 @@ export default createRule({
 				interpolation: v.optional(v.picklist(['always', 'never', 'ignore']), 'always'),
 				firstChild: v.optional(v.boolean(), true),
 				replaceBlockName: v.optional(v.boolean(), true),
+				separators: vSeparatorsSchema,
 				messages: vMessagesSchema({
 					missingVariable: [v.string()],
 					variableNotFirst: [v.string(), v.string()],
@@ -85,6 +87,7 @@ export default createRule({
 	if (!bemBlock) return;
 
 	const messages = mergeMessages(ruleMessages, secondary.messages);
+	const separators = extractSeparators(secondary.separators);
 
 	const VARIABLE_NAME = `$${secondary.name.replace(/^\$/, '')}`;
 	const VALID_VALUES = (() => {
@@ -210,7 +213,13 @@ export default createRule({
 		parseSelectors(rule.selector).forEach((selectorNodes) => {
 			const nodesToReport = selectorNodes
 				.filter((node) => node.type === 'class')
-				.filter((node) => node.toString().trim().startsWith(bemBlock.selector));
+				.filter((node) => node.toString().trim().startsWith(bemBlock.selector))
+				.filter((node: parser.ClassName) => {
+					const nonBlockValue = node.value.slice(bemBlock.blockName.length);
+					return nonBlockValue.startsWith(separators.element)
+						|| nonBlockValue.startsWith(separators.modifier)
+						|| nonBlockValue.startsWith(separators.modifierValue);
+				});
 
 			if (!nodesToReport.length) return;
 
