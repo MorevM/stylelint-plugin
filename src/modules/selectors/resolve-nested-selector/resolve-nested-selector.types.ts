@@ -67,5 +67,5 @@ export type Options = {
 	 * The selector to resolve. If not provided, will be inferred from the given `node`
 	 * (`Rule.selector` or `AtRule.params`).
 	 */
-	selector?: string;
+	source?: string;
 };

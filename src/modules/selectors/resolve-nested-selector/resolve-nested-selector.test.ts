@@ -7,7 +7,7 @@ const resolveSelectorInContext = (
 	customSelector?: string,
 ) => {
 	return resolveNestedSelector({
-		selector: customSelector,
+		source: customSelector,
 		node: getRuleBySelector(code, selector),
 	});
 };

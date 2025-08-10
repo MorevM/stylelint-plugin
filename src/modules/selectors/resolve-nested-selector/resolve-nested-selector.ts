@@ -186,7 +186,7 @@ const resolveSelectorTrees = (trees: PathItem[][]): ResolvedSelector[] => {
  * @returns           An array of `ResolvedSelector` objects, where each represents a complete flattened selector.
  */
 export const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
-	const trees = getTrees(options.node, options.selector);
+	const trees = getTrees(options.node, options.source);
 
 	return resolveSelectorTrees(trees);
 };
