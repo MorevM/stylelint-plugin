@@ -1,5 +1,5 @@
 import type parser from 'postcss-selector-parser';
-import type { ResolvedSelector } from '#modules/selectors/types';
+import type { ResolvedSelector } from '#modules/selectors';
 import type { AdjustedNode } from '../resolve-selector-nodes.types';
 
 type GetNodeShiftOptions = {
