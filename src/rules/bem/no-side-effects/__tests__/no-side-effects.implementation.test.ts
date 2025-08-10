@@ -121,6 +121,17 @@ testRule({
 				.the-component:is(&--mod, .bar) {}
 			`,
 		},
+		{
+			description: 'Does not report side-effects containing SASS interpolation (for a while)',
+			code: `
+				.the-component {
+					$b: #{&};
+					$link: #{$b}__link;
+
+					@at-root #{$b}:has(#{$link}:hover) td {}
+				}
+			`,
+		},
 	],
 	reject: [
 		{

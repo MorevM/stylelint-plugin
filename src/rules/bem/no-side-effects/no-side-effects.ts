@@ -71,9 +71,6 @@ export default createRule({
 			const sideEffectNodes = trimBoundaryNodes(sideEffectCandidates);
 			if (isEmpty(sideEffectNodes)) return;
 
-			// TODO: Skip interpolated selectors for now
-			if (sideEffectNodes.some((sideEffectNode) => sideEffectNode.value?.includes('#{'))) return;
-
 			addViolation(node, sideEffectNodes);
 		});
 	});
