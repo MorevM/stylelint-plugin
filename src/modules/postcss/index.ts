@@ -5,4 +5,5 @@ export * from './is-at-rule/is-at-rule';
 export * from './is-keyframes-rule/is-keyframes-rule';
 export * from './is-pseudo-element-node/is-pseudo-element-node';
 export * from './is-rule/is-rule';
+export * from './is-same-node/is-same-node';
 export * from './resolve-sass-variable/resolve-sass-variable';
