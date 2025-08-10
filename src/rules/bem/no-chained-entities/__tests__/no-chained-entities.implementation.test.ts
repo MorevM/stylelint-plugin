@@ -55,6 +55,14 @@ testRule({
 			`,
 		},
 		{
+			description: 'Does not report utility classes started with component name',
+			code: `
+				.swiper-button {
+					&.swiper-button-prev {}
+				}
+			`,
+		},
+		{
 			description: 'Does not report interpolated strings',
 			code: `
 				.the-component {
