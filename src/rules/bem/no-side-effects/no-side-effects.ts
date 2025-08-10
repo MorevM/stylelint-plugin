@@ -3,11 +3,9 @@ import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { isAtRule, isKeyframesRule, isRule } from '#modules/postcss';
 import { addNamespace, createRule, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
-import { resolveSelectorNodes, selectorNodesToString } from '#modules/selectors';
+import { resolveSelectorNodes } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
-import { trimBoundaryNodes } from './utils/trim-boundary-nodes';
-import type postcss from 'postcss';
-import type { ResolvedNode } from '#modules/selectors/types';
+import { createViolationsRegistry, trimBoundaryNodes } from './utils';
 
 const RULE_NAME = 'bem/no-side-effects';
 
@@ -44,27 +42,7 @@ export default createRule({
 	const normalizedIgnore = secondary.ignore
 		.map((item) => toRegExp(item, { allowWildcard: true }));
 
-	// Just utility function to report a suspicious selector fragment,
-	// used instead of default `report`.
-	const reportNodes = (node: postcss.Node, nodes: ResolvedNode[]) => {
-		const selector = selectorNodesToString(nodes);
-		if (normalizedIgnore.some((pattern) => pattern.test(selector))) return;
-
-		const sourcePresentedNodes = nodes
-			.filter((resolvedNode) => !isEmpty(resolvedNode.meta.sourceMatches));
-
-		const [firstMatch, lastMatch] = [
-			sourcePresentedNodes[0].meta.sourceMatches.at(-1)!,
-			sourcePresentedNodes.at(-1)!.meta.sourceMatches[0],
-		];
-		const offset = firstMatch.contextOffset + firstMatch.sourceOffset;
-
-		const index = firstMatch.sourceRange[0] + offset;
-		const endIndex = lastMatch.sourceRange[1] + offset;
-		const message = messages.rejected(selector);
-
-		report({ node, index, endIndex, message });
-	};
+	const { getViolations, addViolation } = createViolationsRegistry(normalizedIgnore);
 
 	root.walk((node) => {
 		// Do not check the block itself
@@ -86,7 +64,7 @@ export default createRule({
 
 			// Every node is a side-effect
 			if (lastBlockIndex === -1) {
-				return reportNodes(node, resolved);
+				return addViolation(node, resolved);
 			}
 
 			const sideEffectCandidates = resolved.slice(lastBlockIndex + 1);
@@ -96,7 +74,12 @@ export default createRule({
 			// TODO: Skip interpolated selectors for now
 			if (sideEffectNodes.some((sideEffectNode) => sideEffectNode.value?.includes('#{'))) return;
 
-			reportNodes(node, sideEffectNodes);
+			addViolation(node, sideEffectNodes);
 		});
 	});
+
+	getViolations().forEach((violation) => report({
+		...violation,
+		message: messages.rejected(violation.selector),
+	}));
 });

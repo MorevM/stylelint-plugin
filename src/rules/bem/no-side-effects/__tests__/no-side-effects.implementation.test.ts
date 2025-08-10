@@ -429,6 +429,25 @@ testRule({
 				},
 			],
 		},
+		{
+			description: 'Does not report side-effects only for :pseudo states of another side-effect',
+			code: `
+				.the-component {
+					a {
+						&:hover {}
+						&:active {}
+						&::placeholder {}
+					}
+				}
+			`,
+			warnings: [
+				{
+					message: messages.rejected('a'),
+					line: 2, column: 2,
+					endLine: 2, endColumn: 3,
+				},
+			],
+		},
 	],
 });
 

@@ -1,6 +1,5 @@
-import { isPseudoElementNode } from '#modules/postcss';
 import type parser from 'postcss-selector-parser';
-import type { ResolvedNode } from '#modules/selectors/types';
+import type { ResolvedNode } from '#modules/selectors';
 
 /**
  * Checks if a selector node is considered insignificant boundary "noise"
@@ -18,8 +17,10 @@ import type { ResolvedNode } from '#modules/selectors/types';
  * @returns        `true` if the node is semantically insignificant in boundary analysis.
  */
 const isBoundaryNoiseNode = (node: parser.Node) => {
-	return (node.type === 'combinator' && !node.value.trim())
-		|| (node.type === 'pseudo' && !isPseudoElementNode(node));
+	return (
+		(node.type === 'combinator' && !node.value.trim())
+		|| node.type === 'pseudo'
+	);
 };
 
 /**
