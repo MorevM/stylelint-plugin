@@ -302,4 +302,59 @@ describe(resolveBemChain, () => {
 			],
 		]);
 	});
+
+	it('Does not resolve pure utility/entity classes twice', () => {
+		const rule = getRuleBySelector(`
+			.swiper-button {
+				&.swiper-button-prev {}
+			}
+		`, '&.swiper-button-prev');
+
+		const result = resolveBemChain(rule, separators);
+
+		expect(simplifyChains(result)).toStrictEqual([
+			[
+				{ type: 'block', selector: '.swiper-button-prev' },
+			],
+		]);
+	});
+
+	it('Correctly resolves partially presented entity with utility class/another entity', () => {
+		const rule = getRuleBySelector(`
+			.swiper-button {
+				&__el.swiper-button-prev {}
+			}
+		`, '&__el.swiper-button-prev');
+
+		const result = resolveBemChain(rule, separators);
+
+		expect(simplifyChains(result)).toStrictEqual([
+			[
+				{ type: 'element', selector: '.swiper-button__el' },
+				{ type: 'block', selector: '.swiper-button' },
+			],
+			[
+				{ type: 'block', selector: '.swiper-button-prev' },
+			],
+		]);
+	});
+
+	it('Still traverses up if utility/modifier value is appended via nesting', () => {
+		const rule = getRuleBySelector(`
+			.swiper-button {
+				&__el.swiper-button-prev {
+					&--mod {}
+				}
+			}
+		`, '&--mod');
+
+		const result = resolveBemChain(rule, separators);
+
+		expect(simplifyChains(result)).toStrictEqual([
+			[
+				{ type: 'modifierName', selector: '.swiper-button-prev--mod' },
+				{ type: 'block', selector: '.swiper-button-prev' },
+			],
+		]);
+	});
 });

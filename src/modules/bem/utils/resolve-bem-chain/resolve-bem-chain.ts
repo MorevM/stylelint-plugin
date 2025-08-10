@@ -38,6 +38,22 @@ const getParentBemEntities = (rule: Rule | AtRule, separators: Separators) => {
 };
 
 /**
+ * Checks whether the given BEM entity is present in the current selector.
+ *
+ * @param   entity   The BEM entity to check.
+ *
+ * @returns          `true` if the entity is present, otherwise `false`.
+ */
+const appearsInSource = (entity: BemEntity) => {
+	if (entity.block.sourceRange) return true;
+	if (entity.element?.sourceRange) return true;
+	if (entity.modifierName?.sourceRange) return true;
+	if (entity.modifierValue?.sourceRange) return true;
+
+	return false;
+};
+
+/**
  * Builds all valid BEM chains originating from the given rule or at-rule.
  *
  * A BEM chain is a top-down trace of related BEM entities, such as:
@@ -76,19 +92,20 @@ export const resolveBemChain = (
 	rule: Rule | AtRule,
 	separators: Separators,
 ): BemChain[] => {
-	const currentEntities = resolveBemEntities({ rule, separators });
+	const currentEntities = resolveBemEntities({ rule, separators })
+		.filter((bemEntity) => appearsInSource(bemEntity));
 	if (!currentEntities?.length) return [];
 
 	const collectChains = (
 		bemEntities: BemEntity[],
 		chain: BemChain,
-		previous?: { selector: string; specificPartType: EntityType },
+		previous?: { entity: BemEntity; specificPartType: EntityType },
 	): BemChain[] => {
 		return bemEntities.flatMap((bemEntity) => {
 			const [part, type] = getMostSpecificEntityPart(bemEntity);
 			const { bemSelector: selector } = bemEntity;
 
-			const isDifferentBranch = previous && !previous?.selector.startsWith(selector);
+			const isDifferentBranch = previous && !previous?.entity.bemSelector.startsWith(selector);
 
 			if (isDifferentBranch) {
 				// Special case: block inside block
@@ -105,10 +122,17 @@ export const resolveBemChain = (
 				{ type, part, selector, rule: bemEntity.rule },
 			];
 
-			const parentBemEntities = getParentBemEntities(bemEntity.rule, separators);
+			const parentBemEntities = (getParentBemEntities(bemEntity.rule, separators) ?? [])
+				// It's technically possible to nest a modifier or utility class value via `&`,
+				// e.g. `.foo.foo--theme { &--dark {} }`. Here we ensure that traversal stops
+				// at the point where the modifier is resolved.
+				.filter((parentEntity) => {
+					if (bemEntity.sourceContext === null) return true;
+					return bemEntity.sourceContext === parentEntity.sourceContext;
+				});
 
 			if (
-				!parentBemEntities
+				isEmpty(parentBemEntities)
 				// Case: `@at-root` with different BEM block nested in another block
 				|| parentBemEntities.every((entity) => !selector.startsWith(entity.bemSelector))
 			) {
@@ -118,7 +142,7 @@ export const resolveBemChain = (
 			return collectChains(
 				parentBemEntities,
 				currentChain,
-				{ selector: bemEntity.bemSelector, specificPartType: type },
+				{ entity: bemEntity, specificPartType: type },
 			);
 		});
 	};
