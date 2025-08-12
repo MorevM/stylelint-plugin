@@ -33,7 +33,7 @@ export default createRule({
 			return [
 				`Unexpected`,
 				propertyType,
-				`property "${propertyName}" within BEM Block selector "${selector}"`,
+				`property "${propertyName}" within BEM ${context} selector "${selector}"`,
 			].filter(Boolean).join(' ');
 		},
 	},
