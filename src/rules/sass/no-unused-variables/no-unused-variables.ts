@@ -39,7 +39,7 @@ const extractSassVariables = (input: string, onlyInterpolated: boolean) => {
 export default createRule({
 	name: addNamespace(RULE_NAME),
 	meta: {
-		description: 'Reports SASS variables that are declared but not used within their valid scope.',
+		description: 'Reports SASS variables that are declared but not used.',
 		deprecated: false,
 		fixable: false,
 	},

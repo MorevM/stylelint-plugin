@@ -1,6 +1,6 @@
 # @morev/sass/no-unused-variables <!-- @include: @/docs/_parts/sass-only.md -->
 
-Reports SASS variables that are declared but not used within their valid scope.
+Reports SASS variables that are declared but not used.
 
 ```scss
 .the-component {
