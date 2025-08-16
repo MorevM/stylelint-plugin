@@ -161,7 +161,7 @@ export const resolveBemEntities = (options: Options) => {
 	// create a dummy `Rule` node for parsing context.
 	const rule = 'rule' in options ? options.rule : new Rule();
 
-	const allBemEntities = resolveNestedSelector({ selector: options.source, node: rule })
+	const allBemEntities = resolveNestedSelector({ source: options.source, node: rule })
 		.reduce<BemEntity[]>((acc, {
 			source: matchedSelector,
 			resolved: resolvedSelector,
