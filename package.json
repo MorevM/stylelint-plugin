@@ -46,7 +46,7 @@
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"scripts": {
-		"prepare": "lefthook install",
+		"prepare": "yarn generate-meta && lefthook install",
 		"test": "vitest",
 		"test:dev": "vitest --watch --reporter=dot",
 		"lint": "yarn lint:eslint && yarn lint:stylelint",
@@ -55,9 +55,10 @@
 		"lint:eslint:fix": "eslint \"**/*.{js,ts,vue,json,json5,jsonc,yml,yaml,md}\" --fix",
 		"lint:stylelint": "stylelint \"**/*.{css,scss}\" --allow-empty-input",
 		"lint:stylelint:fix": "stylelint \"**/*.{css,scss}\" --fix --allow-empty-input",
-		"docs:dev": "vitepress dev docs",
-		"build": "rm -rf dist && tsup",
-		"release": "release-it --disable-metrics"
+		"docs:dev": "yarn generate-meta && vitepress dev docs",
+		"build": "yarn generate-meta && rm -rf dist && tsup",
+		"release": "release-it --disable-metrics",
+		"generate-meta": "tsx src/modules/meta/generate.ts"
 	},
 	"dependencies": {
 		"@morev/utils": "^3.13.1",

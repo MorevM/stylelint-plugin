@@ -27,6 +27,10 @@
 			"#modules/rule-utils/*": ["./src/modules/rule-utils/*"],
 			"#modules/test-utils": ["./src/modules/test-utils/index.ts"],
 			"#modules/test-utils/*": ["./src/modules/test-utils/*"],
+			"#modules/meta": ["./src/modules/meta/index.ts"],
+			"#modules/meta/*": ["./src/modules/meta/*"],
+			"#rules": ["./src/rules/index.ts"],
+			"#rules/*": ["./src/rules/*"],
 		},
 	},
 	"ts-node": {
