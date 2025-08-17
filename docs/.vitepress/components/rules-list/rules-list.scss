@@ -1,0 +1,23 @@
+.rules-list {
+	$b: #{&};
+
+	&__column {
+		&--name {
+			white-space: nowrap;
+		}
+	}
+
+	&__pseudo-header {
+		padding-block: 16px !important;
+	}
+
+	&__scope-label {
+		font-size: 16px;
+		line-height: 1.5;
+		font-weight: 600;
+	}
+
+	&__scope-description {
+		margin-block-start: 4px;
+	}
+}

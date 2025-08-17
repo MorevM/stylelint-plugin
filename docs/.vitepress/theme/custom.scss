@@ -9,4 +9,9 @@
 :root {
 	--vp-home-hero-image-background-image: linear-gradient(-45deg, #b617ff 50%, #00b7ff 50%);
 	--vp-home-hero-image-filter: blur(120px);
+	--vp-sidebar-width: 292px;
+}
+
+.VPDoc:not(.has-aside) .content {
+	max-width: 840px !important;
 }

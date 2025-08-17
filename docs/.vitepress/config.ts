@@ -1,63 +1,35 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { escapeRegExp, formatSlashes } from '@morev/utils';
+import Components from 'unplugin-vue-components/vite';
 import { defineConfig } from 'vitepress';
-
-const DOCS_POSTFIX = '.docs.md';
-const ROOT_PATH = path.resolve(import.meta.dirname, '../..');
-const RULES_DIRECTORY_PATH = path.resolve(ROOT_PATH, 'src/rules');
-
-const docFiles = fs.globSync(`${RULES_DIRECTORY_PATH}/**/*${DOCS_POSTFIX}`);
-const rulesData = docFiles
-	.map((filePath) => formatSlashes(filePath, { to: '/' }))
-	.reduce<Array<{ ruleName: string; relativePathFromRoot: string; vitepressPath: string }>>((acc, filePath) => {
-		const [_, ruleName] = filePath.match(
-			new RegExp(`\/([^\/]+)${escapeRegExp(DOCS_POSTFIX)}$`),
-		)!;
-
-		const relativePathFromRoot = formatSlashes(
-			path.relative(ROOT_PATH, filePath),
-			{ to: '/' },
-		);
-
-		acc.push({
-			ruleName,
-			relativePathFromRoot,
-			vitepressPath: `rules/${ruleName}.md`,
-		});
-		return acc;
-	}, []).sort((a, b) => a.ruleName > b.ruleName ? 1 : -1);
-
-console.log(rulesData);
-
-// const rules = [
-// 	'at-rule-no-children',
-// 	'block-variable',
-// 	'match-file-name',
-// 	'no-duplicated-selectors',
-// 	'no-external-geometry',
-// 	'no-contextual-properties',
-// 	'no-side-effects',
-// 	'no-splitted-entities',
-// 	'pattern',
-// ];
-
-console.log(fileURLToPath(new URL('../public', import.meta.url)));
+import { rulesMeta, scopedRulesMeta } from '../../src/modules/meta/index';
 
 export default defineConfig({
-	// site-level options
 	srcDir: fileURLToPath(new URL('../..', import.meta.url)),
-	title: 'VitePress',
-	description: 'Just playing around.',
+	title: '@morev/stylelint-plugin',
+	description: 'Stylelint rules for BEM and SCSS best practices',
 
 	vite: {
 		publicDir: fileURLToPath(new URL('../public', import.meta.url)),
+		plugins: [
+			Components({
+				dirs: [
+					fileURLToPath(new URL('./components', import.meta.url)),
+				],
+				dts: fileURLToPath(new URL('../components.d.ts', import.meta.url)),
+				include: [/\.vue$/, /\.vue\?vue/, /\.md$/],
+				extensions: ['vue', 'md'],
+			}) as any,
+		],
+		resolve: {
+			alias: {
+				'#modules/meta': fileURLToPath(new URL('../../src/modules/meta/index.ts', import.meta.url)),
+			},
+		},
 	},
 
 	rewrites: {
-		...rulesData.reduce<Record<string, string>>((acc, rule) => {
-			acc[rule.relativePathFromRoot] = rule.vitepressPath;
+		...rulesMeta.reduce<Record<string, string>>((acc, ruleEntry) => {
+			acc[ruleEntry.docsPath] = ruleEntry.vitepressPath.slice(1);
 			return acc;
 		}, {}),
 		'docs/:name(.+).md': ':name.md',
@@ -81,9 +53,13 @@ export default defineConfig({
 			},
 			{
 				text: 'Rules',
-				items: rulesData.map((ruleEntry) => ({
-					link: ruleEntry.vitepressPath,
-					text: ruleEntry.ruleName,
+				link: 'rules.md',
+				items: scopedRulesMeta.map((scopeEntry) => ({
+					text: scopeEntry.label,
+					items: scopeEntry.items.map((ruleEntry) => ({
+						text: ruleEntry.name,
+						link: ruleEntry.vitepressPath,
+					})),
 				})),
 			},
 		],
