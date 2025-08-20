@@ -1,4 +1,4 @@
-@import './sass-only';
+@forward './sass-only';
 
 .VPHero .name {
 	@media (min-width: 960px) {
