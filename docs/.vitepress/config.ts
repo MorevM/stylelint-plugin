@@ -25,6 +25,11 @@ export default defineConfig({
 				'#modules/meta': fileURLToPath(new URL('../../src/modules/meta/index.ts', import.meta.url)),
 			},
 		},
+		css: {
+			preprocessorOptions: {
+				scss: { api: 'modern-compiler' },
+			},
+		},
 	},
 
 	rewrites: {
