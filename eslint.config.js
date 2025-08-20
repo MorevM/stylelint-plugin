@@ -13,5 +13,13 @@ export default combine([
 			'vitest/require-hook': 'off',
 		},
 	}),
+	defineConfiguration('vue', {
+		typescript: true,
+		version: 3,
+		overrides: {
+			// There is no i18n, English version only
+			'vue/no-bare-strings-in-template': 'off',
+		},
+	}),
 	defineConfiguration('typescript'),
 ]);
