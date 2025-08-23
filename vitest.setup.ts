@@ -15,22 +15,8 @@ global.createTestRule = createTestRule;
 global.createTestRuleConfig = createTestRuleConfig;
 
 declare global {
-	// eslint-disable-next-line vars-on-top, no-var
+	// eslint-disable-next-line vars-on-top
 	var createTestRule: CreateTestRule;
-	// eslint-disable-next-line vars-on-top, no-var
+	// eslint-disable-next-line vars-on-top
 	var createTestRuleConfig: CreateTestRuleConfig;
 }
-
-// TODO: Move to separate file
-expect.extend({
-	toShallowEqualArray(actual, expected) {
-		const { isNot, equals } = this;
-		return {
-			actual,
-			expected,
-			// eslint-disable-next-line @typescript-eslint/require-array-sort-compare -- It's safe here
-			pass: equals([...actual].toSorted(), expected.toSorted()),
-			message: () => `Expected arrays ${isNot ? 'not ' : ''}to be equal (shallow)`,
-		};
-	},
-});
