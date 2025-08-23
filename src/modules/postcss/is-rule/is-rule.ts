@@ -1,4 +1,4 @@
-import type { ChildNode, Container, Document, Rule } from 'postcss';
+import type { ChildNode, Container, Document, Node, Rule } from 'postcss';
 
 /**
  * Checks whether a given PostCSS node is an `Rule`.
@@ -8,6 +8,8 @@ import type { ChildNode, Container, Document, Rule } from 'postcss';
  * @returns        `true` if the node is an `Rule`, otherwise `false`. \
  *                 Narrows the type to `Rule` on success.
  */
-export const isRule = (node: Document | ChildNode | Container | undefined): node is Rule => {
+export const isRule = (
+	node: Document | ChildNode | Container | Node | undefined,
+): node is Rule => {
 	return node?.type === 'rule';
 };

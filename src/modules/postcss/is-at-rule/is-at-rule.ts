@@ -1,5 +1,5 @@
 import { isEmpty } from '@morev/utils';
-import type { AtRule, ChildNode, Container, Document } from 'postcss';
+import type { AtRule, ChildNode, Container, Document, Node } from 'postcss';
 
 /**
  * Checks whether a given PostCSS node is an `AtRule`,
@@ -13,7 +13,7 @@ import type { AtRule, ChildNode, Container, Document } from 'postcss';
  *                        Narrows the type to `AtRule` on success.
  */
 export const isAtRule = (
-	node: Document | ChildNode | Container | undefined,
+	node: Document | ChildNode | Container | Node | undefined,
 	atRuleNames?: string[],
 ): node is AtRule => {
 	if (!node) return false;
