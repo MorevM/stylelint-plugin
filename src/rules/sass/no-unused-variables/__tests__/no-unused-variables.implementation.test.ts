@@ -152,6 +152,21 @@ testRule({
 				}
 			`,
 		},
+		{
+			description: 'Top-level variable is mutated within nested rule',
+			code: `
+				@mixin transition($properties...) {
+					$duration: .3s;
+
+					@for $i from 1 through list.length($properties) {
+						$prop: list.nth($properties, $i);
+						$duration: $prop;
+					}
+
+					@include more.use-transition($properties: $properties, $duration: $duration);
+				}
+			`,
+		},
 	],
 	reject: [
 		{

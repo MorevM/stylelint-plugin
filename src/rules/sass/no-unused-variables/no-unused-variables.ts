@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import { isRule } from '#modules/postcss';
 import { addNamespace, createRule, isCssFile, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { toRegExp } from '#modules/shared';
 import type { Declaration, Node } from 'postcss';
@@ -96,6 +97,19 @@ export default createRule({
 		return null;
 	};
 
+	const getParentScopeWithNodes = (node: Node) => {
+		const parentScopes: Array<[Scope, Node]> = [];
+		let parentScopeNode = getParentScopeNode(node);
+		while (parentScopeNode) {
+			const parentScope = scopesMap.get(parentScopeNode);
+			parentScope && parentScopes.push([parentScope, parentScopeNode]);
+
+			parentScopeNode = getParentScopeNode(parentScopeNode);
+		}
+
+		return parentScopes;
+	};
+
 	// Next, we collect all used variables
 	// and register their usage in each corresponding scope.
 	root.walk((node) => {
@@ -137,12 +151,10 @@ export default createRule({
 
 		// When a variable is used within a nested rule,
 		// it is treated as used for all its parent scopes.
-		let parentScopeNode = getParentScopeNode(node);
-		while (parentScopeNode) {
-			const parentScope = scopesMap.get(parentScopeNode);
+		const parentScopeNodes = getParentScopeWithNodes(node);
+		parentScopeNodes.forEach(([parentScope]) => {
 			variables.forEach((variable) => parentScope?.usages.add(variable));
-			parentScopeNode = getParentScopeNode(parentScopeNode);
-		}
+		});
 	});
 
 	// Normalize ignore patterns.
@@ -153,6 +165,13 @@ export default createRule({
 	scopesMap.forEach((scope) => {
 		scope.variables.forEach((declaration, name) => {
 			if (scope.usages.has(name)) return;
+
+			// If a `Scope` isn't a `Rule`, the declaration might affect the parent variable as a side effect -
+			// essentially the only method of reassignment available in SASS.
+			const parentScopeNodes = getParentScopeWithNodes(declaration);
+			if (parentScopeNodes.some(
+				([parentScope, scopeNode]) => !isRule(scopeNode) && parentScope?.usages.has(name),
+			)) { return; }
 
 			const isIgnored = normalizedIgnorePatterns
 				.some((pattern) => pattern.test(name.slice(1)));
