@@ -2,7 +2,7 @@
 	"name": "@morev/stylelint-plugin",
 	"description": "Stylelint rules for BEM and SCSS best practices",
 	"type": "module",
-	"private": true,
+	"private": false,
 	"version": "0.0.0",
 	"engines": {
 		"node": ">=20"
@@ -71,7 +71,7 @@
 		"@morev/eslint-config": "^39.1.0",
 		"@morev/stylelint-config": "^8.0.1",
 		"@morev/stylelint-testing-library": "^1.0.0",
-		"@release-it/conventional-changelog": "^9.0.1",
+		"@release-it/conventional-changelog": "8",
 		"@total-typescript/ts-reset": "^0.6.1",
 		"@types/node": "22",
 		"@vitest/coverage-v8": "^3.2.4",
