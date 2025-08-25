@@ -1,8 +1,56 @@
 name: 🐛 Bug Report
-description: If something goes wrong
+description: Unexpected lint result or crash
 labels: [bug]
 
 body:
+  - type: textarea
+    attributes:
+      label: Code example
+      description: |
+        A minimal reproducible snippet of CSS/SCSS code that triggers the bug.
+      placeholder: |
+        ```scss
+        .block {
+          &__element {
+            $unused: red;
+          }
+        }
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Stylelint config
+      description: |
+        Provide the relevant part of your Stylelint configuration (especially plugin rules).
+      placeholder: |
+        ```js
+        export default {
+          plugins: ['@morev/stylelint-plugin'],
+          rules: {
+            '@morev/sass/no-unused-variables': true,
+          },
+        }
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Environment
+      description: |
+        Please specify the versions you are using.
+      value: |
+        - Node.js:
+        - Stylelint:
+        - @morev/stylelint-plugin:
+        - Package manager (pnpm/yarn/npm):
+        - OS:
+        - Editor/IDE:
+    validations:
+      required: false
+
   - type: textarea
     attributes:
       label: Actual behavior
@@ -19,30 +67,8 @@ body:
 
   - type: textarea
     attributes:
-      label: Steps to reproduce
-      description: Steps to reproduce the behavior.
-      placeholder: |
-        1.
-        2.
-        3.
-
-  - type: textarea
-    attributes:
-      label: Environment
-      description: |
-        Example:
-          - Device: [Desktop, iPhone X, etc.]
-          - OS: [Windows 10, iOS 11.1, etc.]
-          - Browser: [Chrome 89, iOS Safari 13.7, etc.]
-      value: |
-        - Device:
-        - OS:
-        - Browser:
-
-  - type: textarea
-    attributes:
       label: Additional context
-      description: Any other context about the problem here.
+      description: Any other context about the problem here (e.g. related tools, IDE integration).
     validations:
       required: false
 
