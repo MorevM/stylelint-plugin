@@ -6,9 +6,7 @@ export default defineConfig(() => {
 		clean: true,
 		target: 'esnext',
 		format: ['cjs', 'esm'],
-		dts: {
-			entry: 'src/index.ts',
-		},
+		dts: true,
 		external: [
 			'postcss',
 			'stylelint',
@@ -16,6 +14,7 @@ export default defineConfig(() => {
 		],
 		entryPoints: [
 			'src/index.ts',
+			'src/constants.ts',
 		],
 		outExtension: ({ format }) => ({ js: format === 'cjs' ? `.${format}` : `.js` }),
 	};

@@ -1,0 +1,6 @@
+export {
+	CAMEL_CASE_REGEXP,
+	KEBAB_CASE_REGEXP,
+	PASCAL_CASE_REGEXP,
+	SNAKE_CASE_REGEXP,
+} from './modules/shared';
