@@ -38,7 +38,7 @@ export const vMessagesSchema = <
 		[K in keyof T]: v.OptionalSchema<ReturnType<typeof vFunction>, undefined>
 	};
 
-	// eslint-disable-next-line no-restricted-syntax, guard-for-in -- Trust me it's safe here
+	// eslint-disable-next-line guard-for-in -- Trust me it's safe here
 	for (const key in definition) {
 		shape[key] = v.optional(vFunction(definition[key], v.string()));
 	}
