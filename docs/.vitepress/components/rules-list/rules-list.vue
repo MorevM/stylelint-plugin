@@ -30,8 +30,8 @@
 </template>
 
 <script setup lang="ts">
-	import { scopedRulesMeta } from '#modules/meta';
 	import { withBase } from 'vitepress';
+	import { scopedRulesMeta } from '#modules/meta';
 
 	defineOptions({ name: 'rules-list' });
 </script>
