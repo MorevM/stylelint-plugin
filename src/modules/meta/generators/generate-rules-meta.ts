@@ -61,6 +61,7 @@ export const generateRulesMeta = async () => {
 				fixable: meta.fixable,
 				docsPath: docsRelativePath,
 				vitepressPath: `/rules/${scope}/${name}.md`,
+				vitepressLink: `/rules/${scope}/${name}.html`,
 			};
 		});
 

@@ -53,9 +53,16 @@ export type RuleMeta = {
 	/**
 	 * The path used by VitePress to link to the rule's documentation page.
 	 *
-	 * @example '/rules/bem/no-side-effects.html'
+	 * @example '/rules/bem/no-side-effects.md'
 	 */
 	vitepressPath: string;
+
+	/**
+	 * The link to the rule page used by VitePress.
+	 *
+	 * @example '/rules/bem/no-side-effects.html'
+	 */
+	vitepressLink: string;
 };
 
 /**

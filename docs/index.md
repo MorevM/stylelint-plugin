@@ -3,23 +3,29 @@ layout: home
 
 hero:
   name: "@morev/stylelint-plugin"
-  tagline: A collection of rules enforcing the best practices of BEM and (S)CSS
+  tagline: A modern Stylelint plugin with rules for clean, consistent, and scalable CSS, SCSS, and BEM
   image:
     src: /logo.svg
     alt: '@morev/stylelint-plugin logo'
   actions:
     - theme: brand
-      text: Installation & usage
-      link: /guide/installation-and-usage
+      text: Installation
+      link: /guide/installation/
     - theme: alt
-      text: Rules
+      text: Usage
+      link: /guide/usage/
+    - theme: alt
+      text: Rules list
       link: /rules/
 
 features:
+  - title: Battle-tested rules
+    icon: 🛡️
+    details: Designed to catch real-world mistakes like unused variables or side-effect declarations.
   - title: Fully Customizable
     icon: 🛠️
-    details: Fine-tune every single rule to fit your needs.
+    details: Adjust global options and per-rule settings to match your team’s workflow and conventions.
   - title: CSS & SCSS
     icon: 📦
-    details: Support both CSS and SCSS.
+    details: Works seamlessly with plain CSS as well as SCSS features like nesting and variables.
 ---

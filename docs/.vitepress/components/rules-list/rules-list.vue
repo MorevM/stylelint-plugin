@@ -15,7 +15,7 @@
 				</tr>
 				<tr v-for="rule in category.items" :key="rule.name">
 					<td class="rules-list__column rules-list__column--name">
-						<a :href="rule.vitepressPath">
+						<a :href="rule.vitepressLink">
 							<code>{{ rule.name }}</code>
 						</a>
 					</td>

@@ -10,6 +10,7 @@ export const rulesMeta = [
 		fixable: false,
 		docsPath: 'src/rules/sass/no-unused-variables/no-unused-variables.docs.md',
 		vitepressPath: '/rules/sass/no-unused-variables.md',
+		vitepressLink: '/rules/sass/no-unused-variables.html',
 	},
 	{
 		id: '@morev/bem/selector-pattern',
@@ -19,6 +20,7 @@ export const rulesMeta = [
 		fixable: false,
 		docsPath: 'src/rules/bem/selector-pattern/selector-pattern.docs.md',
 		vitepressPath: '/rules/bem/selector-pattern.md',
+		vitepressLink: '/rules/bem/selector-pattern.html',
 	},
 	{
 		id: '@morev/bem/no-side-effects',
@@ -28,6 +30,7 @@ export const rulesMeta = [
 		fixable: false,
 		docsPath: 'src/rules/bem/no-side-effects/no-side-effects.docs.md',
 		vitepressPath: '/rules/bem/no-side-effects.md',
+		vitepressLink: '/rules/bem/no-side-effects.html',
 	},
 	{
 		id: '@morev/bem/no-chained-entities',
@@ -37,6 +40,7 @@ export const rulesMeta = [
 		fixable: false,
 		docsPath: 'src/rules/bem/no-chained-entities/no-chained-entities.docs.md',
 		vitepressPath: '/rules/bem/no-chained-entities.md',
+		vitepressLink: '/rules/bem/no-chained-entities.html',
 	},
 	{
 		id: '@morev/bem/no-block-properties',
@@ -46,6 +50,7 @@ export const rulesMeta = [
 		fixable: false,
 		docsPath: 'src/rules/bem/no-block-properties/no-block-properties.docs.md',
 		vitepressPath: '/rules/bem/no-block-properties.md',
+		vitepressLink: '/rules/bem/no-block-properties.html',
 	},
 	{
 		id: '@morev/bem/match-file-name',
@@ -55,6 +60,7 @@ export const rulesMeta = [
 		fixable: false,
 		docsPath: 'src/rules/bem/match-file-name/match-file-name.docs.md',
 		vitepressPath: '/rules/bem/match-file-name.md',
+		vitepressLink: '/rules/bem/match-file-name.html',
 	},
 	{
 		id: '@morev/bem/block-variable',
@@ -64,6 +70,7 @@ export const rulesMeta = [
 		fixable: true,
 		docsPath: 'src/rules/bem/block-variable/block-variable.docs.md',
 		vitepressPath: '/rules/bem/block-variable.md',
+		vitepressLink: '/rules/bem/block-variable.html',
 	},
 	{
 		id: '@morev/base/no-selectors-in-at-rules',
@@ -73,6 +80,7 @@ export const rulesMeta = [
 		fixable: false,
 		docsPath: 'src/rules/base/no-selectors-in-at-rules/no-selectors-in-at-rules.docs.md',
 		vitepressPath: '/rules/base/no-selectors-in-at-rules.md',
+		vitepressLink: '/rules/base/no-selectors-in-at-rules.html',
 	},
 ] as const;
 
@@ -90,6 +98,7 @@ export const scopedRulesMeta = [
 				fixable: false,
 				docsPath: 'src/rules/base/no-selectors-in-at-rules/no-selectors-in-at-rules.docs.md',
 				vitepressPath: '/rules/base/no-selectors-in-at-rules.md',
+				vitepressLink: '/rules/base/no-selectors-in-at-rules.html',
 			},
 		],
 	},
@@ -106,6 +115,7 @@ export const scopedRulesMeta = [
 				fixable: true,
 				docsPath: 'src/rules/bem/block-variable/block-variable.docs.md',
 				vitepressPath: '/rules/bem/block-variable.md',
+				vitepressLink: '/rules/bem/block-variable.html',
 			},
 			{
 				id: '@morev/bem/match-file-name',
@@ -115,6 +125,7 @@ export const scopedRulesMeta = [
 				fixable: false,
 				docsPath: 'src/rules/bem/match-file-name/match-file-name.docs.md',
 				vitepressPath: '/rules/bem/match-file-name.md',
+				vitepressLink: '/rules/bem/match-file-name.html',
 			},
 			{
 				id: '@morev/bem/no-block-properties',
@@ -124,6 +135,7 @@ export const scopedRulesMeta = [
 				fixable: false,
 				docsPath: 'src/rules/bem/no-block-properties/no-block-properties.docs.md',
 				vitepressPath: '/rules/bem/no-block-properties.md',
+				vitepressLink: '/rules/bem/no-block-properties.html',
 			},
 			{
 				id: '@morev/bem/no-chained-entities',
@@ -133,6 +145,7 @@ export const scopedRulesMeta = [
 				fixable: false,
 				docsPath: 'src/rules/bem/no-chained-entities/no-chained-entities.docs.md',
 				vitepressPath: '/rules/bem/no-chained-entities.md',
+				vitepressLink: '/rules/bem/no-chained-entities.html',
 			},
 			{
 				id: '@morev/bem/no-side-effects',
@@ -142,6 +155,7 @@ export const scopedRulesMeta = [
 				fixable: false,
 				docsPath: 'src/rules/bem/no-side-effects/no-side-effects.docs.md',
 				vitepressPath: '/rules/bem/no-side-effects.md',
+				vitepressLink: '/rules/bem/no-side-effects.html',
 			},
 			{
 				id: '@morev/bem/selector-pattern',
@@ -151,6 +165,7 @@ export const scopedRulesMeta = [
 				fixable: false,
 				docsPath: 'src/rules/bem/selector-pattern/selector-pattern.docs.md',
 				vitepressPath: '/rules/bem/selector-pattern.md',
+				vitepressLink: '/rules/bem/selector-pattern.html',
 			},
 		],
 	},
@@ -167,6 +182,7 @@ export const scopedRulesMeta = [
 				fixable: false,
 				docsPath: 'src/rules/sass/no-unused-variables/no-unused-variables.docs.md',
 				vitepressPath: '/rules/sass/no-unused-variables.md',
+				vitepressLink: '/rules/sass/no-unused-variables.html',
 			},
 		],
 	},

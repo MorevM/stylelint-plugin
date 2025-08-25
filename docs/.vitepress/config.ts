@@ -41,18 +41,34 @@ export default defineConfig({
 	},
 
 	themeConfig: {
-		logo: '/logo.svg',
+		logo: {
+			dark: '/logo.svg',
+			light: '/logo-light.svg',
+		},
+		socialLinks: [
+			{
+				icon: 'github',
+				link: 'https://github.com/morevm/stylelint-plugin',
+			},
+		],
 		outline: [2, 3],
+		footer: {
+			message: 'Released under the MIT License.',
+		},
 		nav: [
-			{ text: 'Rules', link: '/rules' },
+			{ text: 'Rules list', link: '/rules' },
 		],
 		sidebar: [
 			{
 				text: 'Guide',
 				items: [
 					{
-						text: 'Installation & usage',
-						link: 'guide/installation-and-usage.md',
+						text: 'Installation',
+						link: '/guide/installation.md',
+					},
+					{
+						text: 'Usage',
+						link: '/guide/usage.md',
 					},
 				],
 			},
