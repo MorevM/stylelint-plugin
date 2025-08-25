@@ -1,0 +1,10 @@
+blank_issues_enabled: true
+
+contact_links:
+  - name: 💬 Start a Discussion
+    url: https://github.com/morevm/stylelint-plugin/discussions
+    about: For general ideas, usage questions, or proposals that need brainstorming
+
+  - name: 📖 Documentation
+    url: https://morevm.github.io/stylelint-plugin/
+    about: Read the official docs before opening an issue
