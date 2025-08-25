@@ -1,0 +1,59 @@
+name: 🔧 Rule Enhancement
+description: Suggest improvements to an existing rule
+labels: [enhancement]
+
+body:
+  - type: input
+    attributes:
+      label: Target rule
+      description: Which rule do you want to improve? (e.g. `@morev/sass/no-unused-variables`)
+      placeholder: '@morev/<scope>/<rule-name>'
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Current behavior
+      description: What does the rule currently do, and where does it fall short?
+      placeholder: |
+        Describe the limitation, missing option, or edge case.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Proposed behavior
+      description: What should be changed or added?
+      placeholder: |
+        - New option(s)
+        - Expanded detection
+        - Safer/more consistent autofix
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Examples
+      description: Minimal code samples showing the current vs desired behavior.
+      placeholder: |
+        ```scss
+        // Current (❌ reports incorrectly)
+        .block {
+          $unused: red;
+        }
+
+        // Desired (✅ should pass)
+        .block {
+          $used: red;
+          color: $used;
+        }
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Why is this enhancement important? Any references or related rules?
+    validations:
+      required: false
