@@ -60,6 +60,9 @@
 		"release": "release-it --disable-metrics",
 		"generate-meta": "tsx src/modules/meta/generate.ts"
 	},
+	"peerDependencies": {
+		"stylelint": "^16"
+	},
 	"dependencies": {
 		"@morev/utils": "^3.13.1",
 		"postcss": "^8.5.6",
