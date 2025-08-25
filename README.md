@@ -1,4 +1,4 @@
-<img src="./.github/assets/banner.png" alt="Promotional image of @morev/stylelint-plugin package" width="830" height="465" />
+<img src="./.github/images/banner.svg" alt="Promotional image of @morev/stylelint-plugin package" width="830" height="465" />
 
 ![Stability of "master" branch](https://img.shields.io/github/actions/workflow/status/MorevM/stylelint-plugin/build.yaml?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

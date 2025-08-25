@@ -52,12 +52,12 @@
 			{
 				"name": "Build",
 				"singleInstance": true,
-				"command": "yarn build",
+				"command": "pnpm build",
 			},
 			{
 				"name": "Generate meta",
 				"singleInstance": true,
-				"command": "yarn generate-meta",
+				"command": "pnpm generate-meta",
 			},
 			{
 				"name": "Restart stylelint",
