@@ -703,8 +703,6 @@ This is useful for:
 
 <!-- @include: @/docs/_parts/separators.md#formatting -->
 
-<!-- TODO: Pattern link related -->
-
 ---
 
 ### `messages`

@@ -153,9 +153,8 @@ Supports:
 The `$` prefix is automatically handled by the rule - in the config, you only specify the name part.
 :::
 
-<!-- TODO: Link -->
 ::: info
-If you want to use it together with the `block-variable` rule,
+If you want to use it together with the [`block-variable`](/rules/bem/block-variable) rule,
 you need to set `ignore: ['b']` to ensure consistency across all style files.
 :::
 

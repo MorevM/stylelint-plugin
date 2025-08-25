@@ -1,5 +1,4 @@
-# @morev/best-practices/no-selectors-in-at-rules
-<!-- TODO: Нейминг правил подумой -->
+# @morev/base/no-selectors-in-at-rules
 
 Disallows placing rules (selectors) inside at-rules.
 
