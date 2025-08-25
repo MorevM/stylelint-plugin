@@ -1,0 +1,21 @@
+name: ❓ Ask a Question
+description: Ask about usage, configuration, or unexpected behavior
+labels: [question]
+
+body:
+  - type: textarea
+    attributes:
+      label: Your question
+      description: Clearly describe what you want to know or understand.
+      placeholder: |
+        How do I configure `@morev/bem/selector-pattern` for multiple separators?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Context
+      description: |
+        Share any relevant code, config, or error messages that help explain the situation.
+      validations:
+        required: false
