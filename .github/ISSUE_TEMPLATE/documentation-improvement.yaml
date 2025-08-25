@@ -1,0 +1,42 @@
+name: 📖 Documentation Improvement
+description: Suggest improvements or additions to the documentation
+labels: [documentation]
+
+body:
+  - type: textarea
+    attributes:
+      label: Affected section
+      description: Which page or section of the docs needs improvement?
+      placeholder: |
+        - Rule docs: `@morev/bem/selector-pattern`, link: <link>
+        - Guide: "Typed configuration", link: <link>
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Issue
+      description: What is unclear, missing, or incorrect in the current docs?
+      placeholder: |
+        - Missing examples
+        - Ambiguous explanation
+        - Outdated information
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Suggested improvement
+      description: How should the documentation be changed?
+      placeholder: |
+        - Add code sample showing nested selector
+        - Clarify the meaning of "block variable"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Links, references, or anything else that helps clarify the suggestion.
+    validations:
+      required: false
