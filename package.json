@@ -65,7 +65,9 @@
 		"lint:eslint:fix": "eslint \"**/*.{js,ts,vue,json,json5,jsonc,yml,yaml,md}\" --fix",
 		"lint:stylelint": "stylelint \"**/*.{css,scss}\" --allow-empty-input",
 		"lint:stylelint:fix": "stylelint \"**/*.{css,scss}\" --fix --allow-empty-input",
-		"docs:dev": "pnpm generate-meta && vitepress dev docs",
+		"docs:dev": "vitepress dev docs",
+		"docs:build": "pnpm generate-meta && vitepress build docs",
+		"docs:preview": "vitepress preview docs --base /stylelint-plugin/",
 		"build": "pnpm generate-meta && rm -rf dist && tsup",
 		"release": "release-it --disable-metrics",
 		"generate-meta": "tsx src/modules/meta/generate.ts"

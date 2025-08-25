@@ -7,7 +7,7 @@ export default defineConfig({
 	srcDir: fileURLToPath(new URL('../..', import.meta.url)),
 	title: '@morev/stylelint-plugin',
 	description: 'Stylelint rules for BEM and SCSS best practices',
-
+	base: '/stylelint-plugin/',
 	vite: {
 		publicDir: fileURLToPath(new URL('../public', import.meta.url)),
 		plugins: [

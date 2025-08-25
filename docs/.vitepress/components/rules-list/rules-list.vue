@@ -15,7 +15,7 @@
 				</tr>
 				<tr v-for="rule in category.items" :key="rule.name">
 					<td class="rules-list__column rules-list__column--name">
-						<a :href="rule.vitepressLink">
+						<a :href="withBase(rule.vitepressLink)">
 							<code>{{ rule.name }}</code>
 						</a>
 					</td>
@@ -31,6 +31,7 @@
 
 <script setup lang="ts">
 	import { scopedRulesMeta } from '#modules/meta';
+	import { withBase } from 'vitepress';
 
 	defineOptions({ name: 'rules-list' });
 </script>
