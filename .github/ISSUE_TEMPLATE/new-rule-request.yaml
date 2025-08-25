@@ -1,0 +1,68 @@
+name: ✨ New Rule Request
+description: Propose a new rule for the plugin
+labels: [new rule]
+
+body:
+  - type: textarea
+    attributes:
+      label: Problem to solve
+      description: |
+        What problem or bad practice should this rule catch or prevent? Why is it important?
+      placeholder: |
+        Describe the issue this rule addresses. Links or references welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Proposed behavior
+      description: |
+        How should the rule work by default? What are the expected reports/fixes?
+      placeholder: |
+        - Default behavior
+        - Should it autofix?
+        - Edge cases or limitations
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Examples
+      description: |
+        Show minimal code samples of incorrect (❌) and correct (✅) usage.
+      placeholder: |
+        ```scss
+        // ❌ incorrect
+        aspect-ratio: 2;
+
+        // ✅ correct
+        aspect-ratio: 2 / 1;
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Options
+      description: What configuration options could the rule support? (if any)
+      placeholder: |
+        e.g. { "mode": "always-if-possible" | "never" }
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Rule name ideas
+      description: Any suggestions for a possible rule name? (optional)
+      placeholder: |
+        Maybe `aspect-ratio-shorthand`?
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: |
+        References, existing alternatives, prior art, or anything else useful.
+    validations:
+      required: false
