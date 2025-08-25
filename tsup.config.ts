@@ -6,7 +6,6 @@ export default defineConfig(() => {
 		clean: true,
 		target: 'esnext',
 		format: ['cjs', 'esm'],
-
 		dts: {
 			entry: 'src/index.ts',
 		},

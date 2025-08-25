@@ -76,12 +76,7 @@ export type RuleSetting<Primary, Secondary> =
 
 export type PluginGlobals = {
 	/**
-	 * Global options for the plugin that may affect multiple rules.
+	 * Defines the separators used to parse BEM class names.
 	 */
-	globals: {
-		/**
-		 * Defines the separators used to parse BEM class names.
-		 */
-		separators?: Separators;
-	};
+	separators?: Separators;
 };
