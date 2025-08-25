@@ -3,15 +3,14 @@ import { Declaration } from 'postcss';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { getRuleDeclarations } from '#modules/postcss';
-import { addNamespace, createRule, extractSeparators, isCssFile, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
+import { createRule, extractSeparators, isCssFile, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
 import { parseSelectors } from '#modules/selectors';
 import type { Rule } from 'postcss';
 import type parser from 'postcss-selector-parser';
 
-const RULE_NAME = 'bem/block-variable';
-
 export default createRule({
-	name: addNamespace(RULE_NAME),
+	scope: 'bem',
+	name: 'block-variable',
 	meta: {
 		description: 'Requires the component\'s root selector to define a variable referencing the block name.',
 		deprecated: false,

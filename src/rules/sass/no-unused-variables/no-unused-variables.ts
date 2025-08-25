@@ -1,11 +1,9 @@
 import * as v from 'valibot';
 import { isRule } from '#modules/postcss';
-import { addNamespace, createRule, isCssFile, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { createRule, isCssFile, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { toRegExp } from '#modules/shared';
 import type { Declaration, Node } from 'postcss';
 import type { Scope } from './no-unused-variables.types';
-
-const RULE_NAME = 'sass/no-unused-variables';
 
 /**
  * Extracts SASS variable references from the given string.
@@ -38,7 +36,8 @@ const extractSassVariables = (input: string, onlyInterpolated: boolean) => {
 };
 
 export default createRule({
-	name: addNamespace(RULE_NAME),
+	scope: 'sass',
+	name: 'no-unused-variables',
 	meta: {
 		description: 'Reports SASS variables that are declared but not used.',
 		deprecated: false,

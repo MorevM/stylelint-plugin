@@ -2,15 +2,14 @@ import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { isAtRule, isKeyframesRule, isRule } from '#modules/postcss';
-import { addNamespace, createRule, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { createRule, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { resolveSelectorNodes } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
 import { createViolationsRegistry, trimBoundaryNodes } from './utils';
 
-const RULE_NAME = 'bem/no-side-effects';
-
 export default createRule({
-	name: addNamespace(RULE_NAME),
+	scope: 'bem',
+	name: 'no-side-effects',
 	meta: {
 		description: 'Disallows selectors that apply styles outside the scope of the current BEM block.',
 		deprecated: false,

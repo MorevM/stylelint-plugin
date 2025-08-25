@@ -1,16 +1,14 @@
 import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
 import { BEM_ENTITIES, resolveBemEntities } from '#modules/bem';
-import { addNamespace, createRule, extractSeparators, mergeMessages, vArrayable, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { createRule, extractSeparators, mergeMessages, vArrayable, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { KEBAB_CASE_REGEXP, toRegExp } from '#modules/shared';
 import { createMessage, createViolationsRegistry, normalizePattern } from './utils';
 import type { ProcessedPattern } from './selector-pattern.types';
 
-
-const RULE_NAME = 'bem/selector-pattern';
-
 export default createRule({
-	name: addNamespace(RULE_NAME),
+	scope: 'bem',
+	name: 'selector-pattern',
 	meta: {
 		description: 'Enforces naming patterns for BEM entities.',
 		deprecated: false,

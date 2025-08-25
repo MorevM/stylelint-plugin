@@ -1,7 +1,7 @@
 import { stripIndent, tsObject } from '@morev/utils';
 import stylelint from 'stylelint';
-import { getRuleUrl } from '#modules/rule-utils/get-rule-url/get-rule-url';
 import { validateOptions } from '#modules/rule-utils/validate-options/validate-options';
+import { DOCUMENTATION_URL, NAMESPACE } from '#modules/shared';
 import type { Root } from 'postcss';
 import type { PostcssResult, Problem, Rule } from 'stylelint';
 import type { GenericSchema, InferOutput } from 'valibot';
@@ -18,6 +18,7 @@ type Options<
 	Messages extends MessagesTemplate,
 > = {
 	name: string;
+	scope: string;
 	messages: Messages;
 	meta: {
 		description: string;
@@ -68,6 +69,8 @@ export const createRule = <
 	);
 	const messages = ruleMessages(options.name, stripIndentMessages) as unknown as Messages;
 
+	const ruleName = `${NAMESPACE}/${options.scope}/${options.name}`;
+
 	const rule: Rule = (primary_, secondary_, context) => {
 		return (root, result) => {
 			const {
@@ -86,7 +89,7 @@ export const createRule = <
 					result,
 					messages,
 					report: (problem: BetterProblem) => report({
-						ruleName: options.name,
+						ruleName,
 						result,
 						...problem,
 					}),
@@ -95,11 +98,11 @@ export const createRule = <
 		};
 	};
 
-	rule.ruleName = options.name;
+	rule.ruleName = ruleName;
 	rule.messages = messages;
 	rule.meta = {
 		...options.meta,
-		url: getRuleUrl(options.name),
+		url: `${DOCUMENTATION_URL}/rules/${options.scope}/${options.name}.html`,
 	};
 
 	return rule as Rule & { messages: Messages };

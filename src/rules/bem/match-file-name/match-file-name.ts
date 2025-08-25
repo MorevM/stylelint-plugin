@@ -2,12 +2,11 @@ import path from 'node:path';
 import { kebabCase } from '@morev/utils';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
-import { addNamespace, createRule, mergeMessages, vMessagesSchema } from '#modules/rule-utils';
-
-const RULE_NAME = 'bem/match-file-name';
+import { createRule, mergeMessages, vMessagesSchema } from '#modules/rule-utils';
 
 export default createRule({
-	name: addNamespace(RULE_NAME),
+	scope: 'bem',
+	name: 'match-file-name',
 	meta: {
 		description: 'Requires the file name to begin with the name of the BEM block it represents.',
 		deprecated: false,
