@@ -17,5 +17,5 @@ body:
       label: Context
       description: |
         Share any relevant code, config, or error messages that help explain the situation.
-      validations:
-        required: false
+    validations:
+      required: false
