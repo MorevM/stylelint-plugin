@@ -43,6 +43,14 @@ testRule({
 				}
 			`,
 		},
+		{
+			description: 'Does not throw on input with syntax errors',
+			code: `
+				.selector {
+					&__el) {}
+				}
+			`,
+		},
 	],
 	reject: [
 		{

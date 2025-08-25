@@ -48,6 +48,8 @@ const createCandidateStore = () => {
  *                  a potentially BEM-relevant segment, sorted by source order.
  */
 export const getBemCandidateSegments = (nodes: parser.Node[]): parser.Node[][] => {
+	if (isEmpty(nodes)) return [];
+
 	const result: parser.Node[][] = [];
 	let i = 0;
 
