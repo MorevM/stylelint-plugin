@@ -1,75 +1,116 @@
 # Contribution Guidelines
 
-[In English](#custom-prefix-english) | [На русском](#custom-prefix-russian)
+[На русском языке → CONTRIBUTING_RU.md](./CONTRIBUTING_RU.md)
 
-<!-- markdownlint-disable-next-line md033 -->
-<div id="custom-prefix-english"></div>
+Thank you for considering contributing to this project! 👏
 
-Thank you for thinking of contributing to this project! 👏
-
-Following these guidelines helps to communicate that you respect the time of the maintainer and developing this open source project. \
-In return, they should reciprocate that respect in addressing your issue, assessing changes, and helping you finalize your pull requests.
-
-## 🏳️ Language
-
-Please use either English or Russian. \
-English is preferred as it's more widely used, but feel free to use Russian if you can't express a thought in English clearly enough.
-
-## 💌 Templates
-
-Please use the provided issue/PR templates where possible. \
-There are various templates for asking a question, reporting a bug or requesting a new feature.
-
-* [Create an issue](https://github.com/MorevM/stylelint-plugin/issues/new)
-* [Guide: Creating a pull request](https://help.github.com/articles/creating-a-pull-request/)
-
-## ✒️ Ways to Contribute
-
-* Blog or tweet about the project
-* Improve documentation
-* Fix a bug
-* Implement a new feature
-* Discuss potential ways to improve project
-* Improve existing implementation, performance, etc.
-
-
-<br />
-<br />
-<br />
+Contributions are welcome in many forms - from documentation tweaks to new Stylelint rules. \
+This guide will help you get started smoothly.
 
 ---
 
-<br />
-<br />
-<br />
+## 🏳️ Language
 
-<!-- markdownlint-disable-next-line md033 -->
-<div id="custom-prefix-russian"></div>
+Use English whenever possible. \
+Russian is acceptable if it helps you express the idea more clearly. \
+Feel free to reach out via any of the direct contacts listed in [my profile](https://github.com/MorevM)
+if that's more convenient for you.
 
-Спасибо, что решили внести свой вклад! 👏
+---
 
-Следование рекомендациям ниже помогает показать, что вы уважаете время разработчиков этого проекта с открытым исходным кодом.
-В свою очередь, разработчики отвечают тем же, решая вашу проблему, оценивая изменения и помогая доработать ваши `PR`.
+## 💌 Issues & PRs
 
-## 🏳️ Язык
+* Please use the provided **issue and PR templates** when possible - they help keep reports and contributions clear and structured;
+* If your case doesn't fit any template, feel free to open a plain issue/PR, but try to provide enough context;
+* Prefer discussing large ideas in an issue **before** sending a PR.
 
-Пожалуйста, используйте английский или русский. \
-Английский предпочтительнее, так как более широко используется, но не стесняйтесь использовать русский,
-если вы не можете выразить мысль на английском достаточно явно.
+### Useful links
 
-## 💌 Шаблоны
+* [Guide: Contributing to a project](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project)
+* [Guide: Creating a pull request](https://help.github.com/articles/creating-a-pull-request/)
+* [Create a new issue](https://github.com/MorevM/stylelint-plugin/issues/new/choose)
+* [Open a pull request](https://github.com/MorevM/stylelint-plugin/compare)
 
-Пожалуйста, используйте шаблоны для создания `issue` и `PR`, где это возможно. \
-Используются разные шаблоны для того, чтобы задать вопрос, сообщить о баге или предложить новую функциональность.
+---
 
-* [Задать вопрос / Сообщить о баге / Предложить новую функциональность](https://github.com/MorevM/stylelint-plugin/issues/new)
-* [Гайд: Создание пул-реквеста [EN]](https://help.github.com/articles/creating-a-pull-request/)
+## ⚙️ Development workflow
 
-## ✒️ Способы внести вклад
+This project requires **Node.js 22 or higher** and **pnpm v10** for development. \
+End-users can install and run the plugin with **Node.js 18 or higher**.
 
-* Написать о проекте в Твиттере или своём сайте
-* Улучшить документацию
-* Исправить баг
-* Внедрить новую функциональность
-* Участвовать в обсуждениях о развитии проекта
-* Улучшить существующий код
+---
+
+### Setup
+
+```bash
+pnpm install
+```
+
+---
+
+### Common scripts
+
+* **`pnpm prepare`** \
+  Runs `generate-meta` and installs Git hooks via [lefthook](https://github.com/evilmartians/lefthook). \
+  Runs automatically after `pnpm install`.
+
+* **`pnpm test`** \
+  Runs the full test suite with [vitest](https://vitest.dev/).
+
+* **`pnpm test:dev`** \
+  Starts Vitest in watch mode with a minimal reporter. \
+  You can limit the scope to matching files, e.g. `pnpm test:dev no-unused-variables.impl`
+  will only run tests from files containing that substring in their path.
+
+* **`pnpm lint`** \
+  Runs both ESLint and Stylelint across the codebase. \
+  No separate formatter is used. ESLint (with the [Stylistic plugin](https://eslint.style/)) acts as a code formatter.
+
+* **`pnpm lint:fix`** \
+  Same as `lint`, but with autofix enabled.
+
+* **`pnpm build`** \
+  Generates rule metadata (schemas) and bundles the project.
+
+* **`pnpm docs:dev`** \
+  Starts the **VitePress** dev server for documentation.
+
+* **`pnpm docs:build`** \
+  Regenerates rule metadata and builds static docs.
+
+* **`pnpm docs:preview`** \
+  Runs a local preview of the built docs.
+
+* **`pnpm generate-meta`** \
+  Generates rule metadata and schemas from source code.
+  This script is invoked before build/docs/release to ensure consistency.
+
+---
+
+### Editor integration & hooks
+
+* If you use **ESLint extension** in your editor, formatting fixes will be applied automatically on save.
+* Pre-commit hooks are installed via [lefthook](https://github.com/evilmartians/lefthook):
+  * Commit messages are validated against [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/);
+  * Linting runs on staged files to prevent committing invalid code.
+
+---
+
+## ✒️ Ways to contribute
+
+* Fix a bug
+* Improve or add documentation
+* Propose a new rule
+* Suggest enhancements or options for existing rules
+* Improve performance or internal code organization
+* Share the project (blog posts, social media)
+
+---
+
+## ✅ Good practices
+
+* Keep PRs small and focused
+* Include minimal **❌ incorrect / ✅ correct** code examples
+* Update rule docs when behavior changes
+* Ensure tests cover both valid and invalid cases
+* Discuss breaking changes before implementing
