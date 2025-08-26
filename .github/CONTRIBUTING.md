@@ -1,6 +1,6 @@
 # Contribution Guidelines
 
-[На русском языке → CONTRIBUTING_RU.md](./CONTRIBUTING_RU.md)
+[На русском языке → CONTRIBUTING_RU.md](https://github.com/MorevM/stylelint-plugin/blob/master/.github/CONTRIBUTING_RU.md)
 
 Thank you for considering contributing to this project! 👏
 
