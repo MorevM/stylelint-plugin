@@ -1,19 +1,35 @@
-name: 🐛 Bug Report
+name: 🐞 Bug Report
 description: Unexpected lint result or crash
 labels: [bug]
 
 body:
   - type: textarea
     attributes:
+      label: Summary
+      description: A short, high-level description of the problem in free form.
+      placeholder: |
+        Briefly describe the issue you're facing.
+        Example: "The `@morev/sass/no-unused-variables` rule reports variables as unused when they are passed into mixins."
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Target rule
+      description: Which rule seems affected?
+      placeholder: '@morev/<scope>/<rule-name>'
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
       label: Code example
       description: |
         A minimal reproducible snippet of CSS/SCSS code that triggers the bug.
-      placeholder: |
+      value: |
         ```scss
-        .block {
-          &__element {
-            $unused: red;
-          }
+        .foo {
+          // ...
         }
         ```
     validations:
@@ -24,15 +40,29 @@ body:
       label: Stylelint config
       description: |
         Provide the relevant part of your Stylelint configuration (especially plugin rules).
-      placeholder: |
+      value: |
         ```js
         export default {
           plugins: ['@morev/stylelint-plugin'],
           rules: {
-            '@morev/sass/no-unused-variables': true,
+            // ...
           },
         }
         ```
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Actual behavior
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
     validations:
       required: true
 
@@ -50,20 +80,6 @@ body:
         - Editor/IDE:
     validations:
       required: false
-
-  - type: textarea
-    attributes:
-      label: Actual behavior
-      description: A clear and concise description of what the bug is.
-    validations:
-      required: true
-
-  - type: textarea
-    attributes:
-      label: Expected behavior
-      description: A clear and concise description of what you expected to happen.
-    validations:
-      required: true
 
   - type: textarea
     attributes:
