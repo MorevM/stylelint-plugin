@@ -3,20 +3,28 @@ description: Suggest improvements to an existing rule
 labels: [enhancement]
 
 body:
+  - type: textarea
+    attributes:
+      label: Summary
+      description: A short free-form description of the problem or idea.
+      placeholder: E.g. "The `selector-pattern` rule doesn't handle nested selectors well."
+    validations:
+      required: true
+
   - type: input
     attributes:
       label: Target rule
-      description: Which rule do you want to improve? (e.g. `@morev/sass/no-unused-variables`)
+      description: Which rule is affected? If unsure, leave blank.
       placeholder: '@morev/<scope>/<rule-name>'
     validations:
-      required: true
+      required: false
 
   - type: textarea
     attributes:
       label: Current behavior
-      description: What does the rule currently do, and where does it fall short?
+      description: What does the rule currently do?
       placeholder: |
-        Describe the limitation, missing option, or edge case.
+        Describe a limitation, a missing option, or your idea for improvement
     validations:
       required: true
 
@@ -35,17 +43,16 @@ body:
     attributes:
       label: Examples
       description: Minimal code samples showing the current vs desired behavior.
-      placeholder: |
+      value: |
         ```scss
         // Current (❌ reports incorrectly)
-        .block {
-          $unused: red;
+        .foo {
+          // ...
         }
 
         // Desired (✅ should pass)
-        .block {
-          $used: red;
-          color: $used;
+        .foo {
+          // ...
         }
         ```
     validations:
@@ -54,6 +61,6 @@ body:
   - type: textarea
     attributes:
       label: Additional context
-      description: Why is this enhancement important? Any references or related rules?
+      description: Share any context, references, or related rules that help explain your idea.
     validations:
       required: false
