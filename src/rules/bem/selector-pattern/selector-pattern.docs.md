@@ -51,7 +51,7 @@ export default {
         block: 'KEBAB_CASE',
         element: /^[a-z][0-9a-z]*(?:-[0-9a-z]+)*$/,
         modifierName: 'KEBAB_CASE',
-        modifierValue: 'KEBAB_CASE',
+        modifierValue: 'KEBAB_CASE_NUMERIC',
       }
       ignoreBlocks: ['swiper-*', 'u-*'],
       separators: {
@@ -83,7 +83,7 @@ type BemPatternOptions = {
      * Allowed pattern(s) for BEM block names.
      *
      * Supports RegExp, string (including wildcard patterns),
-     * or keywords like `KEBAB_CASE`.
+     * or keywords like `'KEBAB_CASE'`.
      *
      * @default KEBAB_CASE_REGEXP
      */
@@ -93,9 +93,9 @@ type BemPatternOptions = {
      * Allowed pattern(s) for BEM element names.
      *
      * Supports RegExp, string (including wildcard patterns),
-     * or keywords like `KEBAB_CASE`.
+     * or keywords like `'KEBAB_CASE_NUMERIC'`.
      *
-     * @default KEBAB_CASE_REGEXP
+     * @default KEBAB_CASE_NUMERIC_REGEXP
      */
     element?: string | RegExp | Array<string | RegExp>;
 
@@ -103,7 +103,7 @@ type BemPatternOptions = {
      * Allowed pattern(s) for BEM modifier names.
      *
      * Supports RegExp, string (including wildcard patterns),
-     * or keywords like `KEBAB_CASE`.
+     * or keywords like `'KEBAB_CASE'`.
      *
      * @default KEBAB_CASE_REGEXP
      */
@@ -113,10 +113,10 @@ type BemPatternOptions = {
      * Allowed pattern(s) for BEM modifier values.
      *
      * Supports RegExp, string (including wildcard patterns),
-     * or keywords like `KEBAB_CASE`. \
+     * or keywords like `'KEBAB_CASE_NUMERIC'`. \
      * Use `false` to forbid modifier values entirely.
      *
-     * @default KEBAB_CASE_REGEXP
+     * @default KEBAB_CASE_NUMERIC_REGEXP
      */
     modifierValue?: false | string | RegExp | Array<string | RegExp>;
   };
@@ -236,7 +236,7 @@ export default {
     '@morev/bem/selector-pattern': [true, {
       patterns: {
         block: 'component-*', // [!code focus]
-        element: 'KEBAB_CASE', // [!code focus]
+        element: 'KEBAB_CASE_NUMERIC', // [!code focus]
         modifierName: 'is-*', // [!code focus]
       },
     },
@@ -272,19 +272,33 @@ export default {
 
 The plugin provides common naming presets as convenient keywords.
 
-| Keyword       | Description                              | Exported RegExp Name |
-| ------------- | ---------------------------------------- | -------------------- |
-| `KEBAB_CASE`  | lowercase-words-separated-by-hyphens     | `KEBAB_CASE_REGEXP`  |
-| `SNAKE_CASE`  | lowercase_words_separated_by_underscores | `SNAKE_CASE_REGEXP`  |
-| `PASCAL_CASE` | WordsStartWithUppercase                  | `PASCAL_CASE_REGEXP` |
-| `CAMEL_CASE`  | firstWordLowercase                       | `CAMEL_CASE_REGEXP`  |
+| Keyword               | Description                              |
+| --------------------- | ---------------------------------------- |
+| `KEBAB_CASE`          | lowercase-words-separated-by-hyphens     |
+| `KEBAB_CASE_NUMERIC`  | 42-allows-digit-as-a-first-character     |
+| `SNAKE_CASE`          | lowercase_words_separated_by_underscores |
+| `SNAKE_CASE_NUMERIC`  | 42_allows_digit_as_a_first_character     |
+| `PASCAL_CASE`         | WordsStartWithUppercase                  |
+| `PASCAL_CASE_NUMERIC` | 42AllowsDigitAsAFirstCharacter           |
+| `CAMEL_CASE`          | firstWordLowercase                       |
+| `CAMEL_CASE_NUMERIC`  | 42allowsDigitAsAFirstCharacter           |
 
 The corresponding regular expressions are also exported from the package for use in custom tooling
 using a named export from `/constants`:
 
 ```ts
 import {
-  KEBAB_CASE_REGEXP, PASCAL_CASE_REGEXP, CAMEL_CASE_REGEXP, SNAKE_CASE_REGEXP
+  KEBAB_CASE_REGEXP,
+  KEBAB_CASE_NUMERIC_REGEXP,
+
+  PASCAL_CASE_REGEXP,
+  PASCAL_CASE_NUMERIC_REGEXP,
+
+  CAMEL_CASE_REGEXP,
+  CAMEL_CASE_NUMERIC_REGEXP,
+
+  SNAKE_CASE_REGEXP,
+  SNAKE_CASE_NUMERIC_REGEXP,
 } from '@morev/stylelint-plugin/constants';
 ```
 
@@ -325,7 +339,17 @@ in case you want to use them in your own tooling.
 
 ```ts
 import {
-  KEBAB_CASE_REGEXP, PASCAL_CASE_REGEXP, CAMEL_CASE_REGEXP, SNAKE_CASE_REGEXP
+  KEBAB_CASE_REGEXP,
+  KEBAB_CASE_NUMERIC_REGEXP,
+
+  PASCAL_CASE_REGEXP,
+  PASCAL_CASE_NUMERIC_REGEXP,
+
+  CAMEL_CASE_REGEXP,
+  CAMEL_CASE_NUMERIC_REGEXP,
+
+  SNAKE_CASE_REGEXP,
+  SNAKE_CASE_NUMERIC_REGEXP,
 } from '@morev/stylelint-plugin/constants';
 ```
 

@@ -2,7 +2,7 @@ import { isEmpty, toArray } from '@morev/utils';
 import * as v from 'valibot';
 import { BEM_ENTITIES, resolveBemEntities } from '#modules/bem';
 import { createRule, extractSeparators, mergeMessages, vArrayable, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
-import { KEBAB_CASE_REGEXP, toRegExp } from '#modules/shared';
+import { KEBAB_CASE_NUMERIC_REGEXP, KEBAB_CASE_REGEXP, toRegExp } from '#modules/shared';
 import { createMessage, createViolationsRegistry, normalizePattern } from './utils';
 import type { ProcessedPattern } from './selector-pattern.types';
 
@@ -41,7 +41,7 @@ export default createRule({
 						),
 						element: v.optional(
 							vArrayable(vStringOrRegExpSchema),
-							KEBAB_CASE_REGEXP,
+							KEBAB_CASE_NUMERIC_REGEXP,
 						),
 						modifierName: v.optional(
 							vArrayable(vStringOrRegExpSchema),
@@ -49,14 +49,14 @@ export default createRule({
 						),
 						modifierValue: v.optional(
 							v.union([v.literal(false), vArrayable(vStringOrRegExpSchema)]),
-							KEBAB_CASE_REGEXP,
+							KEBAB_CASE_NUMERIC_REGEXP,
 						),
 					}),
 					{
 						block: KEBAB_CASE_REGEXP,
-						element: KEBAB_CASE_REGEXP,
+						element: KEBAB_CASE_NUMERIC_REGEXP,
 						modifierName: KEBAB_CASE_REGEXP,
-						modifierValue: KEBAB_CASE_REGEXP,
+						modifierValue: KEBAB_CASE_NUMERIC_REGEXP,
 					},
 				),
 				ignoreBlocks: v.optional(

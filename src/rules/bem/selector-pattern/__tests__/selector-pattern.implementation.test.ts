@@ -1,4 +1,4 @@
-import { KEBAB_CASE_REGEXP } from '#modules/shared';
+import { KEBAB_CASE_NUMERIC_REGEXP, KEBAB_CASE_REGEXP } from '#modules/shared';
 import rule from '../selector-pattern';
 import { normalizePattern } from '../utils';
 import type { ProcessedPattern } from '../selector-pattern.types';
@@ -7,6 +7,7 @@ const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 
 const KEBAB_CASE_PATTERN = normalizePattern(KEBAB_CASE_REGEXP) as ProcessedPattern[];
+const KEBAB_CASE_NUMERIC_PATTERN = normalizePattern(KEBAB_CASE_NUMERIC_REGEXP) as ProcessedPattern[];
 
 testRule({
 	description: 'Default options',
@@ -129,27 +130,27 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.element('fooBar', '.the-component__fooBar', KEBAB_CASE_PATTERN),
+					message: messages.element('fooBar', '.the-component__fooBar', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 2, column: 5,
 					endLine: 2, endColumn: 11,
 				},
 				{
-					message: messages.element('foo__bar', '.the-component__foo__bar', KEBAB_CASE_PATTERN),
+					message: messages.element('foo__bar', '.the-component__foo__bar', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 3, column: 5,
 					endLine: 3, endColumn: 13,
 				},
 				{
-					message: messages.element('FooBar', '.the-component__FooBar', KEBAB_CASE_PATTERN),
+					message: messages.element('FooBar', '.the-component__FooBar', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 4, column: 5,
 					endLine: 4, endColumn: 11,
 				},
 				{
-					message: messages.element('fooBar', '.the-component__fooBar', KEBAB_CASE_PATTERN),
+					message: messages.element('fooBar', '.the-component__fooBar', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 6, column: 3,
 					endLine: 6, endColumn: 7,
 				},
 				{
-					message: messages.element('foo__bar', '.the-component__foo__bar', KEBAB_CASE_PATTERN),
+					message: messages.element('foo__bar', '.the-component__foo__bar', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 9, column: 4,
 					endLine: 9, endColumn: 10,
 				},
@@ -185,7 +186,7 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.modifierValue('modValue', '.the-component__foo--mod-name--modValue', KEBAB_CASE_PATTERN),
+					message: messages.modifierValue('modValue', '.the-component__foo--mod-name--modValue', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 4, column: 7,
 					endLine: 4, endColumn: 15,
 				},
@@ -205,7 +206,7 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.element('fooBar', '.the-component__fooBar', KEBAB_CASE_PATTERN),
+					message: messages.element('fooBar', '.the-component__fooBar', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 2, column: 13,
 					endLine: 2, endColumn: 19,
 				},
@@ -220,22 +221,22 @@ testRule({
 					endLine: 3, endColumn: 26,
 				},
 				{
-					message: messages.modifierValue('ModValue', '.the-component__foo--mod-name--ModValue', KEBAB_CASE_PATTERN),
+					message: messages.modifierValue('ModValue', '.the-component__foo--mod-name--ModValue', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 5, column: 7,
 					endLine: 5, endColumn: 15,
 				},
 				{
-					message: messages.modifierValue('ModValue', '.the-component__fooBar--mod-name--ModValue', KEBAB_CASE_PATTERN),
+					message: messages.modifierValue('ModValue', '.the-component__fooBar--mod-name--ModValue', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 5, column: 7,
 					endLine: 5, endColumn: 15,
 				},
 				{
-					message: messages.modifierValue('ModValue', '.the-component__foo--MODNAME--ModValue', KEBAB_CASE_PATTERN),
+					message: messages.modifierValue('ModValue', '.the-component__foo--MODNAME--ModValue', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 5, column: 7,
 					endLine: 5, endColumn: 15,
 				},
 				{
-					message: messages.modifierValue('ModValue', '.the-component__fooBar--MODNAME--ModValue', KEBAB_CASE_PATTERN),
+					message: messages.modifierValue('ModValue', '.the-component__fooBar--MODNAME--ModValue', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 5, column: 7,
 					endLine: 5, endColumn: 15,
 				},
@@ -248,7 +249,7 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: messages.element('El', '.the-component__El--El', KEBAB_CASE_PATTERN),
+					message: messages.element('El', '.the-component__El--El', KEBAB_CASE_NUMERIC_PATTERN),
 					line: 1, column: 17,
 					endLine: 1, endColumn: 19,
 				},
