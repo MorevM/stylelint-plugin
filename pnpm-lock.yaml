@@ -31,8 +31,8 @@ importers:
         specifier: ^8.0.1
         version: 8.0.2(stylelint@16.23.1(typescript@5.9.2))
       '@morev/stylelint-testing-library':
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: ^1.0.1
+        version: 1.0.1
       '@release-it/conventional-changelog':
         specifier: '8'
         version: 8.0.2(release-it@19.0.4(@types/node@22.18.0)(magicast@0.3.5))
@@ -938,8 +938,9 @@ packages:
     peerDependencies:
       stylelint: ^16.18.0
 
-  '@morev/stylelint-testing-library@1.0.0':
-    resolution: {integrity: sha512-u8WkS47Xz11jLm2o+0xambpYijDyjb3epnyTV/1l799JcDJBEGI8gS/ynip4/hHcteecBlR5oXJK7wmu/qEabw==}
+  '@morev/stylelint-testing-library@1.0.1':
+    resolution: {integrity: sha512-exQQk5w9FwsoqwY7z5hUtPAi0TtzhChf5AjOWgrlybzCUdaigjJFxmwf4OvqEQBx1WI3GNxtlJvTWzlN2+RgWA==}
+    engines: {node: '>=18'}
 
   '@morev/utils@2.8.1':
     resolution: {integrity: sha512-q++LKjbWTUt8cZIvnDLUnt+6LXsgiUmfW5S3kaPST4bR/FXhoU87hwua9DfgqW6ht11CwgOyGeQ14ktV51somw==}
@@ -6065,7 +6066,7 @@ snapshots:
       stylelint-selector-tag-no-without-class: 3.0.1(stylelint@16.23.1(typescript@5.9.2))
       stylelint-use-nesting: 6.0.0(stylelint@16.23.1(typescript@5.9.2))
 
-  '@morev/stylelint-testing-library@1.0.0':
+  '@morev/stylelint-testing-library@1.0.1':
     dependencies:
       '@morev/utils': 3.13.1
 
