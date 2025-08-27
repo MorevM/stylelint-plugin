@@ -1,24 +1,31 @@
-<!-- markdownlint-disable-next-line md041 -->
-## Type of change
+<!--
+  👋 Thank you for contributing!
 
-* [ ] Bug fix (non-breaking change which fixes an issue)
-* [ ] New feature (non-breaking change which adds functionality)
-* [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-* [ ] This change requires a documentation update
+  Please use PR title in Conventional Commits format.
+  https://www.conventionalcommits.org/en/v1.0.0/
 
-## Description
+  Examples:
+    feat: Add new option `{name}` to rule `{name}`
+    fix: Consider `checkRoot` option in `no-unused-variables`
+    docs: Fix link to `selector-pattern` rule
+-->
 
-Describe the proposed changes and related issues (if exists). Please also include relevant motivation and context. \
-List any dependencies that are required for this change.
+#### Description
 
-The best way to propose a feature is to open an issue first and discuss your ideas there before implementing them.
+<!--
+  What does this PR change or improve?
 
-## Checklist
+  This section is optional - feel free to remove it if the issue already provides
+  a complete description of the problem and solution.
+-->
 
-* [ ] My code follows the code style of this project
-* [ ] I have performed a self-review of my own code
-* [ ] I have commented my code, particularly in hard-to-understand areas
-* [ ] I have made corresponding changes to the documentation
-* [ ] My changes generate no new warnings
-* [ ] I have added tests that prove my fix is effective or that my feature works
-* [ ] New and existing tests and linters pass locally with my changes
+#### Linked issue
+
+Closes #{issue}
+
+#### Is there anything you'd like reviewers to focus on?
+
+<!--
+  Optional - use this section if you want to highlight tricky parts of the implementation
+  or specific questions for reviewers. Otherwise, feel free to remove it.
+-->
