@@ -278,7 +278,38 @@ testRule({
 testRule({
 	description: '`checkRoot` option',
 	config: [true, { checkRoot: true }],
-	accept: [],
+	accept: [
+		{
+			description: 'The root variable is used at the root level',
+			code: `
+				$foo: '.block';
+
+				#{$foo} {}
+			`,
+		},
+		{
+			description: 'The root variable is used inside the rule',
+			code: `
+				$foo: red;
+
+				.foo {
+					color: $foo;
+				}
+			`,
+		},
+		{
+			description: 'The root variable is used inside @at-rule',
+			code: `
+				$foo: red;
+
+				@media (screen) {
+					.foo {
+						color: $foo;
+					}
+				}
+			`,
+		},
+	],
 	reject: [
 		{
 			description: 'The only root property',
