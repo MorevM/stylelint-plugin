@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0](https://github.com/MorevM/stylelint-plugin/compare/v0.1.2...v0.2.0) (2025-08-27)
+
+### Features
+
+* **no-selector-pattern:** Allow element and modifier values to start with a digit ([#7](https://github.com/MorevM/stylelint-plugin/issues/7)) ([8894ede](https://github.com/MorevM/stylelint-plugin/commit/8894edefc836fe7e487f6d353a83912a8673e5d4))
+
 ## [0.1.2](https://github.com/MorevM/stylelint-plugin/compare/v0.1.1...v0.1.2) (2025-08-27)
 
 ### Bug fixes
