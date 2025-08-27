@@ -29,8 +29,8 @@ export type SecondaryOption = {
 	firstChild?: boolean;
 
 	/**
-	 * Whether to automatically replace hardcoded occurrences of the block name
-	 * inside nested selectors with the corresponding block variable.
+	 * Whether to automatically replace hardcoded block names with the block variable
+	 * in descendant selectors, or with `&` when safely possible in root selectors.
 	 *
 	 * @default true
 	 */
@@ -92,14 +92,22 @@ export type SecondaryOption = {
 		duplicatedVariable?: (foundName: string, expectedName: string) => string;
 
 		/**
-		 * Reported when a hardcoded block name is used inside a nested selector
-		 * instead of the block reference variable.
+		 * Reported when a hardcoded block name is used instead of a safe reference.
 		 *
 		 * @param   blockSelector   The hardcoded block selector found (e.g., ".the-component").
-		 * @param   variableName    The variable reference that should be used (e.g., "#{$b}").
+		 * @param   variableRef     The block reference variable that should be used (e.g., "#{$b}").
+		 * @param   context         Where the hardcoded selector was found.
+		 *                          - `root`: `.foo { .foo__el {} }`
+		 *                          - `nested`: `.foo { &__el { .foo__bar {} } }`
+		 * @param   fixable         Whether the case can be safely auto-fixed.
 		 *
 		 * @returns                 The error message to report.
 		 */
-		hardcodedBlockName?: (blockSelector: string, variableName: string) => string;
+		hardcodedBlockName?: (
+			blockSelector: string,
+			variableRef: string,
+			context: 'root' | 'nested',
+			fixable: boolean,
+		) => string;
 	};
 };
