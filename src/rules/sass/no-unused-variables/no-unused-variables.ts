@@ -89,7 +89,7 @@ export default createRule({
 	// Returns the closest parent scope, if any.
 	const getParentScopeNode = (node: Node): Node | null => {
 		let parent: Node | undefined = node.parent;
-		while (parent && parent !== root) {
+		while (parent && (secondary.checkRoot || parent !== root)) {
 			if (scopesMap.has(parent)) return parent;
 			parent = parent.parent;
 		}
