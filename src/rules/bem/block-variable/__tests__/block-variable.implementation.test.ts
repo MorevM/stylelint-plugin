@@ -195,12 +195,12 @@ testRule({
 				{
 					line: 5, column: 3,
 					endLine: 5, endColumn: 17,
-					message: messages.hardcodedBlockName('.the-component', '#{$b}'),
+					message: messages.hardcodedBlockName('.the-component', '#{$b}', 'nested', true),
 				},
 				{
 					line: 5, column: 25,
 					endLine: 5, endColumn: 39,
-					message: messages.hardcodedBlockName('.the-component', '#{$b}'),
+					message: messages.hardcodedBlockName('.the-component', '#{$b}', 'nested', true),
 				},
 			],
 		},
@@ -234,12 +234,60 @@ testRule({
 				{
 					line: 6, column: 3,
 					endLine: 6, endColumn: 17,
-					message: messages.hardcodedBlockName('.the-component', '#{$b}'),
+					message: messages.hardcodedBlockName('.the-component', '#{$b}', 'nested', true),
 				},
 				{
 					line: 6, column: 25,
 					endLine: 6, endColumn: 39,
-					message: messages.hardcodedBlockName('.the-component', '#{$b}'),
+					message: messages.hardcodedBlockName('.the-component', '#{$b}', 'nested', true),
+				},
+			],
+		},
+		{
+			description: 'Just reports without auto-fix at the root level if the parent selector is not used in the selector',
+			code: `
+				.the-component {
+					$b: #{&};
+
+					.the-component__bar {}
+				}
+			`,
+			fixed: `
+				.the-component {
+					$b: #{&};
+
+					.the-component__bar {}
+				}
+			`,
+			warnings: [
+				{
+					line: 4, column: 2,
+					endLine: 4, endColumn: 16,
+					message: messages.hardcodedBlockName('.the-component', '#{$b}', 'root', false),
+				},
+			],
+		},
+		{
+			description: 'Autofix with `&` at the root level if parent selector is used within a selector',
+			code: `
+				.the-component {
+					$b: #{&};
+
+					& .the-component__bar {}
+				}
+			`,
+			fixed: `
+				.the-component {
+					$b: #{&};
+
+					& &__bar {}
+				}
+			`,
+			warnings: [
+				{
+					line: 4, column: 4,
+					endLine: 4, endColumn: 18,
+					message: messages.hardcodedBlockName('.the-component', '#{$b}', 'root', true),
 				},
 			],
 		},
@@ -572,8 +620,8 @@ testRule({
 	description: 'Custom messages > `hardcodedBlockName`',
 	config: [true, {
 		messages: {
-			hardcodedBlockName: (blockSelector: string, variableName: string) =>
-				`Hardcoded ${blockSelector} ${variableName}`,
+			hardcodedBlockName: (blockSelector: string, variableName: string, context: string, fixable: boolean) =>
+				`Hardcoded ${blockSelector} ${variableName} ${context} ${fixable.toString()}`,
 		},
 	}],
 	reject: [
@@ -586,10 +634,15 @@ testRule({
 					&__foo {
 						.the-component--active & {}
 					}
+
+					& .the-component__bar {}
+					.the-component__bar {}
 				}
 			`,
 			warnings: [
-				{ message: `Hardcoded .the-component #{$b}` },
+				{ message: `Hardcoded .the-component #{$b} nested true` },
+				{ message: `Hardcoded .the-component #{$b} root true` },
+				{ message: `Hardcoded .the-component #{$b} root false` },
 			],
 		},
 	],

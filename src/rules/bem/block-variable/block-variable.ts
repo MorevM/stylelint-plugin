@@ -31,7 +31,7 @@ export default createRule({
 					invalidVariableName: [v.string(), v.string()],
 					invalidVariableValue: [v.string(), v.array(v.string())],
 					duplicatedVariable: [v.string(), v.string()],
-					hardcodedBlockName: [v.string(), v.string()],
+					hardcodedBlockName: [v.string(), v.string(), v.string(), v.boolean()],
 				}),
 			}),
 		),
@@ -71,10 +71,31 @@ export default createRule({
 				Expected a single one named "${validName}".
 			`;
 		},
-		hardcodedBlockName: (blockSelector: string, variableName: string) => {
+		hardcodedBlockName: (
+			blockSelector: string,
+			variableRef: string,
+			context: 'root' | 'nested',
+			fixable: boolean,
+		) => {
+			if (!fixable) {
+				return `
+					Hardcoded block name "${blockSelector}" found.
+					Please review and replace manually with "&" or "${variableRef}", depending on intent.
+					This case cannot be auto-fixed safely.
+				`;
+			}
+
+			const inPosition = context === 'root'
+				? `in the component's root rule`
+				: `inside a descendant selector`;
+
+			const replacement = context === 'root'
+				? `"&" character`
+				: `block reference variable "${variableRef}"`;
+
 			return `
-				Hardcoded block name "${blockSelector}" found inside a nested selector.
-				Replace it with the block reference variable ${variableName} for consistency.
+				Hardcoded block name "${blockSelector}" found ${inPosition}.
+				Replace it with the ${replacement} for consistency.
 			`;
 		},
 	},
@@ -206,10 +227,17 @@ export default createRule({
 		return false;
 	};
 
-	secondary.replaceBlockName && root.walkRules((rule) => {
+	if (!secondary.replaceBlockName) return;
+
+	const variableRef = `#{${VARIABLE_NAME}}`;
+	root.walkRules((rule) => {
 		if (!isNestedWithinBlock(rule)) return;
 
+		const isTopLevelRule = rule.parent === bemBlock.rule;
+		const context = isTopLevelRule ? 'root' : 'nested';
+
 		parseSelectors(rule.selector).forEach((selectorNodes) => {
+			const hasNesting = selectorNodes.some((node) => node.type === 'nesting');
 			const nodesToReport = selectorNodes
 				.filter((node) => node.type === 'class')
 				.filter((node) => node.toString().trim().startsWith(bemBlock.selector))
@@ -222,15 +250,23 @@ export default createRule({
 
 			if (!nodesToReport.length) return;
 
+			const fixable = !isTopLevelRule || (isTopLevelRule && hasNesting);
 			nodesToReport.forEach((node) => {
 				report({
-					message: messages.hardcodedBlockName(bemBlock.selector, `#{${VARIABLE_NAME}}`),
+					message: messages.hardcodedBlockName(
+						bemBlock.selector,
+						variableRef,
+						context,
+						fixable,
+					),
 					node: rule,
 					index: node.sourceIndex,
 					endIndex: node.sourceIndex + bemBlock.selector.length,
 					fix: () => {
-						rule.selector = rule.selector
-							.replaceAll(bemBlock.selector, `#{${VARIABLE_NAME}}`);
+						if (!fixable) return;
+						const replacement = isTopLevelRule ? '&' : `#{${VARIABLE_NAME}}`;
+
+						rule.selector = rule.selector.replaceAll(bemBlock.selector, replacement);
 					},
 				});
 			});
