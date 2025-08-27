@@ -1,31 +1,34 @@
 import type { Declaration, Rule } from 'postcss';
 
 type Options = {
+	/**
+	 * Whether to return only direct child declarations.
+	 *
+	 * @default false
+	 */
 	onlyDirectChildren: boolean;
 };
 
-const DEFAULTS = {
-	onlyDirectChildren: false,
-};
-
+/**
+ * Collects `postcss.Declaration` nodes from a given `postcss.Rule`.
+ *
+ * @param   rule      A PostCSS `Rule` node to inspect.
+ * @param   options   Optional settings.
+ *
+ * @returns           An array of `Declaration` nodes matching the given criteria.
+ */
 export const getRuleDeclarations = (
 	rule: Rule,
-	userOptions?: Partial<Options>,
+	options: Partial<Options> = {},
 ): Declaration[] => {
-	const declarations: Declaration[] = [];
-	const options = { ...DEFAULTS, ...userOptions };
+	const { onlyDirectChildren = false } = options;
 
-	if (!options.onlyDirectChildren) {
+	if (!onlyDirectChildren) {
+		const declarations: Declaration[] = [];
 		// `.walkDecls()` traverses all the declarations.
-		rule.walkDecls((declaration) => { declarations.push(declaration); });
+		rule.walkDecls((decl) => { declarations.push(decl); });
 		return declarations;
 	}
 
-	// `.each()` traverses only direct children.
-	rule.each((node) => {
-		if (node.type !== 'decl') return;
-		declarations.push(node);
-	});
-
-	return declarations;
+	return (rule.nodes ?? []).filter((node) => node.type === 'decl');
 };
