@@ -30,7 +30,7 @@ export type SecondaryOption = {
 		 * Allowed pattern(s) for BEM block names.
 		 *
 		 * Supports RegExp, string (including wildcard patterns),
-		 * or keywords like `KEBAB_CASE`.
+		 * or keywords like `'KEBAB_CASE'`.
 		 *
 		 * @default KEBAB_CASE_REGEXP
 		 */
@@ -40,9 +40,9 @@ export type SecondaryOption = {
 		 * Allowed pattern(s) for BEM element names.
 		 *
 		 * Supports RegExp, string (including wildcard patterns),
-		 * or keywords like `KEBAB_CASE`.
+		 * or keywords like `'KEBAB_CASE_NUMERIC'`.
 		 *
-		 * @default KEBAB_CASE_REGEXP
+		 * @default KEBAB_CASE_NUMERIC_REGEXP
 		 */
 		element?: string | RegExp | Array<string | RegExp>;
 
@@ -50,7 +50,7 @@ export type SecondaryOption = {
 		 * Allowed pattern(s) for BEM modifier names.
 		 *
 		 * Supports RegExp, string (including wildcard patterns),
-		 * or keywords like `KEBAB_CASE`.
+		 * or keywords like `'KEBAB_CASE'`.
 		 *
 		 * @default KEBAB_CASE_REGEXP
 		 */
@@ -60,10 +60,10 @@ export type SecondaryOption = {
 		 * Allowed pattern(s) for BEM modifier values.
 		 *
 		 * Supports RegExp, string (including wildcard patterns),
-		 * or keywords like `KEBAB_CASE`. \
+		 * or keywords like `'KEBAB_CASE_NUMERIC'`. \
 		 * Use `false` to forbid modifier values entirely.
 		 *
-		 * @default KEBAB_CASE_REGEXP
+		 * @default KEBAB_CASE_NUMERIC_REGEXP
 		 */
 		modifierValue?: false | string | RegExp | Array<string | RegExp>;
 	};
