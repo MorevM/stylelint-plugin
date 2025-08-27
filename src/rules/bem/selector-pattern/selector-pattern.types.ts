@@ -138,9 +138,3 @@ export type SecondaryOption = {
 	 */
 	separators?: Partial<Separators>;
 };
-
-export type RuleSchema = {
-	name: '@morev/bem/selector-pattern';
-	primaryOption: PrimaryOption;
-	secondaryOption: SecondaryOption;
-};
