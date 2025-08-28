@@ -46,8 +46,9 @@ type Callback<
 	},
 ) => void;
 
-type BetterProblem = Omit<Problem, 'node' | 'ruleName' | 'result' | 'line' | 'start'>
+type BetterProblem = Omit<Problem, 'node' | 'ruleName' | 'result' | 'line' | 'start' | 'messageArgs'>
 	& ({
+		messageArgs: [string, ...any[]];
 		node: Problem['node'];
 		index?: Exclude<Problem['index'], undefined>;
 		endIndex?: Exclude<Problem['endIndex'], undefined>;

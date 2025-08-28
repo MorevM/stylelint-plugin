@@ -127,18 +127,20 @@ export default createRule({
 						value: entityPart.value,
 						// Intentionally loosened type for modifier values scenario (might be `false`)
 						message: messages[entityType](entityPart.value, bemEntity.bemSelector, entityPatterns as any),
+						messageArgs: [entityType, entityPart.value, bemEntity.bemSelector, entityPatterns as any],
 					});
 				});
 			});
 		});
 	});
 
-	violations.forEach(({ rule, entityPart, message }) => {
+	violations.forEach(({ rule, entityPart, message, messageArgs }) => {
 		report({
 			node: rule,
 			index: entityPart.sourceRange?.[0] ?? 0,
 			endIndex: entityPart.sourceRange?.[1] ?? rule.toString().length,
 			message,
+			messageArgs,
 		});
 	});
 });

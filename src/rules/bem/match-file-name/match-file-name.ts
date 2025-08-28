@@ -52,6 +52,7 @@ export default createRule({
 	const reportType = (type: 'match' | 'matchCase') => {
 		report({
 			message: messages[type](entity, bemBlock.blockName),
+			messageArgs: [type, entity, bemBlock.blockName],
 			node: bemBlock.rule,
 			index: 0,
 			endIndex: 1,

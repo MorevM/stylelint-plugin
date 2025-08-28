@@ -61,6 +61,7 @@ export default createRule({
 
 			report({
 				message: messages.unexpected(node.selector, atRule.name),
+				messageArgs: ['unexpected', node.selector, atRule.name],
 				node,
 				word: node.selector,
 			});

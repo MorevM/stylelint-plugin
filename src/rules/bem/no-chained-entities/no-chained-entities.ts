@@ -212,6 +212,7 @@ export default createRule({
 		report({
 			...violation,
 			message: messages[violation.type](violation.actual, violation.expected),
+			messageArgs: [violation.type, violation.actual, violation.expected],
 		});
 	});
 });

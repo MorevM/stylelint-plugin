@@ -77,5 +77,6 @@ export default createRule({
 	getViolations().forEach((violation) => report({
 		...violation,
 		message: messages.rejected(violation.selector),
+		messageArgs: ['rejected', violation.selector],
 	}));
 });

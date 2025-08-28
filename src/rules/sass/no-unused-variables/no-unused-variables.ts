@@ -179,6 +179,7 @@ export default createRule({
 
 			report({
 				message: messages.unused(name),
+				messageArgs: ['unused', name],
 				node: declaration,
 			});
 		});

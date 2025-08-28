@@ -132,13 +132,21 @@ export default createRule({
 						.map(({ declaration }) => declaration);
 
 					declarationsToReport.forEach((declaration) => {
+						const presetName = propertyToPresetMap.get(declaration.prop);
 						report({
 							message: messages.unexpected(
 								declaration.prop,
 								bemEntity.bemSelector,
 								context,
-								propertyToPresetMap.get(declaration.prop),
+								presetName,
 							),
+							messageArgs: [
+								'unexpected',
+								declaration.prop,
+								bemEntity.bemSelector,
+								context,
+								presetName,
+							],
 							node: declaration,
 							word: declaration.prop,
 						});
