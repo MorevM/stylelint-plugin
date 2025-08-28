@@ -240,6 +240,8 @@ export type NoChainedEntitiesSecondaryOption = {
 
 :::
 
+<!-- @include: @/docs/_parts/stylelint-wide-options.md -->
+
 ---
 
 ### `disallowNestedModifierValues`

@@ -108,6 +108,8 @@ export type NoSideEffectsOptions = {
 
 :::
 
+<!-- @include: @/docs/_parts/stylelint-wide-options.md -->
+
 ---
 
 ### `ignore`

@@ -200,6 +200,8 @@ type BlockVariableOptions = {
 
 :::
 
+<!-- @include: @/docs/_parts/stylelint-wide-options.md -->
+
 ---
 
 ### `name`

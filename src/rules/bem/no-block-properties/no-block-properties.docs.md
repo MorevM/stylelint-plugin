@@ -257,6 +257,8 @@ export type NoBlockPropertiesOptions = {
 
 :::
 
+<!-- @include: @/docs/_parts/stylelint-wide-options.md -->
+
 ---
 
 ### `presets`
