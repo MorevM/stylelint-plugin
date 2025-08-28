@@ -39,7 +39,7 @@ export default createRule({
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
-			v.strictObject({
+			v.object({
 				presets: v.optional(
 					v.array(v.string()),
 					['EXTERNAL_GEOMETRY'],

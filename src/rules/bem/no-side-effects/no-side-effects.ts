@@ -22,7 +22,7 @@ export default createRule({
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
-			v.strictObject({
+			v.object({
 				ignore: v.optional(v.array(vStringOrRegExpSchema), []),
 				messages: vMessagesSchema({
 					rejected: [v.string()],

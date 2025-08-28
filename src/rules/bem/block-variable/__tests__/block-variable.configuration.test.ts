@@ -34,10 +34,6 @@ testRuleConfig({
 	],
 	reject: [
 		{
-			description: 'Unknown option',
-			config: [true, { foo: 'bar' }],
-		},
-		{
 			description: 'Not an object option',
 			config: [true, 'always'],
 		},

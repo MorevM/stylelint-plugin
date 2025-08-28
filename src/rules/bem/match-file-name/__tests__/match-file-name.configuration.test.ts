@@ -39,10 +39,6 @@ testRuleConfig({
 	],
 	reject: [
 		{
-			description: 'Unknown option',
-			config: [true, { foo: 'bar' }],
-		},
-		{
 			description: 'Secondary is not an object',
 			config: [true, 'always'],
 		},
@@ -71,10 +67,6 @@ testRuleConfig({
 			description: 'Unknown option type',
 			config: [true, { caseSensitive: 'yes' }],
 		},
-		{
-			description: 'Unknown additional option',
-			config: [true, { caseSensitive: true, foo: 'bar' }],
-		},
 	],
 });
 
@@ -99,10 +91,6 @@ testRuleConfig({
 		{
 			description: 'Unknown option type',
 			config: [true, { matchDirectory: 'yes' }],
-		},
-		{
-			description: 'Unknown additional option',
-			config: [true, { matchDirectory: true, foo: 'bar' }],
 		},
 	],
 });

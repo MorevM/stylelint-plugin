@@ -19,7 +19,7 @@ export default createRule({
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
-			v.strictObject({
+			v.object({
 				name: v.optional(v.string(), 'b'),
 				interpolation: v.optional(v.picklist(['always', 'never', 'ignore']), 'always'),
 				firstChild: v.optional(v.boolean(), true),

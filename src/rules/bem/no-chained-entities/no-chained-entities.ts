@@ -186,7 +186,7 @@ export default createRule({
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
-			v.strictObject({
+			v.object({
 				disallowNestedModifierValues: v.optional(v.boolean(), false),
 				separators: vSeparatorsSchema,
 				messages: vMessagesSchema({

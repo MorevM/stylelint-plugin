@@ -21,7 +21,7 @@ export default createRule({
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
-			v.strictObject({
+			v.object({
 				caseSensitive: v.optional(v.boolean(), true),
 				matchDirectory: v.optional(v.boolean(), false),
 				messages: vMessagesSchema({

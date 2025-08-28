@@ -32,7 +32,7 @@ export default createRule({
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
-			v.strictObject({
+			v.object({
 				patterns: v.optional(
 					v.strictObject({
 						block: v.optional(

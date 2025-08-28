@@ -49,7 +49,7 @@ export default createRule({
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
-			v.strictObject({
+			v.object({
 				checkRoot: v.optional(v.boolean(), false),
 				ignore: v.optional(v.array(vStringOrRegExpSchema), []),
 				messages: vMessagesSchema({
