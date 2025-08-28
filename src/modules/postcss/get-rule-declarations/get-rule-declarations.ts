@@ -1,51 +1,62 @@
-import { isNullish } from '@morev/utils';
-import type { Declaration, Rule } from 'postcss';
+import { isAtRule } from '#modules/postcss/is-at-rule/is-at-rule';
+import { collectDeclarationsWithPath, isPureAtRule } from './utils';
+import type { AtRule, Declaration, Rule } from 'postcss';
+import type { DeclarationWithAtRulePath, Options } from './get-rule-declarations.types';
 
-type Options = {
-	filter: string | RegExp | null;
-	onlyDirectChildren: boolean;
-};
+type ToReturn<T extends Options> =
+	T['mode'] extends 'directWithPureAtRules'
+		? T['shape'] extends 'nodes'
+			? Declaration[]
+			: DeclarationWithAtRulePath[]
+		: Declaration[];
 
-const DEFAULTS = {
-	filter: null,
-	onlyDirectChildren: false,
-};
+/**
+ * Collects declarations from a given `Rule` or `AtRule` node,
+ * with flexible strategies depending on the selected `mode`.
+ *
+ * - In `'deep'` mode, it walks the full subtree and returns **all** declarations.
+ * - In `'direct'` mode, it returns only **direct child declarations**.
+ * - In `'directWithPureAtRules'` mode, it returns both direct declarations and
+ * those inside **pure at-rules** (at-rules that do not contain selectors).
+ * You can choose to return raw `Declaration` nodes or include their `atRulePath`.
+ *
+ * @param   rule      A PostCSS `Rule` or `AtRule` node to inspect.
+ * @param   options   Configuration determining how declarations are collected.
+ *
+ * @returns           Depending on `mode` and `shape`, returns either
+ *                    `Declaration[]` or `DeclarationWithAtRulePath[]`.
+ */
+export const getRuleDeclarations = <T extends Options>(
+	rule: Rule | AtRule,
+	options: Partial<T> = {},
+): ToReturn<T> => {
+	const { mode = 'deep' } = options;
 
-export const getRuleDeclarations = (
-	rule: Rule,
-	userOptions?: Partial<Options>,
-): Declaration[] => {
-	const declarations: Declaration[] = [];
-	const options = { ...DEFAULTS, ...userOptions };
-
-	if (isNullish(options.filter)) {
-		if (!options.onlyDirectChildren) {
-			// `.walkDecls()` traverses all the declarations.
-			rule.walkDecls((declaration) => { declarations.push(declaration); });
-			return declarations;
-		}
-
-		// `.each()` traverses only direct children.
-		rule.each((node) => {
-			if (node.type !== 'decl') return;
-			declarations.push(node);
-		});
-		return declarations;
+	if (mode === 'deep') {
+		const declarations: Declaration[] = [];
+		// `.walkDecls()` traverses all the declarations.
+		rule.walkDecls((decl) => { declarations.push(decl); });
+		return declarations as ToReturn<T>;
 	}
 
-	if (!options.onlyDirectChildren) {
-		rule.walkDecls(options.filter, (declaration) => { declarations.push(declaration); });
-		return declarations;
+	if (mode === 'direct') {
+		return (rule.nodes ?? []).filter((node) => node.type === 'decl') as ToReturn<T>;
 	}
 
-	rule.each((node) => {
-		if (node.type !== 'decl') return;
+	const result: DeclarationWithAtRulePath[] = (rule.nodes ?? [])
+		.filter((node) => node.type === 'decl')
+		.map((node) => ({ declaration: node, atRulePath: [] }));
 
-		if (options.filter) {
-			node.prop.match(options.filter) && declarations.push(node);
-		} else {
-			declarations.push(node);
-		}
-	});
-	return declarations;
+	for (const node of rule.nodes ?? []) {
+		if (!isAtRule(node)) continue;
+		if (!isPureAtRule(node)) continue;
+
+		result.push(...collectDeclarationsWithPath(node));
+	}
+
+	if ('shape' in options && options.shape === 'withPath') {
+		return result as ToReturn<T>;
+	}
+
+	return result.map((entry) => entry.declaration) as ToReturn<T>;
 };

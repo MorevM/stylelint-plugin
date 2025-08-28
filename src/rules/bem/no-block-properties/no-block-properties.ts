@@ -104,9 +104,9 @@ export default createRule({
 				});
 
 				const entitiesToReport = selectorBemEntities
-				// We are looking only for BEM blocks or its modifiers in the rule
+					// We are looking only for BEM blocks or its modifiers in the rule
 					.filter((bemEntity) => !bemEntity.element)
-				// Skip ignored blocks
+					// Skip ignored blocks
 					.filter((bemEntity) => {
 						return !ignorePatterns
 							.some((blockPattern) => blockPattern.test(bemEntity.block.value));
@@ -117,8 +117,19 @@ export default createRule({
 				entitiesToReport.forEach((bemEntity) => {
 					const context = bemEntity.modifierName ? 'modifier' : 'block';
 
-					const declarationsToReport = getRuleDeclarations(rule, { onlyDirectChildren: true })
-						.filter((declaration) => disallowedProperties[context].has(declaration.prop));
+					const declarationsToReport = getRuleDeclarations(rule, {
+						mode: 'directWithPureAtRules',
+						shape: 'withPath',
+					})
+						.filter(({ declaration }) => {
+							return disallowedProperties[context].has(declaration.prop);
+						})
+						.filter(({ atRulePath }) => {
+							return !atRulePath.some((atRule) => {
+								return ['page', 'mixin', 'function'].includes(atRule.name);
+							});
+						})
+						.map(({ declaration }) => declaration);
 
 					declarationsToReport.forEach((declaration) => {
 						report({

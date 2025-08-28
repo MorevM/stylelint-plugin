@@ -19,10 +19,10 @@ import { getRuleContentMeta, isAtRule, isRule } from '#modules/postcss';
  *
  * @throws If no matching rule or at-rule is found for the provided selector.
  */
-export const getRuleBySelector = (
+export const getRuleBySelector = <T extends postcss.Rule | postcss.AtRule>(
 	rootOrSource: postcss.Root | string,
 	selector?: string,
-): postcss.Rule | postcss.AtRule => {
+): T => {
 	let found: postcss.Rule | postcss.AtRule | null = null;
 
 	const root = isString(rootOrSource)
@@ -33,7 +33,7 @@ export const getRuleBySelector = (
 		const firstNode = root.nodes[0];
 
 		if (isAtRule(firstNode) || isRule(firstNode)) {
-			return firstNode;
+			return firstNode as T;
 		}
 
 		throw new Error(`Rule not found`);

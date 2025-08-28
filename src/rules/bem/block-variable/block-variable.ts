@@ -117,7 +117,7 @@ export default createRule({
 	})();
 
 	const nodeChildDeclarations = getRuleDeclarations(bemBlock.rule, {
-		onlyDirectChildren: true,
+		mode: 'direct',
 	});
 
 	const allBlockVariableDeclarations = nodeChildDeclarations
