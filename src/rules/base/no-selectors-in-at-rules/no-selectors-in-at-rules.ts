@@ -21,7 +21,7 @@ export default createRule({
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
-			v.strictObject({
+			v.object({
 				ignore: v.optional(
 					v.objectWithRest(
 						{},
@@ -61,6 +61,7 @@ export default createRule({
 
 			report({
 				message: messages.unexpected(node.selector, atRule.name),
+				messageArgs: ['unexpected', node.selector, atRule.name],
 				node,
 				word: node.selector,
 			});

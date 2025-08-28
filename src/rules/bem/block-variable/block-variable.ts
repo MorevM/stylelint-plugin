@@ -19,7 +19,7 @@ export default createRule({
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
-			v.strictObject({
+			v.object({
 				name: v.optional(v.string(), 'b'),
 				interpolation: v.optional(v.picklist(['always', 'never', 'ignore']), 'always'),
 				firstChild: v.optional(v.boolean(), true),
@@ -135,6 +135,7 @@ export default createRule({
 		if (variableDeclaration.prop !== VARIABLE_NAME) {
 			report({
 				message: messages.invalidVariableName(VARIABLE_NAME, variableDeclaration.prop),
+				messageArgs: ['invalidVariableName', VARIABLE_NAME, variableDeclaration.prop],
 				node: variableDeclaration,
 				fix: () => {
 					variableDeclaration.prop = VARIABLE_NAME;
@@ -147,6 +148,7 @@ export default createRule({
 	if (allBlockVariableDeclarations.length === 0) {
 		report({
 			message: messages.missingVariable(VARIABLE_NAME),
+			messageArgs: ['missingVariable', VARIABLE_NAME],
 			node: bemBlock.rule,
 			word: bemBlock.selector,
 			fix: () => {
@@ -185,6 +187,7 @@ export default createRule({
 
 			report({
 				message: messages.duplicatedVariable(declaration.prop, VARIABLE_NAME),
+				messageArgs: ['duplicatedVariable', declaration.prop, VARIABLE_NAME],
 				node: declaration,
 			});
 		});
@@ -194,6 +197,7 @@ export default createRule({
 	if (validBlockVariable?.value && !VALID_VALUES.includes(validBlockVariable.value)) {
 		return report({
 			message: messages.invalidVariableValue(validBlockVariable.value, VALID_VALUES),
+			messageArgs: ['invalidVariableValue', validBlockVariable.value, VALID_VALUES],
 			node: validBlockVariable,
 			fix: () => {
 				validBlockVariable.value = VALID_VALUES[0];
@@ -208,6 +212,7 @@ export default createRule({
 	) {
 		report({
 			message: messages.variableNotFirst(VARIABLE_NAME, bemBlock.rule.selector),
+			messageArgs: ['variableNotFirst', VARIABLE_NAME, bemBlock.rule.selector],
 			node: validBlockVariable,
 			fix: () => {
 				bemBlock.rule.prepend(validBlockVariable.clone());
@@ -259,6 +264,7 @@ export default createRule({
 						context,
 						fixable,
 					),
+					messageArgs: ['hardcodedBlockName', bemBlock.selector, variableRef, context, fixable],
 					node: rule,
 					index: node.sourceIndex,
 					endIndex: node.sourceIndex + bemBlock.selector.length,

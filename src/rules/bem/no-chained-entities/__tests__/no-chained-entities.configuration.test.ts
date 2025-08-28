@@ -38,10 +38,6 @@ testRuleConfig({
 	],
 	reject: [
 		{
-			description: 'Unknown option',
-			config: [true, { foo: 'bar' }],
-		},
-		{
 			description: 'Secondary is not an object',
 			config: [true, 'always'],
 		},

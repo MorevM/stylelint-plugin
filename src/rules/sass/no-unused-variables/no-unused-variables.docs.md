@@ -102,6 +102,8 @@ type NoUnusedVariablesOptions = {
 
 :::
 
+<!-- @include: @/docs/_parts/stylelint-wide-options.md -->
+
 ---
 
 ### `checkRoot`

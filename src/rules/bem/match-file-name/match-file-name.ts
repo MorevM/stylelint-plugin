@@ -21,7 +21,7 @@ export default createRule({
 	schema: {
 		primary: v.literal(true),
 		secondary: v.optional(
-			v.strictObject({
+			v.object({
 				caseSensitive: v.optional(v.boolean(), true),
 				matchDirectory: v.optional(v.boolean(), false),
 				messages: vMessagesSchema({
@@ -52,6 +52,7 @@ export default createRule({
 	const reportType = (type: 'match' | 'matchCase') => {
 		report({
 			message: messages[type](entity, bemBlock.blockName),
+			messageArgs: [type, entity, bemBlock.blockName],
 			node: bemBlock.rule,
 			index: 0,
 			endIndex: 1,

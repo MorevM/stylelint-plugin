@@ -212,6 +212,8 @@ type BemPatternOptions = {
 
 :::
 
+<!-- @include: @/docs/_parts/stylelint-wide-options.md -->
+
 ### `patterns`
 
 All of the keys of `patterns` property define the allowed naming patterns

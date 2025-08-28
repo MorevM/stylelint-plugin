@@ -7,6 +7,7 @@ type Violation = {
 	selector: string;
 	value: string;
 	message: string;
+	messageArgs: [string, ...any[]];
 };
 
 export const createViolationsRegistry = () => {
