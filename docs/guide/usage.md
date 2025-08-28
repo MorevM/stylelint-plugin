@@ -125,7 +125,7 @@ If you are using JSON or YAML configuration format, this approach will not work 
 
 If you are using the JS configuration format, for a better DX you can use a typed wrapper function to enable rules along with their defaults.
 
-The plugin exports a JS function `createDefineRules`, which provides IDE autocompletion for plugin rules and their options.
+The plugin exports a JS function `createDefineRules`, which provides IDE autocompletion for plugin rules and their options, and also type checking.
 
 ---
 
@@ -146,6 +146,9 @@ With this function, you can avoid duplicating this option in each of those rules
 ### Example configuration with comments
 
 ```js
+// 0. Enable type checking for a JS file (optional)
+// @ts-check
+
 // 1. Import the factory from the plugin.
 import { createDefineRules } from '@morev/stylelint-plugin';
 
