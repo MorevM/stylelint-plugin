@@ -66,6 +66,29 @@ testRule({
 				.foo-component__item:has(.card) { margin-block-start: 16px; }
 			`,
 		},
+		{
+			description: 'Does not report disallowed properties inside SASS control structures and some of CSS at-rules',
+			code: `
+				.the-component {
+				 	@keyframes bounce {
+						from { margin-block-start: 0 }
+						to { margin-block-start: 24px }
+					}
+
+					@page {
+						margin: 10mm;
+					}
+
+					@mixin foo() {
+						margin: 24px;
+					}
+
+					@function bar() {
+						margin: 24px;
+					}
+				}
+			`,
+		},
 	],
 	reject: [
 		{
@@ -221,6 +244,43 @@ testRule({
 					message: messages.unexpected('margin-block-start', '.the-component', 'block', 'EXTERNAL_GEOMETRY'),
 					line: 3, column: 3,
 					endLine: 3, endColumn: 21,
+				},
+			],
+		},
+		{
+			description: 'Block has an external geometry property in at-rule',
+			code: `
+				.the-component {
+					@media (--tablet-portrait) {
+						margin-block-start: 16px;
+					}
+
+					@include responsive('xs') {
+						margin-block-start: 16px;
+					}
+
+					@layer components {
+						@media (--tablet-portrait) {
+							margin-block-start: 16px;
+						}
+					}
+				}
+			`,
+			warnings: [
+				{
+					message: messages.unexpected('margin-block-start', '.the-component', 'block', 'EXTERNAL_GEOMETRY'),
+					line: 3, column: 3,
+					endLine: 3, endColumn: 21,
+				},
+				{
+					message: messages.unexpected('margin-block-start', '.the-component', 'block', 'EXTERNAL_GEOMETRY'),
+					line: 7, column: 3,
+					endLine: 7, endColumn: 21,
+				},
+				{
+					message: messages.unexpected('margin-block-start', '.the-component', 'block', 'EXTERNAL_GEOMETRY'),
+					line: 12, column: 4,
+					endLine: 12, endColumn: 22,
 				},
 			],
 		},
