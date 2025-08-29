@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/MorevM/stylelint-plugin/compare/v0.2.0...v0.3.0) (2025-08-29)
+
+### Features
+
+* Check declarations within block at-rules ([#11](https://github.com/MorevM/stylelint-plugin/issues/11)) ([4c8c2e0](https://github.com/MorevM/stylelint-plugin/commit/4c8c2e0c00f5737666536fad3827327c0294f20f))
+* Support Stylelint per-rule secondary options in all rules ([#12](https://github.com/MorevM/stylelint-plugin/issues/12)) ([d081137](https://github.com/MorevM/stylelint-plugin/commit/d0811371510a5eedeef37a73235b5dd31982fb65))
+
+### Bug fixes
+
+* **block-variable:** Replace with `&` instead of variable at root level if unambiguous ([#10](https://github.com/MorevM/stylelint-plugin/issues/10)) ([f6d1e9e](https://github.com/MorevM/stylelint-plugin/commit/f6d1e9ed20bb3adc19f1f375a05c9a63e605d1d5))
+
 ## [0.2.0](https://github.com/MorevM/stylelint-plugin/compare/v0.1.2...v0.2.0) (2025-08-27)
 
 ### Features
