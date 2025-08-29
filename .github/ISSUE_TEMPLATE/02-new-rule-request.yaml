@@ -7,9 +7,25 @@ body:
     attributes:
       label: Problem to solve
       description: |
-        What problem or bad practice should this rule catch or prevent? Why is it important?
+        A short, high-level description of the issue this rule would help with. \
+        Feel free to explain why it matters in your context.
       placeholder: |
-        Describe the issue this rule addresses. Links or references welcome.
+        Briefly describe the problem or practice you'd like the rule to catch or prevent.
+        Example: "Using `1fr` in grids can cause layout blowouts. A rule could suggest replacing it with `minmax(0, 1fr)`."
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Examples
+      description: |
+        Show minimal code samples of incorrect (❌) and correct (✅) usage.
+      value: |
+        ```scss
+        // ❌ incorrect
+
+        // ✅ correct
+        ```
     validations:
       required: true
 
@@ -22,22 +38,6 @@ body:
         - Default behavior
         - Should it autofix?
         - Edge cases or limitations
-    validations:
-      required: true
-
-  - type: textarea
-    attributes:
-      label: Examples
-      description: |
-        Show minimal code samples of incorrect (❌) and correct (✅) usage.
-      placeholder: |
-        ```scss
-        // ❌ incorrect
-        aspect-ratio: 2;
-
-        // ✅ correct
-        aspect-ratio: 2 / 1;
-        ```
     validations:
       required: true
 
