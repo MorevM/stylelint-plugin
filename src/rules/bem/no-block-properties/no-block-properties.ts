@@ -99,7 +99,7 @@ export default createRule({
 					separators,
 					source: resolvedSelector.resolved,
 				}).filter((bemEntity) => {
-					return bemEntity.bemSelector.startsWith(resolvedSelector.inject)
+					return bemEntity.bemSelector.startsWith(resolvedSelector.substitutions?.['&'] ?? '')
 						&& [null, 'modifier', 'entity'].includes(bemEntity.sourceContext);
 				});
 

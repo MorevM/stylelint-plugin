@@ -21,6 +21,25 @@ export type PathItem = {
 };
 
 /**
+ * A map of source placeholders to their resolved values.
+ *
+ * Includes all substitutions performed during resolution:
+ * - `&` and replaced with the resolved parent selector (if occurred).
+ * - Interpolated forms like `#{&}` or `#{$var}` replaced with their expanded values (if applicable).
+ *
+ * If no substitutions were required, the value is `null`.
+ *
+ * @example
+ * {
+ *   '&': '.block',
+ *   '#{$link}': '.block__link'
+ * }
+ */
+export type ResolvedSelectorSubstitutions =
+	| null
+	| Record<string, string | null>;
+
+/**
  * Represents a fully resolved selector from a nested context.
  */
 export type ResolvedSelector = {
@@ -39,12 +58,21 @@ export type ResolvedSelector = {
 	resolved: string;
 
 	/**
-	 * The value substituted in place of `&` during resolution,
-	 * or `null` if `&` was not present in the original selector.
+	 * A map of source placeholders to their resolved values.
 	 *
-	 * @example '.block'
+	 * Includes all substitutions performed during resolution:
+	 * - `&` and replaced with the resolved parent selector (if occurred).
+	 * - Interpolated forms like `#{&}` or `#{$var}` replaced with their expanded values (if applicable).
+	 *
+	 * If no substitutions were required, the value is `null`.
+	 *
+	 * @example
+	 * {
+	 *   '&': '.block',
+	 *   '#{$link}': '.block__link'
+	 * }
 	 */
-	inject: string;
+	substitutions: ResolvedSelectorSubstitutions;
 
 	/**
 	 * The character offset of the `raw` selector relative to the

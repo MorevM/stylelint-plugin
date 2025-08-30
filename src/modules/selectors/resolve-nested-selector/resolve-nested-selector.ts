@@ -163,12 +163,12 @@ const resolveSelectorTrees = (trees: PathItem[][]): ResolvedSelector[] => {
 			const resolved = split(unwrapInterpolatedNesting(source), '&', true)
 				.join(context);
 
-			return { source, resolved, inject: context, offset };
+			return { source, resolved, substitutions: { '&': context }, offset };
 		}
 
 		// If there is no `&`, treat the source selector as an additional descendant.
 		const inject = context ? `${context} ` : '';
-		return { source, resolved: inject + source, inject, offset };
+		return { source, resolved: inject + source, substitutions: { '&': inject }, offset };
 	});
 };
 
