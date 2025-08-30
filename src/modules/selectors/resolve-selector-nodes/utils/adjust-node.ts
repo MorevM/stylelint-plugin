@@ -11,7 +11,7 @@ type GetNodeShiftOptions = {
 
 /**
  * Computes the shift in character offset caused by replacing
- * a nesting selector (`&`) with the injected selector value.
+ * a nesting selector (`&`) with the parent selector value.
  *
  * This ensures proper alignment of source positions in the resolved selector.
  *
@@ -30,7 +30,7 @@ const getNodeShift = (options: GetNodeShiftOptions) => {
 
 	if (!condition) return 0;
 
-	const injected = selector.inject.length;
+	const injected = selector.substitutions?.['&']?.length ?? 0;
 	const original = isNestingNode ? node.value.length : 0;
 
 	return injected - original;
