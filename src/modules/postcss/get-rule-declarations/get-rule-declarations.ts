@@ -1,6 +1,6 @@
 import { isAtRule } from '#modules/postcss/is-at-rule/is-at-rule';
 import { collectDeclarationsWithPath, isPureAtRule } from './utils';
-import type { AtRule, Declaration, Rule } from 'postcss';
+import type { AtRule, Declaration, Root, Rule } from 'postcss';
 import type { DeclarationWithAtRulePath, Options } from './get-rule-declarations.types';
 
 type ToReturn<T extends Options> =
@@ -27,7 +27,7 @@ type ToReturn<T extends Options> =
  *                    `Declaration[]` or `DeclarationWithAtRulePath[]`.
  */
 export const getRuleDeclarations = <T extends Options>(
-	rule: Rule | AtRule,
+	rule: Rule | AtRule | Root,
 	options: Partial<T> = {},
 ): ToReturn<T> => {
 	const { mode = 'deep' } = options;
