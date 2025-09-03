@@ -1,6 +1,8 @@
+import postcss from 'postcss';
 import { getRuleBySelector } from '#modules/test-utils';
+import { getRoot } from '../get-root/get-root';
 import { getRuleDeclarations } from './get-rule-declarations';
-import type { Rule } from 'postcss';
+import type { Root, Rule } from 'postcss';
 
 describe(getRuleDeclarations, () => {
 	it('Handles empty rules gracefully', () => {
@@ -30,6 +32,26 @@ describe(getRuleDeclarations, () => {
 
 			expect(decls.map((d) => d.prop)).toStrictEqual(['color', 'margin', 'padding']);
 		});
+
+		it('Returns all document declarations if `rule` is `Root`', () => {
+			const rule = getRuleBySelector<Rule>(`
+				.foo {
+					color: red;
+
+					@media (min-width: 600px) {
+						margin: 10px;
+					}
+
+					.bar {
+						padding: 5px;
+					}
+				}
+			`);
+
+			const decls = getRuleDeclarations(getRoot(rule) as Root);
+
+			expect(decls.map((d) => d.prop)).toStrictEqual(['color', 'margin', 'padding']);
+		});
 	});
 
 	describe('Mode: direct', () => {
@@ -49,6 +71,27 @@ describe(getRuleDeclarations, () => {
 			const decls = getRuleDeclarations(rule, { mode: 'direct' });
 
 			expect(decls.map((d) => d.prop)).toStrictEqual(['color']);
+		});
+
+		it('Returns only direct child declarations when `onlyDirectChildren` is `true` and `rule` is `Root`', () => {
+			const root = postcss.parse(`
+				color: red;
+				$bar: .foo;
+
+				.foo {
+					color: red;
+					@media (min-width: 600px) {
+						margin: 10px;
+					}
+					.bar {
+						padding: 5px;
+					}
+				}
+			`);
+
+			const decls = getRuleDeclarations(root, { mode: 'direct' });
+
+			expect(decls.map((d) => d.prop)).toStrictEqual(['color', '$bar']);
 		});
 
 		it('Collects multiple direct children', () => {
