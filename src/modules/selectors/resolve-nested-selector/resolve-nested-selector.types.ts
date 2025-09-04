@@ -31,7 +31,7 @@ export type PathItem = {
  * A path segment with SASS-aware static resolution applied.
  *
  */
-export type ResolvedPathItem = Omit<PathItem, 'node'> & {
+export type ResolvedPathItem = PathItem & {
 	/**
 	 * The selector after static resolution of SASS variables,
 	 * formatted as (S)CSS would expand it at this point in the path.

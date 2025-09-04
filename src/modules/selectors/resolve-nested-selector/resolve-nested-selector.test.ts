@@ -513,6 +513,21 @@ describe(resolveNestedSelector, () => {
 			]);
 		});
 
+		it('Resolves multiple branches of `@at-root` directive', () => {
+			const code = `
+				.foo {
+					@at-root .bar, .baz {
+						&__item {}
+					}
+				}
+			`;
+
+			expect(resolveSelectorInContext(code, '&__item')).toStrictEqual([
+				{ source: '&__item', resolved: '.bar__item', substitutions: { '&': '.bar' }, offset: 0 },
+				{ source: '&__item', resolved: '.baz__item', substitutions: { '&': '.baz' }, offset: 0 },
+			]);
+		});
+
 		it('Can resolve complex selectors at once', () => {
 			const code = `
 				.card {
@@ -982,7 +997,7 @@ describe(resolveNestedSelector, () => {
 				]);
 			});
 
-			it.skip('Resolves variables correctly inside `@at-root`', () => {
+			it('Resolves variables correctly inside `@at-root`', () => {
 				const code = `
 					$static: .static;
 
@@ -1004,7 +1019,7 @@ describe(resolveNestedSelector, () => {
 						substitutions: {
 							'#{$b}': '.block',
 							'#{$static}': '.static',
-							'&': '.block__el ',
+							'&': '.block__el',
 						},
 						offset: 0,
 					},
