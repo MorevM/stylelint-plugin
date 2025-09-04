@@ -1,4 +1,4 @@
-import { assert, isEmpty, isNullish, omit } from '@morev/utils';
+import { assert, isEmpty, isNullish, tsObject } from '@morev/utils';
 import { getRoot, getRuleDeclarations, isAtRule, isRule, resolveSassVariable } from '#modules/postcss';
 import { split } from './utils';
 import type { AtRule, ChildNode, Node, Root, Rule } from 'postcss';
@@ -79,13 +79,6 @@ const getTrees = (
 			const type = parent.name === 'nest' ? 'nest' : 'at-root';
 
 			for (const part of parts) {
-				// If `@at-root` doesn't contain `&`, further resolution is pointless,
-				// as following selectors won't affect the result.
-				if (type === 'at-root' && !part.includes('&')) {
-					results.push([{ type: 'at-root', value: part, node: parent }, ...path]);
-					return;
-				}
-				// Continue walking up the tree with meaningful `@nest` or `@at-root` value.
 				walk(parent, [{ type, value: part, node: parent }, ...path]);
 			}
 			return;
@@ -103,16 +96,58 @@ const getTrees = (
 		const offset = getOffset(initialSelectors, i);
 
 		const current = { offset, type: 'rule', value: selector.trim(), node } as const;
-		// If `at-root` does not contain `&` character,
-		// further traversal will result in an incorrect `inject`.
-		if (isAtRule(node, ['at-root']) && !selector.includes('&')) {
-			results.push([current]);
-		} else {
-			walk(node, [current]);
-		}
+		walk(node, [current]);
 	}
 
 	return results;
+};
+
+/**
+ * Filters out exact duplicates among resolved selectors.
+ *
+ * Why duplicates happen:
+ * During path expansion we should traverse through all ancestors up to the Root
+ * to collect SASS variables that could be referenced below.
+ *
+ * Constructs like `@at-root` hoist rules out of their current ancestry
+ * (cutting everything above). When combined with list selectors (`,`), this can yield
+ * multiple logical paths that resolve to the same final selector.
+ *
+ * @example
+ * // Consider:
+ * ```scss
+ * .foo { .bar &, & .baz  { \@at-root { .bar {}  } } }
+ * ```
+ *
+ * Formal path expansion (because of the list selector) produces two paths:
+ * 1) `.foo .bar .foo .bar`
+ * 2) `.foo .baz .bar`
+ *
+ * But `@at-root` cuts the ancestry, so both effectively resolve to `.bar`. \
+ * `uniqueItems()` collapses them into a single result.
+ *
+ * @param   items   A list of resolved selector records to deduplicate.
+ *
+ * @returns         A new array with exact duplicates removed.
+ */
+const uniqueTrees = (items: ResolvedSelector[]): ResolvedSelector[] => {
+	const seen = new Set<string>();
+
+	return items.filter((item) => {
+		const substitutionsKey = item.substitutions
+			? tsObject.entries(item.substitutions)
+				.sort(([a], [b]) => a.localeCompare(b))
+				.map(([key, value]) => `${key}:${value ?? 'null'}`)
+				.join(',')
+			: 'null';
+
+		const key = `${item.source}|${item.resolved}|${item.offset}|${substitutionsKey}`;
+
+		if (seen.has(key)) return false;
+
+		seen.add(key);
+		return true;
+	});
 };
 
 /**
@@ -123,8 +158,8 @@ const getTrees = (
  * @returns         An array of `ResolvedSelector` objects.
  */
 const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] => {
-	return trees.map((tree) => {
-		let { offset, value: source, resolvedValue, usedVariables } = tree.at(-1)!;
+	const resolvedTrees = trees.map((tree) => {
+		let { offset, value: source, resolvedValue, usedVariables, node } = tree.at(-1)!;
 		assert(offset, '`getTrees` ensures that the last element includes `offset`');
 
 		let context = '';
@@ -133,14 +168,31 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 		for (let i = 0, l = tree.length; i < l; i++) {
 			const item = tree[i];
 			const isLast = i === tree.length - 1;
+			const remainingItems = tree.slice(i);
 
 			if (isLast) continue;
 
-			// If the value contains `&`, replace it with the current context.
-			// Otherwise, concatenate the value as a descendant selector.
-			context = item.value.includes('&')
-				? split(item.value, '&', true).join(context).trim()
-				: context.length ? `${context} ${item.value}` : item.value;
+			// If the value contains `&`, replace it with the current context...
+			if (item.value.includes('&')) {
+				context = split(item.value, '&', true).join(context).trim();
+			// ...at-root needs to be processed separately
+			} else if (isAtRule(item.node, ['at-root'])) {
+				// `@at-root` with an explicit parameter without `&`: start from it directly.
+				// Example: `@at-root .bar { ... }`
+				if (item.value) {
+					context = item.value;
+				// Bare `@at-root` (no parameter).
+				// If any of the next path items relies on `&`, we cannot drop the context yet
+				} else {
+					const hasNestDescendants = remainingItems
+						.some((item_) => item_.value.includes('&'));
+
+					context = hasNestDescendants ? context : '';
+				}
+			// ...for `Rule`s without `&` concatenate the value as a descendant selector.
+			} else {
+				context = context.length ? `${context} ${item.value}` : item.value;
+			}
 		}
 
 		if (source.includes('&')) {
@@ -168,7 +220,10 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 		}
 
 		// If there is no `&`, treat the source selector as an additional descendant.
-		const inject = context ? `${context} ` : '';
+		const inject = context && !isAtRule(node, ['at-root'])
+			? `${context} `
+			: '';
+
 		return {
 			source,
 			resolved: inject + resolvedValue,
@@ -178,6 +233,8 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 			offset,
 		};
 	});
+
+	return uniqueTrees(resolvedTrees);
 };
 
 /**
@@ -244,7 +301,6 @@ const resolveNodeVariables = (
  */
 export const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 	const trees = getTrees(options.node, options.source);
-
 	// All branches have the same root, so we pick it once.
 	const root = getRoot(trees[0][0].node);
 	let nodeVariables: Record<string, string | null> = resolveNodeVariables(root);
@@ -274,7 +330,7 @@ export const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 			);
 
 			return {
-				...omit(pathItem, 'node'),
+				...pathItem,
 				usedVariables,
 				resolvedValue,
 			};
