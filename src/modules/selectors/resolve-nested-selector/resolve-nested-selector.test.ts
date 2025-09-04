@@ -543,12 +543,566 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&__item #{&}__foo')).toStrictEqual([
-				{ source: '&__item #{&}__foo', resolved: '.card__item .card__foo', substitutions: { '&': '.card' }, offset: 0 },
+				{ source: '&__item #{&}__foo', resolved: '.card__item .card__foo', substitutions: { '&': '.card', '#{&}': '.card' }, offset: 0 },
 			]);
 
 			expect(resolveSelectorInContext(code, '&--mod#{&}--mod2')).toStrictEqual([
-				{ source: '&--mod#{&}--mod2', resolved: '.card--mod.card--mod2', substitutions: { '&': '.card' }, offset: 0 },
+				{ source: '&--mod#{&}--mod2', resolved: '.card--mod.card--mod2', substitutions: { '&': '.card', '#{&}': '.card' }, offset: 0 },
 			]);
+		});
+
+		describe('SASS variables', () => {
+			it('Resolves static variables from root and local scope', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$local: .local;
+
+						&__el {
+							#{$static} {}
+							#{$local} {}
+						}
+					}
+				`;
+
+				// Root-level variable in a nested selector
+				expect(resolveSelectorInContext(code, '#{$static}')).toStrictEqual([
+					{
+						source: '#{$static}',
+						resolved: '.block__el .static',
+						substitutions: {
+							'#{$static}': '.static',
+							'&': '.block__el ',
+						},
+						offset: 0,
+					},
+				]);
+
+				// Local variable in the same nested selector
+				expect(resolveSelectorInContext(code, '#{$local}')).toStrictEqual([
+					{
+						source: '#{$local}',
+						resolved: '.block__el .local',
+						substitutions: {
+							'#{$local}': '.local',
+							'&': '.block__el ',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves `&` and `#{&}` in nested selector', () => {
+				const code = `
+					.block {
+						&__el {
+							#{&} & {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{&} &')).toStrictEqual([
+					{
+						source: '#{&} &',
+						resolved: '.block__el .block__el',
+						substitutions: {
+							'#{&}': '.block__el',
+							'&': '.block__el',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves chained variables in selector', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+						$link: #{$b}__link;
+
+						&__link {
+							#{$b} {}
+							#{$link} {}
+						}
+					}
+				`;
+
+				// $b comes from parent scope: #{&} at .block → ".block"
+				expect(resolveSelectorInContext(code, '#{$b}')).toStrictEqual([
+					{
+						source: '#{$b}',
+						resolved: '.block__link .block',
+						substitutions: {
+							'#{$b}': '.block',
+							'&': '.block__link ',
+						},
+						offset: 0,
+					},
+				]);
+
+				// $link is chained: #{$b}__link at .block → ".block__link"
+				expect(resolveSelectorInContext(code, '#{$link}')).toStrictEqual([
+					{
+						source: '#{$link}',
+						resolved: '.block__link .block__link',
+						substitutions: {
+							'#{$link}': '.block__link',
+							'&': '.block__link ',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves mixed placeholders with combinators and pseudos', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+						$link: #{$b}__link;
+
+						&__link {
+							#{$b}:hover #{&} #{$static} & {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b}:hover #{&} #{$static} &')).toStrictEqual([
+					{
+						source: '#{$b}:hover #{&} #{$static} &',
+						resolved: '.block:hover .block__link .static .block__link',
+						substitutions: {
+							'#{$static}': '.static',
+							'#{$b}': '.block',
+							'#{&}': '.block__link',
+							'&': '.block__link',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves shadowed variable from inner scope', () => {
+				const code = `
+					$var: .root;
+
+					.block {
+						$var: .local;
+
+						&__el {
+							#{$var} {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$var}')).toStrictEqual([
+					{
+						source: '#{$var}',
+						resolved: '.block__el .local',
+						substitutions: {
+							'#{$var}': '.local',
+							'&': '.block__el ',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Does not leak variables across sibling rules', () => {
+				const code = `
+					$shared: .shared;
+
+					.block {
+						&__a {
+							$local: .local-a;
+						}
+
+						&__b {
+							#{$shared} {}
+							#{$local} {}
+						}
+					}
+				`;
+
+				// root-level variable works everywhere
+				expect(resolveSelectorInContext(code, '#{$shared}')).toStrictEqual([
+					{
+						source: '#{$shared}',
+						resolved: '.block__b .shared',
+						substitutions: {
+							'#{$shared}': '.shared',
+							'&': '.block__b ',
+						},
+						offset: 0,
+					},
+				]);
+
+				// local variable from sibling should NOT resolve here
+				expect(resolveSelectorInContext(code, '#{$local}')).toStrictEqual([
+					{
+						source: '#{$local}',
+						resolved: '.block__b #{$local}',
+						substitutions: {
+							'&': '.block__b ',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Leaves unknown variable interpolation unresolved', () => {
+				const code = `
+					.block {
+						&__el {
+							#{$unknown} {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$unknown}')).toStrictEqual([
+					{
+						source: '#{$unknown}',
+						resolved: '.block__el #{$unknown}',
+						substitutions: {
+							'&': '.block__el ',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves placeholder at leading, middle and trailing positions', () => {
+				const code = `
+					.block {
+						$b: #{&};
+
+						&__el {
+							#{$b} {}
+							.x #{$b} .y {}
+							.a .b #{$b} {}
+						}
+					}
+				`;
+
+				// Leading
+				expect(resolveSelectorInContext(code, '#{$b}')).toStrictEqual([
+					{
+						source: '#{$b}',
+						resolved: '.block__el .block',
+						substitutions: {
+							'#{$b}': '.block',
+							'&': '.block__el ',
+						},
+						offset: 0,
+					},
+				]);
+
+				// Middle
+				expect(resolveSelectorInContext(code, '.x #{$b} .y')).toStrictEqual([
+					{
+						source: '.x #{$b} .y',
+						resolved: '.block__el .x .block .y',
+						substitutions: {
+							'#{$b}': '.block',
+							'&': '.block__el ',
+						},
+						offset: 0,
+					},
+				]);
+
+				// Trailing
+				expect(resolveSelectorInContext(code, '.a .b #{$b}')).toStrictEqual([
+					{
+						source: '.a .b #{$b}',
+						resolved: '.block__el .a .b .block',
+						substitutions: {
+							'#{$b}': '.block',
+							'&': '.block__el ',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves variables inside at-rules', () => {
+				const code = `
+					.block {
+						$b: #{&};
+
+						@media (min-width: 600px) {
+							&__el {
+								#{$b} & {}
+							}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b} &')).toStrictEqual([
+					{
+						source: '#{$b} &',
+						resolved: '.block .block__el',
+						substitutions: {
+							'#{$b}': '.block',
+							'&': '.block__el',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Leaves circular variable references unresolved', () => {
+				const code = `
+					.block {
+						$a: #{$b};
+						$b: #{$a};
+
+						&__el {
+							#{$a} {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$a}')).toStrictEqual([
+					{
+						source: '#{$a}',
+						resolved: '.block__el #{$a}',
+						substitutions: {
+							'&': '.block__el ',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves variables inside functional pseudos like `:is()`', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+
+						&__link {
+							:is(#{$b}, #{&}, #{$static}) {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, ':is(#{$b}, #{&}, #{$static})')).toStrictEqual([
+					{
+						source: ':is(#{$b}, #{&}, #{$static})',
+						resolved: '.block__link :is(.block, .block__link, .static)',
+						substitutions: {
+							'#{$b}': '.block',
+							'#{&}': '.block__link',
+							'#{$static}': '.static',
+							'&': '.block__link',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Partially resolves when some variables are unknown', () => {
+				const code = `
+					.block {
+						$b: #{&};
+
+						&__el {
+							#{$b} .x #{$unknown} & {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b} .x #{$unknown} &')).toStrictEqual([
+					{
+						source: '#{$b} .x #{$unknown} &',
+						resolved: '.block .x #{$unknown} .block__el',
+						substitutions: {
+							'#{$b}': '.block',
+							'&': '.block__el',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves variables inside attribute selector and preserves quotes', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+
+						&__el {
+							[data-ref="#{$b} #{&} #{$static}"] {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '[data-ref="#{$b} #{&} #{$static}"]')).toStrictEqual([
+					{
+						source: '[data-ref="#{$b} #{&} #{$static}"]',
+						resolved: '.block__el [data-ref=".block .block__el .static"]',
+						substitutions: {
+							'#{$b}': '.block',
+							'#{&}': '.block__el',
+							'#{$static}': '.static',
+							'&': '.block__el',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves adjacent interpolation inside identifier', () => {
+				const code = `
+					.block {
+						$b: #{&};
+
+						&__el {
+							#{$b}__child {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b}__child')).toStrictEqual([
+					{
+						source: '#{$b}__child',
+						resolved: '.block__el .block__child',
+						substitutions: {
+							'#{$b}': '.block',
+							'&': '.block__el ',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it.skip('Resolves variables correctly inside `@at-root`', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+
+						&__el {
+							@at-root {
+								#{$b} & #{$static} {}
+							}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b} & #{$static}')).toStrictEqual([
+					{
+						source: '#{$b} & #{$static}',
+						resolved: '.block .block__el .static',
+						substitutions: {
+							'#{$b}': '.block',
+							'#{$static}': '.static',
+							'&': '.block__el ',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves variables correctly inside `@at-root (without: media)`', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+
+						@media (min-width: 600px) {
+							&__el {
+								@at-root (without: media) {
+									#{$b} & #{$static} {}
+								}
+							}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b} & #{$static}')).toStrictEqual([
+					{
+						source: '#{$b} & #{$static}',
+						resolved: '.block .block__el .static',
+						substitutions: {
+							'#{$b}': '.block',
+							'#{$static}': '.static',
+							'&': '.block__el',
+						},
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves combined selector into separate results', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+
+						&__el {
+							#{$b} a, & #{$static} b {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b} a, & #{$static} b')).toStrictEqual([
+					{
+						source: '#{$b} a',
+						resolved: '.block__el .block a',
+						substitutions: {
+							'#{$b}': '.block',
+							'&': '.block__el ',
+						},
+						offset: 0,
+					},
+					{
+						source: '& #{$static} b',
+						resolved: '.block__el .static b',
+						substitutions: {
+							'#{$static}': '.static',
+							'&': '.block__el',
+						},
+						offset: 9,
+					},
+				]);
+			});
+
+			it('Resolves selector using custom source', () => {
+				const code = `
+					.block {
+						$b: #{&};
+						$link: #{$b}__link;
+
+						&__el {
+							& {}
+						}
+					}
+				`;
+
+				expect(
+					resolveSelectorInContext(code, '&', '#{$link} &'),
+				).toStrictEqual([
+					{
+						source: '#{$link} &',
+						resolved: '.block__link .block__el',
+						substitutions: {
+							'#{$link}': '.block__link',
+							'&': '.block__el',
+						},
+						offset: 0,
+					},
+				]);
+			});
 		});
 	});
 });
