@@ -1,23 +1,8 @@
-import { assert } from '@morev/utils';
-import { isAtRule, isRule } from '#modules/postcss';
+import { assert, isEmpty, isNullish, omit } from '@morev/utils';
+import { getRoot, getRuleDeclarations, isAtRule, isRule, resolveSassVariable } from '#modules/postcss';
 import { split } from './utils';
-import type { AtRule, Node, Rule } from 'postcss';
-import type { Options, PathItem, ResolvedSelector } from './resolve-nested-selector.types';
-
-/**
- * Converts `#{&}` Sass interpolations to plain `&` in a selector string.
- *
- * This is useful for normalizing selectors before further resolution,
- * since `#{&}` behaves identically to `&` in Sass nesting but is not recognized
- * by standard selector parsers as a nesting reference.
- *
- * @param   selector   The selector to process.
- *
- * @returns            The selector with `#{&}` interpolations replaced by `&`.
- */
-const unwrapInterpolatedNesting = (selector: string) => {
-	return selector.replaceAll('#{&}', '&');
-};
+import type { AtRule, ChildNode, Node, Root, Rule } from 'postcss';
+import type { Options, PathItem, ResolvedPathItem, ResolvedSelector } from './resolve-nested-selector.types';
 
 /**
  * Calculates the character offset of a specific selector part within
@@ -76,7 +61,7 @@ const getTrees = (
 
 		if (isRule(parent)) {
 			for (const selector of parent.selectors) {
-				walk(parent, [{ type: 'rule', value: selector }, ...path]);
+				walk(parent, [{ type: 'rule', value: selector, node: parent }, ...path]);
 			}
 			return;
 		}
@@ -97,11 +82,11 @@ const getTrees = (
 				// If `@at-root` doesn't contain `&`, further resolution is pointless,
 				// as following selectors won't affect the result.
 				if (type === 'at-root' && !part.includes('&')) {
-					results.push([{ type: 'at-root', value: part }, ...path]);
+					results.push([{ type: 'at-root', value: part, node: parent }, ...path]);
 					return;
 				}
 				// Continue walking up the tree with meaningful `@nest` or `@at-root` value.
-				walk(parent, [{ type, value: part }, ...path]);
+				walk(parent, [{ type, value: part, node: parent }, ...path]);
 			}
 			return;
 		}
@@ -117,7 +102,7 @@ const getTrees = (
 		const selector = initialSelectors[i];
 		const offset = getOffset(initialSelectors, i);
 
-		const current = { offset, type: 'rule', value: selector.trim() } as const;
+		const current = { offset, type: 'rule', value: selector.trim(), node } as const;
 		// If `at-root` does not contain `&` character,
 		// further traversal will result in an incorrect `inject`.
 		if (isAtRule(node, ['at-root']) && !selector.includes('&')) {
@@ -137,9 +122,9 @@ const getTrees = (
  *
  * @returns         An array of `ResolvedSelector` objects.
  */
-const resolveSelectorTrees = (trees: PathItem[][]): ResolvedSelector[] => {
+const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] => {
 	return trees.map((tree) => {
-		const { offset, value: source } = tree.at(-1)!;
+		let { offset, value: source, resolvedValue, usedVariables } = tree.at(-1)!;
 		assert(offset, '`getTrees` ensures that the last element includes `offset`');
 
 		let context = '';
@@ -159,27 +144,99 @@ const resolveSelectorTrees = (trees: PathItem[][]): ResolvedSelector[] => {
 		}
 
 		if (source.includes('&')) {
-			// If the source selector contains `&`, replace it with the accumulated context.
-			const resolved = split(unwrapInterpolatedNesting(source), '&', true)
-				.join(context);
+			if (resolvedValue.includes('#{&}')) {
+				resolvedValue = resolvedValue.replaceAll('#{&}', context);
+				usedVariables['#{&}'] = context;
+			}
 
-			return { source, resolved, substitutions: { '&': context }, offset };
+			// If the resolved selector contains `&`, replace it with the accumulated context.
+			const nonContextParts = split(resolvedValue, '&', true);
+
+			const resolved = nonContextParts.length === 1
+				? `${context} ${nonContextParts.join(context)}`
+				: nonContextParts.join(context);
+
+			return {
+				source,
+				resolved,
+				substitutions: {
+					'&': context,
+					...usedVariables,
+				},
+				offset,
+			};
 		}
 
 		// If there is no `&`, treat the source selector as an additional descendant.
 		const inject = context ? `${context} ` : '';
-		return { source, resolved: inject + source, substitutions: { '&': inject }, offset };
+		return {
+			source,
+			resolved: inject + resolvedValue,
+			substitutions: inject
+				? { '&': inject, ...usedVariables }
+				: isEmpty(usedVariables) ? null : usedVariables,
+			offset,
+		};
 	});
 };
 
 /**
+ * Resolves all SASS variables defined directly inside a given PostCSS node.
+ *
+ * Special handling is applied for variables that reference the current selector
+ * (e.g. `&`, `#{&}`), which are substituted with the provided `context` if available.
+ *
+ * @example
+ * ```scss
+ * .block {
+ *   $b: #{&};
+ *   $link: '#{$b}__link';
+ * }
+ * ```
+ *
+ * ```ts
+ * resolveNodeVariables(rule, '.block');
+ * // => { $b: '.block', $link: '.block__link' }
+ * ```
+ *
+ * @param   node      A PostCSS node (e.g. `Rule`, `AtRule`, or `Root`) to collect variables from.
+ * @param   context   A string to substitute in place of the parent selector `&` or `#{&}`.
+ *                    If not provided, such variables will resolve to `null`.
+ *
+ * @returns           A record of resolved variable names to their values,
+ *                    or `null` if resolution was not possible.
+ */
+const resolveNodeVariables = (
+	node: ChildNode | Root | null,
+	context?: string,
+): Record<string, string | null> => {
+	if (!node) return {};
+
+	const variables: Record<string, string | null> = {};
+
+	if (node && 'nodes' in node) {
+		const nodeVariables = getRuleDeclarations(node, { mode: 'direct' })
+			.filter((declaration) => !!declaration.prop.match(/^\$[\w-]+$/));
+
+		nodeVariables.forEach((declaration) => {
+			variables[declaration.prop] = ['&', '#{&}'].includes(declaration.value)
+				? context ?? null
+				: resolveSassVariable(declaration.value, variables);
+		});
+	}
+
+	return variables;
+};
+
+/**
  * Recursively resolves a nested selector to its fully expanded form
- * by analyzing its ancestry and applying all nesting contexts.
+ * by analyzing its ancestry and applying all nesting contexts and SASS variables.
  *
  * Supports resolving selectors from:
- * * Rules inside other rules
- * * `@nest` at-rules
- * * `@at-root` at-rules (including their context-resetting behavior)
+ * - Rules inside other rules
+ * - `@nest` at-rules
+ * - `@at-root` at-rules (including their context-resetting behavior)
+ * - Selectors with SASS variables that can be statically determined
  *
  * @param   options   Object containing the PostCSS node and optionally an override selector string.
  *
@@ -188,5 +245,41 @@ const resolveSelectorTrees = (trees: PathItem[][]): ResolvedSelector[] => {
 export const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 	const trees = getTrees(options.node, options.source);
 
-	return resolveSelectorTrees(trees);
+	// All branches have the same root, so we pick it once.
+	const root = getRoot(trees[0][0].node);
+	let nodeVariables: Record<string, string | null> = resolveNodeVariables(root);
+
+	const resolvedTrees: ResolvedPathItem[][] = trees.map((pathItems) => {
+		return pathItems.map((pathItem, index) => {
+			const usedVariables: Record<string, string> = {};
+
+			const currentItem = pathItems[index];
+			const prevItems = pathItems.slice(0, index + 1);
+			const context = prevItems.map((item) => item.value).join(' ');
+
+			nodeVariables = {
+				...nodeVariables,
+				...resolveNodeVariables(currentItem.node, context),
+			};
+
+			const resolvedValue = pathItem.value.replaceAll(
+				/#{([^}]+)}/g,
+				(fullMatch, variableName: string) => {
+					const variableValue = nodeVariables[variableName];
+					if (!isNullish(variableValue)) {
+						usedVariables[`#{${variableName}}`] = variableValue;
+					}
+					return variableValue ?? fullMatch;
+				},
+			);
+
+			return {
+				...omit(pathItem, 'node'),
+				usedVariables,
+				resolvedValue,
+			};
+		});
+	});
+
+	return resolveSelectorTrees(resolvedTrees);
 };

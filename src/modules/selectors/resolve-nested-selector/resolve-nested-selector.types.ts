@@ -1,4 +1,4 @@
-import type { AtRule, Rule } from 'postcss';
+import type { AtRule, ChildNode, Rule } from 'postcss';
 
 /**
  * Part of the nesting path from a selector node to the root.
@@ -15,9 +15,36 @@ export type PathItem = {
 	value: string;
 
 	/**
-	 * The character index within the original selector string (only for the final node).
+	 * The character index within the original selector string
+	 * (only for the final node).
 	 */
 	offset?: number;
+
+	/**
+	 * The node to which this path belongs,
+	 * used for SASS variables resolution.
+	 */
+	node: ChildNode;
+};
+
+/**
+ * A path segment with SASS-aware static resolution applied.
+ *
+ */
+export type ResolvedPathItem = Omit<PathItem, 'node'> & {
+	/**
+	 * The selector after static resolution of SASS variables,
+	 * formatted as (S)CSS would expand it at this point in the path.
+	 */
+	resolvedValue: string;
+
+	/**
+	 * Map of placeholders that were actually substituted while computing
+	 * `resolvedValue`. Keys are literal placeholders as they appeared in
+	 * `value` (e.g. `'#{&}'`, `'#{$var}'`), values are their expansions.
+	 * Unresolved placeholders are omitted.
+	 */
+	usedVariables: Record<string, string>;
 };
 
 /**
