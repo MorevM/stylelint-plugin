@@ -5,7 +5,6 @@ import { getBemCandidateSegments } from '../get-bem-candidate-segments/get-bem-c
 import type postcss from 'postcss';
 import type parser from 'postcss-selector-parser';
 import type { BemNode } from '#modules/bem/utils/resolve-bem-entities/resolve-bem-entities.types';
-import type { ResolvedSelectorSubstitutions } from '#modules/selectors';
 
 
 /**
@@ -121,7 +120,7 @@ const adjustNodeSource = (
  * @param   resolvedSelectorNodes   Fully-resolved nodes after nesting flattening.
  * @param   rule                    The rule or at-rule that owns the selector (e.g., for offset calculation).
  * @param   sourceOffset            Offset of the selector nodes relative to original rule selector.
- * @param   sourceSubstitutions     Substitutions (parent selector and variables) of the selector nodes came from `resolve-nested-selector`.
+ * @param   sourceParent            Parent selector of the selector nodes.
  *
  * @returns                         A list of resolved node segments, each linked to a source-level BEM segment.
  */
@@ -130,7 +129,7 @@ export const getResolvedBemSegments = (
 	resolvedSelectorNodes: parser.Node[],
 	rule: postcss.Rule | postcss.AtRule,
 	sourceOffset: number,
-	sourceSubstitutions: ResolvedSelectorSubstitutions,
+	sourceParent: string | null,
 ): BemNode[][] => {
 	const relevantSourceSegments = getBemCandidateSegments(sourceSelectorNodes);
 	const sourceHasNesting = relevantSourceSegments
@@ -151,7 +150,7 @@ export const getResolvedBemSegments = (
 				// to account for injected selector parts during nesting resolution.
 				// This keeps source index alignment consistent with the resolved tree.
 				if ((isFirstInSegment && !isAtRoot && !sourceHasNesting) || isNestingNode) {
-					const injectedLength = sourceSubstitutions?.['&']?.length ?? 0;
+					const injectedLength = sourceParent?.length ?? 0;
 					const originalLength = isNestingNode ? node.value.length : 0;
 					sourceShift += injectedLength - originalLength;
 				}

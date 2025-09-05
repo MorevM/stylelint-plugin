@@ -30,7 +30,7 @@ const getNodeShift = (options: GetNodeShiftOptions) => {
 
 	if (!condition) return 0;
 
-	const injected = selector.substitutions?.['&']?.length ?? 0;
+	const injected = selector.parent?.length ?? 0;
 	const original = isNestingNode ? node.value.length : 0;
 
 	return injected - original;

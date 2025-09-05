@@ -211,6 +211,7 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 			return {
 				source,
 				resolved,
+				parent: context || null,
 				substitutions: {
 					'&': context,
 					...usedVariables,
@@ -227,6 +228,7 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 		return {
 			source,
 			resolved: inject + resolvedValue,
+			parent: inject || null,
 			substitutions: inject
 				? { '&': inject, ...usedVariables }
 				: isEmpty(usedVariables) ? null : usedVariables,
