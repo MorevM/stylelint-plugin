@@ -195,27 +195,32 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 			}
 		}
 
-		if (source.includes('&')) {
-			if (resolvedValue.includes('#{&}')) {
-				resolvedValue = resolvedValue.replaceAll('#{&}', context);
-				usedVariables['#{&}'] = context;
-			}
+		if (resolvedValue.includes('#{&}')) {
+			resolvedValue = resolvedValue.replaceAll('#{&}', context);
+			usedVariables['#{&}'] = context;
+		}
 
-			// If the resolved selector contains `&`, replace it with the accumulated context.
+		if (source.includes('&')) {
 			const nonContextParts = split(resolvedValue, '&', true);
 
+			// If the resolved selector contains `&`,
+			// replace it with the accumulated context.
 			const resolved = nonContextParts.length === 1
 				? `${context} ${nonContextParts.join(context)}`
 				: nonContextParts.join(context);
+
+			const substitutions = { ...usedVariables };
+
+			// Raw amp, `&`
+			if (/(?<!#\{)&/.test(source)) {
+				substitutions['&'] = context;
+			}
 
 			return {
 				source,
 				resolved,
 				parent: context || null,
-				substitutions: {
-					'&': context,
-					...usedVariables,
-				},
+				substitutions,
 				offset,
 			};
 		}
@@ -229,9 +234,7 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 			source,
 			resolved: inject + resolvedValue,
 			parent: inject || null,
-			substitutions: inject
-				? { '&': inject, ...usedVariables }
-				: isEmpty(usedVariables) ? null : usedVariables,
+			substitutions: isEmpty(usedVariables) ? null : usedVariables,
 			offset,
 		};
 	});

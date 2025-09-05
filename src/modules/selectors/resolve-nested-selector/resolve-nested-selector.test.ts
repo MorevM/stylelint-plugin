@@ -43,10 +43,10 @@ describe(resolveNestedSelector, () => {
 			const code = `a { b, c { d { e, f {}}}}`;
 
 			expect(resolveSelectorInContext(code, 'e, f')).toStrictEqual([
-				{ source: 'e', resolved: 'a b d e', substitutions: { '&': 'a b d ' }, parent: 'a b d ', offset: 0 },
-				{ source: 'e', resolved: 'a c d e', substitutions: { '&': 'a c d ' }, parent: 'a c d ', offset: 0 },
-				{ source: 'f', resolved: 'a b d f', substitutions: { '&': 'a b d ' }, parent: 'a b d ', offset: 3 },
-				{ source: 'f', resolved: 'a c d f', substitutions: { '&': 'a c d ' }, parent: 'a c d ', offset: 3 },
+				{ source: 'e', resolved: 'a b d e', substitutions: null, parent: 'a b d ', offset: 0 },
+				{ source: 'e', resolved: 'a c d e', substitutions: null, parent: 'a c d ', offset: 0 },
+				{ source: 'f', resolved: 'a b d f', substitutions: null, parent: 'a b d ', offset: 3 },
+				{ source: 'f', resolved: 'a c d f', substitutions: null, parent: 'a c d ', offset: 3 },
 			]);
 		});
 
@@ -59,7 +59,7 @@ describe(resolveNestedSelector, () => {
 
 			expect(resolveSelectorInContext(code, '.bar &, a, & + &:hover')).toStrictEqual([
 				{ source: '.bar &', resolved: '.bar .foo', substitutions: { '&': '.foo' }, parent: '.foo', offset: 0 },
-				{ source: 'a', resolved: '.foo a', substitutions: { '&': '.foo ' }, parent: '.foo ', offset: 8 },
+				{ source: 'a', resolved: '.foo a', substitutions: null, parent: '.foo ', offset: 8 },
 				{ source: '& + &:hover', resolved: '.foo + .foo:hover', substitutions: { '&': '.foo' }, parent: '.foo', offset: 11 },
 			]);
 		});
@@ -76,11 +76,11 @@ describe(resolveNestedSelector, () => {
 			]);
 
 			expect(resolveSelectorInContext(code, '.bar &, a', 'a')).toStrictEqual([
-				{ source: 'a', resolved: '.foo a', substitutions: { '&': '.foo ' }, parent: '.foo ', offset: 0 },
+				{ source: 'a', resolved: '.foo a', substitutions: null, parent: '.foo ', offset: 0 },
 			]);
 
 			expect(resolveSelectorInContext(code, '.bar &, a', 'custom')).toStrictEqual([
-				{ source: 'custom', resolved: '.foo custom', substitutions: { '&': '.foo ' }, parent: '.foo ', offset: 0 },
+				{ source: 'custom', resolved: '.foo custom', substitutions: null, parent: '.foo ', offset: 0 },
 			]);
 		});
 
@@ -94,8 +94,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'b')).toStrictEqual([
-				{ source: 'b', resolved: '.bar .foo b', substitutions: { '&': '.bar .foo ' }, parent: '.bar .foo ', offset: 0 },
-				{ source: 'b', resolved: '.foo + .foo:hover b', substitutions: { '&': '.foo + .foo:hover ' }, parent: '.foo + .foo:hover ', offset: 0 },
+				{ source: 'b', resolved: '.bar .foo b', substitutions: null, parent: '.bar .foo ', offset: 0 },
+				{ source: 'b', resolved: '.foo + .foo:hover b', substitutions: null, parent: '.foo + .foo:hover ', offset: 0 },
 			]);
 		});
 
@@ -139,8 +139,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '> b')).toStrictEqual([
-				{ source: '> b', resolved: '.foo:hover > b', substitutions: { '&': '.foo:hover ' }, parent: '.foo:hover ', offset: 0 },
-				{ source: '> b', resolved: '.foo_bar > b', substitutions: { '&': '.foo_bar ' }, parent: '.foo_bar ', offset: 0 },
+				{ source: '> b', resolved: '.foo:hover > b', substitutions: null, parent: '.foo:hover ', offset: 0 },
+				{ source: '> b', resolved: '.foo_bar > b', substitutions: null, parent: '.foo_bar ', offset: 0 },
 			]);
 		});
 
@@ -153,7 +153,7 @@ describe(resolveNestedSelector, () => {
 
 			expect(resolveSelectorInContext(code, '.b:is(:hover, :focus) &, b, b &')).toStrictEqual([
 				{ source: '.b:is(:hover, :focus) &', resolved: '.b:is(:hover, :focus) .a', substitutions: { '&': '.a' }, parent: '.a', offset: 0 },
-				{ source: 'b', resolved: '.a b', substitutions: { '&': '.a ' }, parent: '.a ', offset: 25 },
+				{ source: 'b', resolved: '.a b', substitutions: null, parent: '.a ', offset: 25 },
 				{ source: 'b &', resolved: 'b .a', substitutions: { '&': '.a' }, parent: '.a', offset: 28 },
 			]);
 		});
@@ -579,8 +579,8 @@ describe(resolveNestedSelector, () => {
 				{ source: '&--mod-mod', resolved: '.card__title--mod-mod', substitutions: { '&': '.card__title' }, parent: '.card__title', offset: 0 },
 				{ source: '&--mod2', resolved: '.card__item--mod2', substitutions: { '&': '.card__item' }, parent: '.card__item', offset: 12 },
 				{ source: '&--mod2', resolved: '.card__title--mod2', substitutions: { '&': '.card__title' }, parent: '.card__title', offset: 12 },
-				{ source: 'span', resolved: '.card__item span', substitutions: { '&': '.card__item ' }, parent: '.card__item ', offset: 21 },
-				{ source: 'span', resolved: '.card__title span', substitutions: { '&': '.card__title ' }, parent: '.card__title ', offset: 21 },
+				{ source: 'span', resolved: '.card__item span', substitutions: null, parent: '.card__item ', offset: 21 },
+				{ source: 'span', resolved: '.card__title span', substitutions: null, parent: '.card__title ', offset: 21 },
 				{ source: 'b & b', resolved: 'b .card__item b', substitutions: { '&': '.card__item' }, parent: '.card__item', offset: 32 },
 				{ source: 'b & b', resolved: 'b .card__title b', substitutions: { '&': '.card__title' }, parent: '.card__title', offset: 32 },
 			]);
@@ -625,7 +625,6 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block__el .static',
 						substitutions: {
 							'#{$static}': '.static',
-							'&': '.block__el ',
 						},
 						parent: '.block__el ',
 						offset: 0,
@@ -639,7 +638,6 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block__el .local',
 						substitutions: {
 							'#{$local}': '.local',
-							'&': '.block__el ',
 						},
 						parent: '.block__el ',
 						offset: 0,
@@ -692,7 +690,6 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block__link .block',
 						substitutions: {
 							'#{$b}': '.block',
-							'&': '.block__link ',
 						},
 						parent: '.block__link ',
 						offset: 0,
@@ -706,7 +703,6 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block__link .block__link',
 						substitutions: {
 							'#{$link}': '.block__link',
-							'&': '.block__link ',
 						},
 						parent: '.block__link ',
 						offset: 0,
@@ -763,7 +759,6 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block__el .local',
 						substitutions: {
 							'#{$var}': '.local',
-							'&': '.block__el ',
 						},
 						parent: '.block__el ',
 						offset: 0,
@@ -794,7 +789,6 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block__b .shared',
 						substitutions: {
 							'#{$shared}': '.shared',
-							'&': '.block__b ',
 						},
 						parent: '.block__b ',
 						offset: 0,
@@ -806,9 +800,7 @@ describe(resolveNestedSelector, () => {
 					{
 						source: '#{$local}',
 						resolved: '.block__b #{$local}',
-						substitutions: {
-							'&': '.block__b ',
-						},
+						substitutions: null,
 						parent: '.block__b ',
 						offset: 0,
 					},
@@ -828,9 +820,7 @@ describe(resolveNestedSelector, () => {
 					{
 						source: '#{$unknown}',
 						resolved: '.block__el #{$unknown}',
-						substitutions: {
-							'&': '.block__el ',
-						},
+						substitutions: null,
 						parent: '.block__el ',
 						offset: 0,
 					},
@@ -857,7 +847,6 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block__el .block',
 						substitutions: {
 							'#{$b}': '.block',
-							'&': '.block__el ',
 						},
 						parent: '.block__el ',
 						offset: 0,
@@ -871,7 +860,6 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block__el .x .block .y',
 						substitutions: {
 							'#{$b}': '.block',
-							'&': '.block__el ',
 						},
 						parent: '.block__el ',
 						offset: 0,
@@ -885,7 +873,6 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block__el .a .b .block',
 						substitutions: {
 							'#{$b}': '.block',
-							'&': '.block__el ',
 						},
 						parent: '.block__el ',
 						offset: 0,
@@ -936,9 +923,7 @@ describe(resolveNestedSelector, () => {
 					{
 						source: '#{$a}',
 						resolved: '.block__el #{$a}',
-						substitutions: {
-							'&': '.block__el ',
-						},
+						substitutions: null,
 						parent: '.block__el ',
 						offset: 0,
 					},
@@ -966,7 +951,6 @@ describe(resolveNestedSelector, () => {
 							'#{$b}': '.block',
 							'#{&}': '.block__link',
 							'#{$static}': '.static',
-							'&': '.block__link',
 						},
 						parent: '.block__link',
 						offset: 0,
@@ -1020,7 +1004,6 @@ describe(resolveNestedSelector, () => {
 							'#{$b}': '.block',
 							'#{&}': '.block__el',
 							'#{$static}': '.static',
-							'&': '.block__el',
 						},
 						parent: '.block__el',
 						offset: 0,
@@ -1045,7 +1028,6 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block__el .block__child',
 						substitutions: {
 							'#{$b}': '.block',
-							'&': '.block__el ',
 						},
 						parent: '.block__el ',
 						offset: 0,
@@ -1134,7 +1116,6 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block__el .block a',
 						substitutions: {
 							'#{$b}': '.block',
-							'&': '.block__el ',
 						},
 						parent: '.block__el ',
 						offset: 0,
