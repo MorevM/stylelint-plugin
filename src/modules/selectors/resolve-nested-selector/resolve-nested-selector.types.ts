@@ -102,6 +102,14 @@ export type ResolvedSelector = {
 	substitutions: ResolvedSelectorSubstitutions;
 
 	/**
+	 * The resolved parent selector for this context.
+	 * `null` in case of a top-level selector.
+	 *
+	 * @example '.block'
+	 */
+	parent: string | null;
+
+	/**
 	 * The character offset of the `raw` selector relative to the
 	 * original input string. \
 	 * Useful for mapping resolved selectors back to source positions.

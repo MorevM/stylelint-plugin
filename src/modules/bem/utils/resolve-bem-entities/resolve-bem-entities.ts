@@ -166,7 +166,7 @@ export const resolveBemEntities = (options: Options) => {
 			source: matchedSelector,
 			resolved: resolvedSelector,
 			offset: sourceOffset,
-			substitutions: sourceSubstitutions,
+			parent: sourceParent,
 		}) => {
 			// `resolveNestedSelector` splits selectors by `,` internally,
 			// so it's safe to take the first one directly.
@@ -178,7 +178,7 @@ export const resolveBemEntities = (options: Options) => {
 				resolvedSelectorNodes,
 				rule,
 				sourceOffset,
-				sourceSubstitutions,
+				sourceParent,
 			);
 
 			const pseudoStore = createPseudoStore();
