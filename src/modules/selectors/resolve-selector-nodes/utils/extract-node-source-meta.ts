@@ -1,5 +1,4 @@
 import { getNormalizedNodeString } from './get-normalized-node-string';
-import type { ResolvedSelectorSubstitutions } from '#modules/selectors';
 import type { AdjustedNode, SourceNodeMeta } from '../resolve-selector-nodes.types';
 
 /**
@@ -7,20 +6,20 @@ import type { AdjustedNode, SourceNodeMeta } from '../resolve-selector-nodes.typ
  * including its string value, original position in the raw selector, and
  * resolved position after nesting resolution.
  *
- * @param   nodes           A list of top-level selector nodes.
- * @param   substitutions   Selector substitutions came from `resolve-nested-selector`.
+ * @param   nodes    A list of top-level selector nodes.
+ * @param   parent   Parent selector came from `resolve-nested-selector`.
  *
- * @returns                 An array of metadata objects for each non-container node, containing:
- *                          - `value`: the string representation of the node
- *                          - `sourceRange`: its original position in the raw source selector
- *                          - `resolvedRange`: its position in the resolved selector
+ * @returns          An array of metadata objects for each non-container node, containing:
+ *                   - `value`: the string representation of the node
+ *                   - `sourceRange`: its original position in the raw source selector
+ *                   - `resolvedRange`: its position in the resolved selector
  */
 export const extractSourceNodeMeta = (
 	nodes: AdjustedNode[],
-	substitutions: ResolvedSelectorSubstitutions,
+	parent: string | null = '',
 ): SourceNodeMeta[] => {
 	const result: SourceNodeMeta[] = [];
-	const inject = substitutions?.['&'] ?? '';
+	const inject = parent ?? '';
 	const walk = (node: AdjustedNode) => {
 		if ('nodes' in node) {
 			node.nodes.forEach((inner) => walk(inner as AdjustedNode));
