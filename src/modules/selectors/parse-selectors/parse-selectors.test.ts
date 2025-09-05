@@ -43,6 +43,21 @@ describe(parseSelectors, () => {
 		expect(result[5]).toBeUndefined();
 	});
 
+	// @see https://github.com/postcss/postcss-selector-parser/issues/243
+	it('Set proper `sourceIndex` for SASS interpolated selectors', () => {
+		const result = parseSelectors('#{$link} #{$b}')[0];
+
+		// #{$link}
+		expect(result[0].sourceIndex).toBe(0);
+		expect(result[0].source?.start?.column).toBe(1);
+		expect(result[0].source?.end?.column).toBe(8);
+
+		// #{$b}
+		expect(result[2].sourceIndex).toBe(9);
+		expect(result[2].source?.start?.column).toBe(10);
+		expect(result[2].source?.end?.column).toBe(14);
+	});
+
 	it('Preserves `#{&}` interpolation within nested `pseudo` tags', () => {
 		const result = parseSelectors('&:not(#{&}--foo#{&}--bar):is(.active)')[0] as any;
 

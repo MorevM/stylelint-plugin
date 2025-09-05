@@ -22,7 +22,24 @@ const setCustomToString = (nodes: parser.Node[]) => {
 };
 
 /**
- * Fixes incorrect parsing of SASS interpolation with `#{&}`.
+ * Adjusts the column position of a `parser.Node`.
+ *
+ * @param   node       The parser node whose source position will be modified.
+ * @param   position   Whether to adjust the `start` or `end` column.
+ * @param   adjustBy   The number of columns to shift (positive or negative).
+ */
+const adjustSourceColumn = (
+	node: parser.Node,
+	position: 'start' | 'end',
+	adjustBy: number,
+) => {
+	if (node.source?.[position]?.column) {
+		node.source[position].column += adjustBy;
+	}
+};
+
+/**
+ * Fixes incorrect parsing of SASS interpolation in `postcss-selector-parser`.
  *
  * In SASS, a selector like `&--foo#{&}--bar` is valid and should be interpreted as:
  * ['&', '--foo', '#{&}', '--bar']
@@ -30,7 +47,10 @@ const setCustomToString = (nodes: parser.Node[]) => {
  * However, `postcss-selector-parser` currently parses this incorrectly as:
  * ['&', '--foo#{', '&', '}--bar']
  *
- * This function mutates the array of nodes to merge broken interpolation fragments into a proper `#{&}` node.
+ * Also `postcss-selector-parser` calculates wrong `sourceIndex` of interpolated values.
+ * https://github.com/postcss/postcss-selector-parser/issues/243
+ *
+ * The function mutates the array of nodes to merge broken interpolation fragments into a proper node.
  * It also adjusts `sourceIndex` and source position metadata to keep mapping consistent.
  *
  * TODO: Fill an issue to https://github.com/postcss/postcss-selector-parser/issues
@@ -40,9 +60,12 @@ const setCustomToString = (nodes: parser.Node[]) => {
  * @returns         Same array, with corrected interpolation nodes where needed.
  */
 const fixSassNestingNodes = (nodes: parser.Node[]) => {
-	const nodesToFix = nodes.filter(
-		(node) => node.type === 'nesting' || node.type === 'pseudo' || node.type === 'selector',
-	);
+	const nodesToFix = nodes.filter((node) => {
+		return (node.type === 'tag' && node.value.match(/#{\$[\w-]+}/))
+			|| node.type === 'nesting'
+			|| node.type === 'pseudo'
+			|| node.type === 'selector';
+	});
 	if (isEmpty(nodesToFix)) return nodes;
 
 	nodesToFix.forEach((node) => {
@@ -51,6 +74,17 @@ const fixSassNestingNodes = (nodes: parser.Node[]) => {
 			return;
 		}
 
+		// Fix broken indices of interpolated values in SASS.
+		// https://github.com/postcss/postcss-selector-parser/issues/243
+		if (node.type === 'tag') {
+			node.sourceIndex -= 3;
+			adjustSourceColumn(node, 'start', -3);
+			adjustSourceColumn(node, 'end', -3);
+
+			return;
+		}
+
+		// Fix incorrect parsing of interpolated parent selector.
 		const prevNode = node.prev();
 		const nextNode = node.next();
 
@@ -63,28 +97,18 @@ const fixSassNestingNodes = (nodes: parser.Node[]) => {
 			node.sourceIndex -= 2;
 
 			// Adjust column positions in source map (if available)
-			if (node.source?.start?.column) {
-				node.source.start.column -= 2;
-			}
-			if (node.source?.end?.column) {
-				node.source.end.column += 1;
-			}
+			adjustSourceColumn(node, 'start', -2);
+			adjustSourceColumn(node, 'end', 1);
 
 			// Trim trailing `#{` from previous node
 			prevNode.value = prevNode.value.slice(0, -2);
-			if (prevNode.source?.end?.column) {
-				prevNode.source.end.column -= 2;
-			}
+			adjustSourceColumn(prevNode, 'end', -2);
 
 			// Trim leading `}` from next node
 			nextNode.value = nextNode.value.slice(1);
 			nextNode.sourceIndex += 1;
-			if (nextNode.source?.start?.column) {
-				nextNode.source.start.column += 1;
-			}
-			if (nextNode.source?.end?.column) {
-				nextNode.source.end.column += 1;
-			}
+			adjustSourceColumn(nextNode, 'start', 1);
+			adjustSourceColumn(nextNode, 'end', 1);
 
 			// Remove nodes that became empty
 			if (!prevNode.value) {
