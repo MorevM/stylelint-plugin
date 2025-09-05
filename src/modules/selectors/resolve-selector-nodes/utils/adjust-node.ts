@@ -105,7 +105,7 @@ const adjustNode = (
  * Recursively annotates all top-level nodes in the source selector with positional metadata.
  * Handles nested structures and offsets caused by replaced `&` or pseudo wrappers.
  *
- * @param   input           Top-level nodes from parsed selector
+ * @param   sourceNodes     Top-level nodes from source selector
  * @param   selector        ResolvedSelector context
  * @param   contextOffset   Offset from beginning of rule content (e.g. after @at-root)
  * @param   nestingShift    Optional initial shift from outer nesting (used internally)
@@ -113,14 +113,14 @@ const adjustNode = (
  * @returns                 A list of adjusted selector nodes with resolved source positions.
  */
 export const adjustSource = (
-	input: parser.Node[],
+	sourceNodes: parser.Node[],
 	selector: ResolvedSelector,
 	contextOffset: number = 0,
 	nestingShift = 0,
 ): AdjustedNode[] => {
 	let accumulatedShift = nestingShift;
 
-	return input.map((node, index) => {
+	return sourceNodes.map((node, index) => {
 		accumulatedShift += getNodeShift({ node, index, selector, isTopLevelNode: true });
 		return adjustNode(node, selector, contextOffset, accumulatedShift);
 	});
