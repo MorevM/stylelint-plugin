@@ -281,9 +281,15 @@ const resolveNodeVariables = (
 			.filter((declaration) => !!declaration.prop.match(/^\$[\w-]+$/));
 
 		nodeVariables.forEach((declaration) => {
-			variables[declaration.prop] = ['&', '#{&}'].includes(declaration.value)
-				? context ?? null
-				: resolveSassVariable(declaration.value, variables);
+			if (['&', '#{&}'].includes(declaration.value)) {
+				variables[declaration.prop] = context ?? null;
+			} else {
+				if (declaration.value.includes('&') && context) {
+					variables['&'] = context;
+				}
+
+				variables[declaration.prop] = resolveSassVariable(declaration.value, variables);
+			}
 		});
 	}
 
