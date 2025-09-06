@@ -58,6 +58,16 @@ describe(parseSelectors, () => {
 		expect(result[2].source?.end?.column).toBe(14);
 	});
 
+	it('Differentiate between `&` and `#{&}` by type', () => {
+		const result = parseSelectors('#{&} &')[0];
+
+		expect(result[0].toString()).toBe('#{&}');
+		expect(result[0].type).toBe('tag');
+
+		expect(result[2].toString()).toBe('&');
+		expect(result[2].type).toBe('nesting');
+	});
+
 	it('Preserves `#{&}` interpolation within nested `pseudo` tags', () => {
 		const result = parseSelectors('&:not(#{&}--foo#{&}--bar):is(.active)')[0] as any;
 

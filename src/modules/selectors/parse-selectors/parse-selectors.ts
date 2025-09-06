@@ -100,6 +100,11 @@ const fixSassNestingNodes = (nodes: parser.Node[]) => {
 			adjustSourceColumn(node, 'start', -2);
 			adjustSourceColumn(node, 'end', 1);
 
+			// Change node type to `tag` for consistency with SASS variables
+			// `&` - nesting node
+			// `#{&}`, #{$var} - tag nodes
+			node.replaceWith(parser.tag({ ...node as any }));
+
 			// Trim trailing `#{` from previous node
 			prevNode.value = prevNode.value.slice(0, -2);
 			adjustSourceColumn(prevNode, 'end', -2);

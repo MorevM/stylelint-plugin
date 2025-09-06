@@ -69,7 +69,7 @@ export const getBemCandidateSegments = (nodes: parser.Node[]): parser.Node[][] =
 		}
 
 		// Handle nesting selector (`&`) and gather related compound nodes
-		if (node.type === 'nesting') {
+		if (node.type === 'nesting' || (node.type === 'tag' && node.value === '#{&}')) {
 			const segment: parser.Node[] = [node];
 			i++;
 
