@@ -710,6 +710,28 @@ describe(resolveNestedSelector, () => {
 				]);
 			});
 
+			it('Resolves chained variables that use `#{&}`', () => {
+				const code = `
+					.block {
+						$link: #{&}__link;
+
+						#{$link} {}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$link}')).toStrictEqual([
+					{
+						source: '#{$link}',
+						resolved: '.block .block__link',
+						substitutions: {
+							'#{$link}': '.block__link',
+						},
+						parent: '.block ',
+						offset: 0,
+					},
+				]);
+			});
+
 			it('Resolves mixed placeholders with combinators and pseudos', () => {
 				const code = `
 					$static: .static;
