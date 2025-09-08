@@ -69,7 +69,7 @@ testRule({
 			description: '@font-palette-values',
 			code: `
 				@font-palette-values --identifier {
-					font-family: Bixa;
+					font-family: Montserrat;
 				}
 			`,
 		},

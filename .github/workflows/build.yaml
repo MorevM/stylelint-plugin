@@ -30,6 +30,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Spellcheck
+        run: pnpm spellcheck
+
       - name: Linting
         run: pnpm lint
 

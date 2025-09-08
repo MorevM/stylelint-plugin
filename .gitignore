@@ -1,8 +1,6 @@
 # Artifacts
 dist
-build
 docs/.vitepress/cache
-.vitepress/dist
 
 # Editors
 .idea
@@ -10,7 +8,8 @@ docs/.vitepress/cache
 *.ntvs*
 *.njsproj
 *.sln
-*.sw*
+*.swp
+*.swo
 
 # Dependencies
 node_modules

@@ -33,6 +33,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Spellcheck
+        run: pnpm spellcheck
+
       - name: Build
         run: pnpm build
 
