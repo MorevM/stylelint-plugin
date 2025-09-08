@@ -58,6 +58,7 @@
 	"scripts": {
 		"prepare": "pnpm generate-meta && lefthook install",
 		"test": "vitest",
+		"typecheck": "tsc --noEmit",
 		"test:dev": "vitest --watch --reporter=dot",
 		"lint": "pnpm lint:eslint && pnpm lint:stylelint",
 		"lint:fix": "pnpm lint:eslint:fix && pnpm lint:stylelint:fix",
