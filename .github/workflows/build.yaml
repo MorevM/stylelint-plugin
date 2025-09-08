@@ -28,13 +28,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: pnpm run typecheck
+        run: pnpm typecheck
 
       - name: Linting
-        run: pnpm run lint
+        run: pnpm lint
 
       - name: Testing
-        run: pnpm run test --coverage
+        run: pnpm test --coverage
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
@@ -42,4 +42,4 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Build
-        run: pnpm run build
+        run: pnpm build
