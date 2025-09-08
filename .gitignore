@@ -1,8 +1,6 @@
 # Artifacts
 dist
-build
 docs/.vitepress/cache
-.vitepress/dist
 
 # Editors
 .idea
