@@ -1,0 +1,21 @@
+codecov:
+  require_ci_to_pass: false
+  notify:
+    wait_for_ci: false
+
+coverage:
+  range: 80..95
+  precision: 2
+  round: down
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+    patch:
+      default:
+        target: 90%
+
+comment:
+  layout: diff, flags, files
+  require_changes: true
