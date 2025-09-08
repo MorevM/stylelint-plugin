@@ -1,5 +1,5 @@
 export const parseRegExpFromString = (value: string) => {
-	const match = value.match(/^\/(.*)\/([dgimsuvy]*)$/);
+	const match = value.match(/^\/(.*)\/([dgimsuvy]*)$/); // cspell:disable-line
 	if (!match) return null;
 
 	return {
