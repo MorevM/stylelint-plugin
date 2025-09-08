@@ -1,0 +1,43 @@
+version: '0.2'
+language: [en, ru, ru_ru]
+enabled: true
+dictionaries:
+  - en_US
+  - en-gb
+  - companies
+  - softwareTerms
+  - filetypes
+  - typescript
+  - node
+  - html
+  - css
+  - bash
+  - fonts
+  - npm
+import:
+  - '@cspell/dict-ru_ru/cspell-ext.json'
+words:
+  - morev
+  - unplugin
+  - infile
+  - atrule
+  - aditayvm
+  - yalc
+
+useGitignore: true
+allowCompoundWords: true
+caseSensitive: false
+ignoreRandomStrings: true
+
+enableGlobDot: true
+files: ['**/*.*']
+ignorePaths:
+  - '**/.gitignore'
+  - '**/.git/**'
+  - '**/node_modules/**'
+  - '**/dist/**'
+  - '**/temp/**'
+  - '**/coverage/**'
+  - '**/*.lock'
+  - '**/pnpm-lock.yaml'
+  - '**/pnpm-workspace.yaml'
