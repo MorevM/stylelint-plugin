@@ -1,11 +1,11 @@
 <img src="./.github/images/banner.svg" alt="Promotional image of @morev/stylelint-plugin package" width="830" height="465" />
 
-![Stability of "master" branch](https://img.shields.io/github/actions/workflow/status/MorevM/stylelint-plugin/build.yaml?branch=master)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![Last commit](https://img.shields.io/github/last-commit/morevm/stylelint-plugin)
-![Release version](https://img.shields.io/github/v/release/morevm/stylelint-plugin?include_prereleases)
-![GitHub Release Date](https://img.shields.io/github/release-date/morevm/stylelint-plugin)
-![Keywords](https://img.shields.io/github/package-json/keywords/morevm/stylelint-plugin)
+[![License: MIT](https://img.shields.io/github/license/morevm/stylelint-plugin?color=%2340bb12)](https://opensource.org/licenses/MIT)
+![Stability](https://img.shields.io/github/actions/workflow/status/morevm/stylelint-plugin/build.yaml?branch=master&color=%2340bb12)
+[![Coverage](https://codecov.io/github/morevm/stylelint-plugin/branch/master/graph/badge.svg?token=YKSWCZUB83)](https://codecov.io/github/morevm/stylelint-plugin)
+![Last commit](https://img.shields.io/github/last-commit/morevm/stylelint-plugin?color=%2340bb12)
+![Release version](https://img.shields.io/github/v/release/morevm/stylelint-plugin?color=%2340bb12)
+![Release Date](https://img.shields.io/github/release-date/morevm/stylelint-plugin?color=%2340bb12)
 
 # @morev/stylelint-plugin
 
