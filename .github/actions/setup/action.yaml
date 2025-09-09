@@ -3,11 +3,6 @@ description: Checkout + pnpm + Node + install
 runs:
   using: composite
   steps:
-    - name: Checkout the repository
-      uses: actions/checkout@v5
-      with:
-        fetch-depth: 2
-
     - name: Setup PNPM
       uses: pnpm/action-setup@v4
       with:

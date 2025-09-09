@@ -15,7 +15,10 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup
+      - name: Checkout the repository
+        uses: actions/checkout@v5
+
+      - name: Setup environment
         uses: ./.github/actions/setup
 
       - name: Typecheck
