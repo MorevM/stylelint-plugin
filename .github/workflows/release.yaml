@@ -6,29 +6,21 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          scope: '@morev'
-          registry-url: https://registry.npmjs.org
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup environment
+        uses: ./.github/actions/setup
 
       - name: Typecheck
         run: pnpm typecheck
@@ -51,8 +43,12 @@ jobs:
         with:
           result-encoding: string
           script: |
-            const extractLatestChangelogEntry = require('./.github/extract-latest-changelog-entry.cjs');
-            return extractLatestChangelogEntry();
+            const { readFileSync } = require('node:fs');
+
+            const contents = readFileSync('CHANGELOG.md', { encoding: 'utf8' });
+            const m = contents.match(/^##[^\n\r]+\r?\n(.*?)(?=^##\s|(?!.))/ms);
+
+            return m?.[1].trim() ?? 'Failed to extract latest changelog entry';
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -62,6 +58,6 @@ jobs:
           body: ${{steps.latest-changelog-entry.outputs.result}}
 
       - name: Publish package
-        run: pnpm publish --access public --no-git-checks
+        run: pnpm publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
