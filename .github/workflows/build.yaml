@@ -11,30 +11,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  temp-changelog:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v5
-
-      - name: Getting latest changelog entry
-        uses: actions/github-script@v7
-        id: latest-changelog-entry
-        with:
-          result-encoding: string
-          script: |
-            const { readFileSync } = require('node:fs');
-
-            const contents = readFileSync('CHANGELOG.md', { encoding: 'utf8' });
-            const m = contents.match(/^##[^\n\r]+\r?\n(.*?)(?=^##\s|(?!.))/ms);
-
-            return m?.[1].trim() ?? 'Failed to extract latest changelog entry';
-
-      - name: Preview
-        run: |
-          echo "=== Latest changelog entry ==="
-          printf "%s\n" "${{ steps.latest-changelog-entry.outputs.result }}"
-
   typecheck:
     runs-on: ubuntu-latest
     steps:

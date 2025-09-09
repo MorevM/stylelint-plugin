@@ -42,8 +42,12 @@ jobs:
         with:
           result-encoding: string
           script: |
-            const extractLatestChangelogEntry = require('./.github/extract-latest-changelog-entry.cjs');
-            return extractLatestChangelogEntry();
+            const { readFileSync } = require('node:fs');
+
+            const contents = readFileSync('CHANGELOG.md', { encoding: 'utf8' });
+            const m = contents.match(/^##[^\n\r]+\r?\n(.*?)(?=^##\s|(?!.))/ms);
+
+            return m?.[1].trim() ?? 'Failed to extract latest changelog entry';
 
       - name: Create release
         uses: softprops/action-gh-release@v1
