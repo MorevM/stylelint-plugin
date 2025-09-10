@@ -1,4 +1,3 @@
-import { assert } from '@morev/utils';
 import * as v from 'valibot';
 import { resolveBemChain } from '#modules/bem';
 import { getRuleContentMeta, isAtRule, isRule } from '#modules/postcss';
@@ -116,6 +115,10 @@ const getViolationsFromGroups = (
 		const { repeating: [deepestEntity], nextPart } = group;
 		const { type, part } = deepestEntity;
 
+		// Prevent processing of incomplete input
+		// https://github.com/MorevM/stylelint-plugin/issues/17
+		if (!deepestEntity.part.sourceRange) continue;
+
 		const [index, endIndex] = part.sourceRange ?? [0, 0];
 		const key = `${index}-${endIndex}-${part.selector}`;
 
@@ -125,11 +128,6 @@ const getViolationsFromGroups = (
 		seen.add(key);
 
 		const actual = (() => {
-			assert(
-				deepestEntity.part.sourceRange,
-				'`deepestEntity` should have a `sourceRange` here.',
-			);
-
 			const { raw: source } = getRuleContentMeta(deepestEntity.rule);
 			const actual = source.slice(...deepestEntity.part.sourceRange);
 

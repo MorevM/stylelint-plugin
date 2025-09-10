@@ -87,6 +87,16 @@ testRule({
 				}
 			`,
 		},
+		{
+			description: 'Does not warn in case of incomplete input',
+			code: `
+				.the-component {
+					&__element {
+						&- {}
+					}
+				}
+			`,
+		},
 	],
 	reject: [
 		{
