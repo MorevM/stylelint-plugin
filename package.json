@@ -3,7 +3,7 @@
 	"description": "Stylelint rules for BEM and SCSS best practices",
 	"type": "module",
 	"private": false,
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"engines": {
 		"node": ">=18"
 	},
