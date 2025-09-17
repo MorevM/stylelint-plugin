@@ -2,25 +2,25 @@ import { parse, Rule } from 'postcss';
 import { getBemBlock } from './get-bem-block';
 
 describe(getBemBlock, () => {
-	it('Returns null when no rules present', () => {
+	it('Returns `null` when no rules present', () => {
 		const root = parse(``);
 
 		expect(getBemBlock(root)).toBeNull();
 	});
 
-	it('Returns null when no class selectors present', () => {
+	it('Returns `null` when no class selectors present', () => {
 		const root = parse(`body { color: red; }`);
 
 		expect(getBemBlock(root)).toBeNull();
 	});
 
-	it('Returns null for rules with multiple selectors', () => {
+	it('Returns `null` for rules with multiple selectors', () => {
 		const root = parse(`.a, .b { color: red; }`);
 
 		expect(getBemBlock(root)).toBeNull();
 	});
 
-	it('Returns null for class selector with only "."', () => {
+	it('Returns `null` for class selector with only "."', () => {
 		const root = parse(`. { color: red; }`);
 
 		expect(getBemBlock(root)).toBeNull();
@@ -35,7 +35,7 @@ describe(getBemBlock, () => {
 		expect(result?.rule).toBeInstanceOf(Rule);
 	});
 
-	it('Returns correct block for selector like "html .block"', () => {
+	it('Returns correct block for a selector like "html .block"', () => {
 		const root = parse(`html .block { color: red; }`);
 		const result = getBemBlock(root);
 
@@ -54,7 +54,7 @@ describe(getBemBlock, () => {
 		expect(getBemBlock(root)).toBeNull();
 	});
 
-	it('Allows rules inside @layer', () => {
+	it('Allows rules inside `@layer`', () => {
 		const root = parse(`
 			@layer components {
 				.block { color: red; }
@@ -67,7 +67,7 @@ describe(getBemBlock, () => {
 		expect(result?.rule).toBeInstanceOf(Rule);
 	});
 
-	it('Allows rules inside @media', () => {
+	it('Allows rules inside `@media`', () => {
 		const root = parse(`
 			@media (width >= 768px) {
 				.block { color: red; }
