@@ -74,6 +74,11 @@ export default {
     '@morev/bem/match-file-name': [true, {
       caseSensitive: true,
       matchDirectory: false,
+      separators: {
+        element: '__',
+        modifier: '--',
+        modifierValue: '--',
+      },
       messages: {
         match: (entity, blockName) =>
           `The ${entity} name must start with its block name: "${blockName}"`,
@@ -111,6 +116,33 @@ export type MatchFileNameOptions = {
    * @default false
    */
   matchDirectory?: boolean;
+
+  /**
+   * Object that defines BEM separators used to distinguish blocks, elements, modifiers, and modifier values. \
+   * This allows the rule to work correctly with non-standard BEM naming conventions.
+   */
+  separators?: {
+    /**
+     * String used as the BEM element separator.
+     *
+     * @default '__'
+     */
+    element?: string;
+
+    /**
+     * String used as the BEM modifier separator.
+     *
+     * @default '--'
+     */
+    modifier?: string;
+
+    /**
+     * String used as the BEM modifier value separator.
+     *
+     * @default '--'
+     */
+    modifierValue?: string;
+  }
 
   /**
    * Custom message functions for rule violations.
@@ -231,6 +263,13 @@ type MatchDirectoryOption = boolean;
 * The `caseSensitive` option applies regardless of whether `matchDirectory` is enabled.
 * When both options are enabled, the rule compares the directory name to the block name,
   respecting case sensitivity if `caseSensitive` is `true`.
+
+
+---
+
+### `separators`
+
+<!-- @include: @/docs/_parts/separators.md#header -->
 
 ---
 
