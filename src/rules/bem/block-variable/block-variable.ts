@@ -103,11 +103,11 @@ export default createRule({
 	// The rule only applicable to `scss` files.
 	if (isCssFile(root)) return;
 
-	const bemBlock = getBemBlock(root);
+	const separators = extractSeparators(secondary.separators);
+	const bemBlock = getBemBlock(root, separators);
 	if (!bemBlock) return;
 
 	const messages = mergeMessages(ruleMessages, secondary.messages);
-	const separators = extractSeparators(secondary.separators);
 
 	const VARIABLE_NAME = `$${secondary.name.replace(/^\$/, '')}`;
 	const VALID_VALUES = (() => {
