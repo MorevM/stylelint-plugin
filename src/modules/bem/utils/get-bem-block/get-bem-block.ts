@@ -1,5 +1,9 @@
+import { isEmpty } from '@morev/utils';
+import { resolveBemEntities } from '#modules/bem/utils/resolve-bem-entities/resolve-bem-entities';
+import { isAtRule } from '#modules/postcss';
 import { parseSelectors } from '#modules/selectors';
-import type { AtRule, Root, Rule } from 'postcss';
+import type { Root, Rule } from 'postcss';
+import type { Separators } from '#modules/shared';
 
 type BemBlock = {
 	rule: Rule;
@@ -16,11 +20,15 @@ type BemBlock = {
  * * Rule is not nested inside any at-rule other than `@layer` or `@media`.
  * * Selectors like `html .the-component` are allowed; only the last part matters.
  *
- * @param   root   PostCSS `Root` object.
+ * @param   root         PostCSS `Root` object.
+ * @param   separators   BEM separators used in the current config.
  *
- * @returns        The first BEM block definition if found, otherwise `null`.
+ * @returns              The first BEM block definition if found, otherwise `null`.
  */
-export const getBemBlock = (root: Root): BemBlock | null => {
+export const getBemBlock = (
+	root: Root,
+	separators: Separators,
+): BemBlock | null => {
 	let result: BemBlock | null = null;
 
 	root.walkRules((rule) => {
@@ -28,29 +36,41 @@ export const getBemBlock = (root: Root): BemBlock | null => {
 		// so we rely on early return.
 		if (result) return;
 
-		// Skip rules with multiple selectors (e.g., `.the-component, .foo`) -
-		// definitely not what we're looking for.
-		if (rule.selectors.length > 1) return;
-
-		// Skip rules inside disallowed at-rules
+		// Skip rules inside disallowed at-rules.
 		if (
-			rule.parent?.type === 'atrule'
-			&& (rule.parent as AtRule).name !== 'layer'
-			&& (rule.parent as AtRule).name !== 'media'
+			isAtRule(rule.parent)
+			&& rule.parent.name !== 'layer'
+			&& rule.parent.name !== 'media'
 		) return;
 
-		const lastSelector = parseSelectors(rule.selector)[0]?.at(-1)!.toString();
+		const blockCandidates = rule.selectors.map((selector) => {
+			const lastNodeString = parseSelectors(selector)[0]?.at(-1)!.toString();
+			// Only class selectors allowed.
+			if (!lastNodeString.startsWith('.')) return;
+			// Do not validate while writing the selector `.|`.
+			if (lastNodeString.length === 1) return;
 
-		// Only class selectors allowed
-		if (!lastSelector.startsWith('.')) return;
+			return lastNodeString;
+		});
 
-		// Do not validate while writing the selector.
-		if (lastSelector.length === 1) return;
+		// A scenario like `.foo-component, #bar`
+		if (blockCandidates.includes(undefined)) return;
 
+		const allBemEntities = blockCandidates
+			.filter(Boolean)
+			.map((source) => resolveBemEntities({ source, separators })[0]);
+
+		// `.foo-component, .foo-component--modifier {}`
+		const allSame = allBemEntities
+			.every((bemEntity) => bemEntity.block.value === allBemEntities[0].block.value);
+
+		if (!allSame) return;
+
+		const bemBlock = allBemEntities[0].block;
 		result = {
 			rule,
-			blockName: lastSelector.slice(1),
-			selector: lastSelector,
+			blockName: bemBlock.value,
+			selector: bemBlock.selector,
 		};
 	});
 
