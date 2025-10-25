@@ -1,4 +1,3 @@
-import { isEmpty } from '@morev/utils';
 import { resolveBemEntities } from '#modules/bem/utils/resolve-bem-entities/resolve-bem-entities';
 import { isAtRule } from '#modules/postcss';
 import { parseSelectors } from '#modules/selectors';
