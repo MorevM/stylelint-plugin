@@ -66,6 +66,11 @@ export default {
   rules: {
     '@morev/bem/no-side-effects': [true, {
       ignore: ['.swiper-*', 'span'],
+      separators: {
+        element: '__',
+        modifier: '--',
+        modifierValue: '--',
+      },
       messages: {
         rejected: (selector) =>
           `Do not use side-effects like ${selector}.`,
@@ -88,6 +93,34 @@ export type NoSideEffectsOptions = {
    * @default []
    */
   ignore?: Array<string | RegExp>;
+
+
+  /**
+   * Object that defines BEM separators used to distinguish blocks, elements, modifiers, and modifier values. \
+   * This allows the rule to work correctly with non-standard BEM naming conventions.
+   */
+  separators?: {
+    /**
+     * String used as the BEM element separator.
+     *
+     * @default '__'
+     */
+    element?: string;
+
+    /**
+     * String used as the BEM modifier separator.
+     *
+     * @default '--'
+     */
+    modifier?: string;
+
+    /**
+     * String used as the BEM modifier value separator.
+     *
+     * @default '--'
+     */
+    modifierValue?: string;
+  }
 
   /**
    * Custom message functions for rule violations.
@@ -214,6 +247,14 @@ export default {
   For example, if the selector `.block__price span` is reported, then `'span'` does not match —
   use `'*span'` (string) or `/.*\sspan/` (RegExp) to allow such side-effects.
 * You can mix plain strings, wildcards, and regular expressions in the same list.
+
+---
+
+### `separators`
+
+<!-- @include: @/docs/_parts/separators.md#header -->
+
+---
 
 ### `messages`
 

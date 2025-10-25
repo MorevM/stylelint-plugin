@@ -550,6 +550,8 @@ export default {
 
 <!-- @include: @/docs/_parts/separators.md#footer -->
 
+---
+
 ### `ignoreBlocks`
 
 In some projects, not all class names are strictly controlled by your codebase or team conventions.

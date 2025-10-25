@@ -77,6 +77,11 @@ export default {
       interpolation: 'always',
       firstChild: true,
       replaceBlockName: true,
+      separators: {
+        element: '__',
+        modifier: '--',
+        modifierValue: '--',
+      },
       messages: {
         missingVariable: (validName) =>
           `Missing block reference variable "${validName}".`
@@ -120,6 +125,33 @@ type BlockVariableOptions = {
    * @default true
    */
   replaceBlockName?: boolean;
+
+  /**
+   * Object that defines BEM separators used to distinguish blocks, elements, modifiers, and modifier values. \
+   * This allows the rule to work correctly with non-standard BEM naming conventions.
+   */
+  separators?: {
+    /**
+     * String used as the BEM element separator.
+     *
+     * @default '__'
+     */
+    element?: string;
+
+    /**
+     * String used as the BEM modifier separator.
+     *
+     * @default '--'
+     */
+    modifier?: string;
+
+    /**
+     * String used as the BEM modifier value separator.
+     *
+     * @default '--'
+     */
+    modifierValue?: string;
+  }
 
   /**
    * Custom message functions for rule violations.
@@ -440,6 +472,12 @@ This prevents typos, improves maintainability, and ensures consistent use of var
 This applies only to occurrences of the block name inside the current component's scope. \
 Ambiguous cases (e.g. root-level selectors without `&`, where both `&--mod` and `& &--mod` could be valid) are **reported only** and not auto-fixed.
 :::
+
+---
+
+### `separators`
+
+<!-- @include: @/docs/_parts/separators.md#header -->
 
 ---
 

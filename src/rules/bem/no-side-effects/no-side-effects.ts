@@ -2,7 +2,7 @@ import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { isAtRule, isKeyframesRule, isRule } from '#modules/postcss';
-import { createRule, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { createRule, extractSeparators, mergeMessages, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { resolveSelectorNodes } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
 import { createViolationsRegistry, trimBoundaryNodes } from './utils';
@@ -24,6 +24,7 @@ export default createRule({
 		secondary: v.optional(
 			v.object({
 				ignore: v.optional(v.array(vStringOrRegExpSchema), []),
+				separators: vSeparatorsSchema,
 				messages: vMessagesSchema({
 					rejected: [v.string()],
 				}),
@@ -33,7 +34,8 @@ export default createRule({
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	// Identify the root BEM block for the current file.
 	// If not found, this file is not considered a component — skip the rule.
-	const bemBlock = getBemBlock(root);
+	const separators = extractSeparators(secondary.separators);
+	const bemBlock = getBemBlock(root, separators);
 	if (!bemBlock) return;
 
 	const messages = mergeMessages(ruleMessages, secondary.messages);

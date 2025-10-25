@@ -1,3 +1,5 @@
+import type { Separators } from '#modules/shared';
+
 /**
  * Primary option of the rule.
  */
@@ -27,6 +29,14 @@ export type SecondaryOption = {
 	 * @default false
 	 */
 	matchDirectory?: boolean;
+
+	/**
+	 * Object that defines BEM separators used to distinguish blocks, elements, modifiers, and modifier values. \
+	 * This allows the rule to work correctly with non-standard BEM naming conventions.
+	 *
+	 * @default { element: '__', modifier: '--', modifierValue: '--' }
+	 */
+	separators?: Partial<Separators>;
 
 	/**
 	 * Custom message functions for rule violations.
