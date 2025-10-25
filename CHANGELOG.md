@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0](https://github.com/MorevM/stylelint-plugin/compare/v0.3.1...v0.4.0) (2025-10-25)
+
+### Features
+
+* Better BEM block definition in all BEM rules ([#22](https://github.com/MorevM/stylelint-plugin/issues/22)) ([6f87d27](https://github.com/MorevM/stylelint-plugin/commit/6f87d27a4135bd612c8acc5ad008ce85ef26a80a))
+
+### CI improvements
+
+* Pin all external actions ([#20](https://github.com/MorevM/stylelint-plugin/issues/20)) ([069b86e](https://github.com/MorevM/stylelint-plugin/commit/069b86e894a4de5d33d6e637a7974ae9b2132b83))
+
+### Chores
+
+* Add `cooldown` setting for Dependabot ([d19526b](https://github.com/MorevM/stylelint-plugin/commit/d19526b7a0e44f8ebadff2cd24f70c3922a4839b))
+* Add SECURITY.md ([def396e](https://github.com/MorevM/stylelint-plugin/commit/def396ef2166671dceb2aa13655c66789290c803))
+
 ## [0.3.1](https://github.com/MorevM/stylelint-plugin/compare/v0.3.0...v0.3.1) (2025-09-10)
 
 ### Bug fixes
