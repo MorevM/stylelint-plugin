@@ -49,7 +49,7 @@ export default createRule({
 		// Do not check the block itself
 		if (node === bemBlock.rule) return;
 		if (isKeyframesRule(node)) return;
-		// // All other constructs are irrelevant to selector analysis.
+		// All other constructs are irrelevant to selector analysis.
 		if (!isAtRule(node, ['nest', 'at-root']) && !isRule(node)) return;
 
 		resolveSelectorNodes({ node }).forEach(({ resolved }) => {
