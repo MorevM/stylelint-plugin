@@ -40,6 +40,7 @@ const collectRepeatingGroups = (
 
 		const { source } = getRuleContentMeta(rule);
 		if (!source.includes('&')) return;
+		if (source.includes('#{')) return;
 
 		const chains = resolveBemChain(rule, separators);
 
