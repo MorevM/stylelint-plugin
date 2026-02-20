@@ -11,7 +11,6 @@ export default defineConfig({
 		coverage: {
 			enabled: false,
 			provider: 'v8',
-			all: false,
 		},
 	},
 });

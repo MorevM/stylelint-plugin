@@ -50,8 +50,9 @@ type BetterProblem = Omit<Problem, 'node' | 'ruleName' | 'result' | 'line' | 'st
 	& ({
 		messageArgs: [string, ...any[]];
 		node: Problem['node'];
-		index?: Exclude<Problem['index'], undefined>;
-		endIndex?: Exclude<Problem['endIndex'], undefined>;
+		index?: number;
+		endIndex?: number;
+		word?: string;
 	});
 
 export const createRule = <
