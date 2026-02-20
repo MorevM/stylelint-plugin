@@ -339,12 +339,12 @@ testRule({
 			`,
 			warnings: [
 				{
-					message: 'margin-block-start:.the-component:block:EXTERNAL_GEOMETRY',
+					message: 'margin-block-start:.the-component:block:EXTERNAL_GEOMETRY (@morev/bem/no-block-properties)',
 					line: 1, column: 18,
 					endLine: 1, endColumn: 36,
 				},
 				{
-					message: 'width:.the-component--modifier:modifier',
+					message: 'width:.the-component--modifier:modifier (@morev/bem/no-block-properties)',
 					line: 2, column: 28,
 					endLine: 2, endColumn: 33,
 				},

@@ -68,9 +68,8 @@ export const createRule = <
 			return [key, clean];
 		}),
 	);
-	const messages = ruleMessages(options.name, stripIndentMessages) as unknown as Messages;
-
 	const ruleName = `${NAMESPACE}/${options.scope}/${options.name}`;
+	const messages = ruleMessages(ruleName, stripIndentMessages) as unknown as Messages;
 
 	const rule: Rule = (primary_, secondary_, context) => {
 		return (root, result) => {

@@ -812,7 +812,7 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Unexpected .block media` },
+				{ message: `Unexpected .block media (@morev/base/no-selectors-in-at-rules)` },
 			],
 		},
 	],

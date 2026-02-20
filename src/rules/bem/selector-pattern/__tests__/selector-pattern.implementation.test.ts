@@ -509,10 +509,10 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Block FOOBAR .FOOBAR` },
-				{ message: `Element ELEMENT .FOOBAR__ELEMENT` },
-				{ message: `Modifier name MODIFIER .FOOBAR__ELEMENT--MODIFIER` },
-				{ message: `Modifier value VALUE .FOOBAR__ELEMENT--MODIFIER--VALUE` },
+				{ message: `Block FOOBAR .FOOBAR (@morev/bem/selector-pattern)` },
+				{ message: `Element ELEMENT .FOOBAR__ELEMENT (@morev/bem/selector-pattern)` },
+				{ message: `Modifier name MODIFIER .FOOBAR__ELEMENT--MODIFIER (@morev/bem/selector-pattern)` },
+				{ message: `Modifier value VALUE .FOOBAR__ELEMENT--MODIFIER--VALUE (@morev/bem/selector-pattern)` },
 			],
 		},
 	],

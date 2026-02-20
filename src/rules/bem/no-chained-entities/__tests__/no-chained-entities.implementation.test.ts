@@ -391,10 +391,10 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Block &-b .foo-b` },
-				{ message: `Element &-e &__el-e` },
-				{ message: `Modifier name &-m &--mod-m` },
-				{ message: `Modifier value &-v &--value-v` },
+				{ message: `Block &-b .foo-b (@morev/bem/no-chained-entities)` },
+				{ message: `Element &-e &__el-e (@morev/bem/no-chained-entities)` },
+				{ message: `Modifier name &-m &--mod-m (@morev/bem/no-chained-entities)` },
+				{ message: `Modifier value &-v &--value-v (@morev/bem/no-chained-entities)` },
 			],
 		},
 	],
@@ -431,10 +431,10 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Block &-b .foo-b` },
-				{ message: `Nested &--value &--mod--value` },
-				{ message: `Nested &--value2 &--mod2--value2` },
-				{ message: `Nested &-value3 &--mod2--value2-value3` },
+				{ message: `Block &-b .foo-b (@morev/bem/no-chained-entities)` },
+				{ message: `Nested &--value &--mod--value (@morev/bem/no-chained-entities)` },
+				{ message: `Nested &--value2 &--mod2--value2 (@morev/bem/no-chained-entities)` },
+				{ message: `Nested &-value3 &--mod2--value2-value3 (@morev/bem/no-chained-entities)` },
 			],
 		},
 	],
