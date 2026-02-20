@@ -107,7 +107,7 @@ const adjustNode = (
  *
  * @param   input           Top-level nodes from parsed selector
  * @param   selector        ResolvedSelector context
- * @param   contextOffset   Offset from beginning of rule content (e.g. after @at-root)
+ * @param   contextOffset   Offset from beginning of rule content (e.g. after `@at-root`)
  * @param   nestingShift    Optional initial shift from outer nesting (used internally)
  *
  * @returns                 A list of adjusted selector nodes with resolved source positions.

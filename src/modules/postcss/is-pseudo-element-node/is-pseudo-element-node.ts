@@ -30,7 +30,7 @@ const KNOWN_PSEUDO_ELEMENTS = new Set([
  * @returns        `true` if the node represents a pseudo-element, `false` otherwise.
  */
 export const isPseudoElementNode = (node: parser.Node | undefined) => {
-	if (!node || node.type !== 'pseudo') return false;
+	if (node?.type !== 'pseudo') return false;
 
 	const value = node.value.toLowerCase();
 

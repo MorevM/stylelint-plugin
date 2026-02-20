@@ -298,13 +298,14 @@ Whether the reference must contain an interpolation.
 type InterpolationOption = 'always' | 'never' | 'ignore';
 ```
 
-#### Options:
+#### Options
 
-* `always` - always use interpolation, `#{&}` is valid **(default value)**;
-* `never` - never use interpolation, `&` is valid;
-* `ignore` - consider both to be valid, `&` and `#{&}` are valid values.
+- `always` - always use interpolation, `#{&}` is valid **(default value)**;
+- `never` - never use interpolation, `&` is valid;
+- `ignore` - consider both to be valid, `&` and `#{&}` are valid values.
 
 ::: details Why `always` is the default value?
+
 The variable itself doesn't require interpolation to work, so different formats are allowed. \
 However, if you create additional variables that build on it (like element references),
 using interpolation is **mandatory** according to SASS:
@@ -317,6 +318,7 @@ using interpolation is **mandatory** according to SASS:
 ```
 
 Therefore, to maximize consistency, `always` is the default value.
+
 :::
 
 #### Examples
@@ -470,7 +472,8 @@ This prevents typos, improves maintainability, and ensures consistent use of var
 
 ::: info
 This applies only to occurrences of the block name inside the current component's scope. \
-Ambiguous cases (e.g. root-level selectors without `&`, where both `&--mod` and `& &--mod` could be valid) are **reported only** and not auto-fixed.
+Ambiguous cases (e.g. root-level selectors without `&`, where both `&--mod` and `& &--mod` could be valid)
+are **reported only** and not auto-fixed.
 :::
 
 ---

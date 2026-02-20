@@ -518,7 +518,7 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Rejected > a` },
+				{ message: `Rejected > a (@morev/bem/no-side-effects)` },
 			],
 		},
 	],

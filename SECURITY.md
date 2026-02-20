@@ -13,18 +13,18 @@ Security fixes are released as **patch** versions on the latest **minor** line. 
 
 Do **not** open public issues for security problems. Use one of the private channels:
 
-* **GitHub Security Advisory**: [create a private report](./security/advisories/new)
-* **Email**: [max.seainside@gmail.com](mailto:max.seainside@gmail.com)
+- **GitHub Security Advisory**: [create a private report](./security/advisories/new)
+- **Email**: [max.seainside@gmail.com](mailto:max.seainside@gmail.com)
 
 A report should include description, impact, reproduction steps, and affected versions. \
 If the issue lies in a **dependency**, please mention the affected package and version.
 
 ## Disclosure Process
 
-* Receipt confirmed within **2 business days**.
-* Severity assessed and fix prepared.
-* Patch release published.
-* Advisory issued with credit to the reporter (if agreed).
+- Receipt confirmed within **2 business days**.
+- Severity assessed and fix prepared.
+- Patch release published.
+- Advisory issued with credit to the reporter (if agreed).
 
 GitHub Security Advisories allow private coordination, linking to fixed releases, and optional CVE assignment.
 

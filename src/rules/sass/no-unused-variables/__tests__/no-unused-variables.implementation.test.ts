@@ -471,7 +471,7 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Unused $b` },
+				{ message: `Unused $b (@morev/sass/no-unused-variables)` },
 			],
 		},
 	],

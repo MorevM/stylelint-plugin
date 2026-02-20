@@ -490,7 +490,7 @@ testRule({
 				.the-component {}
 			`,
 			warnings: [
-				{ message: `Missing $b` },
+				{ message: `Missing $b (@morev/bem/block-variable)` },
 			],
 		},
 	],
@@ -511,7 +511,7 @@ testRule({
 				.the-component {}
 			`,
 			warnings: [
-				{ message: `Missing $b` },
+				{ message: `Missing $b (@morev/bem/block-variable)` },
 			],
 		},
 	],
@@ -535,7 +535,7 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Not first $b .the-component` },
+				{ message: `Not first $b .the-component (@morev/bem/block-variable)` },
 			],
 		},
 	],
@@ -558,7 +558,7 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Invalid name $b $block` },
+				{ message: `Invalid name $b $block (@morev/bem/block-variable)` },
 			],
 		},
 	],
@@ -582,7 +582,7 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Invalid value .the-component #{&}` },
+				{ message: `Invalid value .the-component #{&} (@morev/bem/block-variable)` },
 			],
 		},
 	],
@@ -608,8 +608,8 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Duplicated $bl $b` },
-				{ message: `Duplicated $block $b` },
+				{ message: `Duplicated $bl $b (@morev/bem/block-variable)` },
+				{ message: `Duplicated $block $b (@morev/bem/block-variable)` },
 			],
 		},
 	],
@@ -640,9 +640,9 @@ testRule({
 				}
 			`,
 			warnings: [
-				{ message: `Hardcoded .the-component #{$b} nested true` },
-				{ message: `Hardcoded .the-component #{$b} root true` },
-				{ message: `Hardcoded .the-component #{$b} root false` },
+				{ message: `Hardcoded .the-component #{$b} nested true (@morev/bem/block-variable)` },
+				{ message: `Hardcoded .the-component #{$b} root true (@morev/bem/block-variable)` },
+				{ message: `Hardcoded .the-component #{$b} root false (@morev/bem/block-variable)` },
 			],
 		},
 	],

@@ -66,9 +66,9 @@ But in real-world maintenance, this approach quickly turns into a problem.
 
 Imagine you're debugging a button from the example above.
 
-* You see this in the HTML: `class="the-header__primary-actions-button"`;
-* You recognize it as the `primary-actions-button` element of the `the-header` block;
-* You open `the-header.scss` and search for it — but nothing comes up.
+- You see this in the HTML: `class="the-header__primary-actions-button"`;
+- You recognize it as the `primary-actions-button` element of the `the-header` block;
+- You open `the-header.scss` and search for it — but nothing comes up.
 
 Why? Because it was built piece by piece:
 

@@ -23,6 +23,7 @@ words:
   - atrule
   - aditayvm
   - yalc
+  - oxlint
 
 useGitignore: true
 allowCompoundWords: true

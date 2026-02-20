@@ -208,7 +208,7 @@ testRule({
 				.the-component {}
 			`,
 			warnings: [
-				{ message: `Match file the-component` },
+				{ message: `Match file the-component (@morev/bem/match-file-name)` },
 			],
 		},
 		{
@@ -218,7 +218,7 @@ testRule({
 				.TheComponent {}
 			`,
 			warnings: [
-				{ message: `Match case file TheComponent` },
+				{ message: `Match case file TheComponent (@morev/bem/match-file-name)` },
 			],
 		},
 	],

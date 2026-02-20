@@ -67,7 +67,7 @@ describe(getRuleDeclarations, () => {
 	});
 
 	describe('Mode: directWithPureAtRules', () => {
-		it('Returns direct declarations + declarations from pure at-rules (default `shape: "nodes"`) ', () => {
+		it('Returns direct declarations + declarations from pure at-rules (default `shape: "nodes"`)', () => {
 			const rule = getRuleBySelector<Rule>(`
 				.foo {
 					color: red;
