@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/MorevM/stylelint-plugin/compare/v0.4.0...v0.5.0) (2026-02-20)
+
+
+### Features
+
+* Add Stylelint v17 support ([#40](https://github.com/MorevM/stylelint-plugin/issues/40)) ([4551f4c](https://github.com/MorevM/stylelint-plugin/commit/4551f4cc02fb2fb8538c33041ace224c363965ff))
+
 ## [0.4.0](https://github.com/MorevM/stylelint-plugin/compare/v0.3.1...v0.4.0) (2025-10-25)
 
 ### Features
