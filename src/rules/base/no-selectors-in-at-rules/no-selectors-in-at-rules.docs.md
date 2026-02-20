@@ -49,7 +49,7 @@ but the section is valid for all [block at-rules](https://developer.mozilla.org/
 
 ::: tip
 In some projects, `@layer`, `@scope` or `@supports` may be reasonable exceptions -
-you can configure them explicitly using the [`ignore`](#ignore) option.
+you can configure them explicitly using the [`ignore`] option.
 :::
 
 
@@ -97,7 +97,8 @@ leading to simpler navigation and a more predictable editing experience.
 ## Rule details
 
 By default, this rule disallows placing selectors inside any block-level at-rule
-(except for SASS control structures - for example, content inside `@if` or `@else` blocks is not checked, as well as `@mixin`, `@function`, etc.).
+(except for SASS control structures - for example, content inside `@if` or `@else` blocks
+is not checked, as well as `@mixin`, `@function`, etc.).
 
 The rule treats CSS at-rules and SASS mixins equally — both are considered invalid
 containers for selector blocks unless explicitly ignored.
@@ -114,7 +115,7 @@ containers for selector blocks unless explicitly ignored.
 
 If you have custom SASS mixins intended to be used inside selectors,
 or you want to allow nesting selectors within specific at-rules,
-you can use the [`ignore`](#ignore) option described below.
+you can use the [`ignore`] option described below.
 
 While this is generally considered bad practice, there are cases where it may be acceptable -
 such as during codebase migrations, in specific scenarios like `@media print`,
@@ -221,10 +222,10 @@ and values define which parameter values for those at-rules should be ignored.
 
 Values can be:
 
-* a plain string;
-* a stringified regular expression *(make sure that key characters are escaped)*;
-* a regular expression *(if your config format supports it)*;
-* or an array containing any combination of the above.
+- a plain string;
+- a stringified regular expression *(make sure that key characters are escaped)*;
+- a regular expression *(if your config format supports it)*;
+- or an array containing any combination of the above.
 
 ::: info Info
 This flexibility is necessary to support various user needs and to accommodate configuration formats
@@ -328,7 +329,9 @@ This rule is a modern port of
 
 The implementation mostly the same (and thanks for the inspiration and tests!), but compared to the original here:
 
-* Support and tests for more at-rules *(CSS has advanced a lot in the meantime, heh)*;
-* Capability to fine-tune exceptions *(which makes sense when using new directives such as `layer`)*;
-* SASS support out of the box *(no more explicit exceptions for `@if`, `@else` and other SASS constructions)*;
-* Better (less verbose) error highlighting *(only the selector is highlighted, not the entire at-rule content)*
+- Support and tests for more at-rules *(CSS has advanced a lot in the meantime, heh)*;
+- Capability to fine-tune exceptions *(which makes sense when using new directives such as `layer`)*;
+- SASS support out of the box *(no more explicit exceptions for `@if`, `@else` and other SASS constructions)*;
+- Better (less verbose) error highlighting *(only the selector is highlighted, not the entire at-rule content)*
+
+[`ignore`]: #ignore

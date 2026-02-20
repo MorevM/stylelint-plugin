@@ -260,8 +260,8 @@ type MatchDirectoryOption = boolean;
 
 #### Notes
 
-* The `caseSensitive` option applies regardless of whether `matchDirectory` is enabled.
-* When both options are enabled, the rule compares the directory name to the block name,
+- The `caseSensitive` option applies regardless of whether `matchDirectory` is enabled.
+- When both options are enabled, the rule compares the directory name to the block name,
   respecting case sensitivity if `caseSensitive` is `true`.
 
 

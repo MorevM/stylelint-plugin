@@ -5,7 +5,12 @@ export default combine([
 	defineConfiguration('javascript'),
 	defineConfiguration('node'),
 	defineConfiguration('json'),
-	defineConfiguration('markdown'),
+	defineConfiguration('markdown', {
+		overrides: {
+			// https://github.com/ota-meshi/eslint-plugin-markdown-preferences/issues/256
+			'markdown-preferences/no-implicit-block-closing': 'off',
+		},
+	}),
 	defineConfiguration('yaml'),
 	defineConfiguration('html'),
 	defineConfiguration('vitest', {

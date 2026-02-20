@@ -153,9 +153,9 @@ that should be excluded from validation.
 
 #### Common use cases
 
-* **Third-party integration** — when targeting DOM structures from libraries like Swiper, Tippy, etc.,
+- **Third-party integration** — when targeting DOM structures from libraries like Swiper, Tippy, etc.,
   which don't follow your BEM conventions and cannot be styled otherwise.
-* **Minor inline elements** — in some cases, developers choose not to introduce a dedicated BEM element for simple internal markup
+- **Minor inline elements** — in some cases, developers choose not to introduce a dedicated BEM element for simple internal markup
   (e.g. `<span>` for currency symbol ), and instead write quick selectors like `.block__price span`.
 
 While such cases are debatable from a strict BEM perspective,
@@ -241,12 +241,12 @@ export default {
 
 #### Notes
 
-* Each resolved side-effect selector is tested against all patterns in the list. \
+- Each resolved side-effect selector is tested against all patterns in the list. \
   If at least one pattern matches, the selector is skipped and no warning is reported.
-* Matching is performed against the entire resolved side-effect selector, not its individual parts. \
+- Matching is performed against the entire resolved side-effect selector, not its individual parts. \
   For example, if the selector `.block__price span` is reported, then `'span'` does not match —
   use `'*span'` (string) or `/.*\sspan/` (RegExp) to allow such side-effects.
-* You can mix plain strings, wildcards, and regular expressions in the same list.
+- You can mix plain strings, wildcards, and regular expressions in the same list.
 
 ---
 

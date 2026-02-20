@@ -169,10 +169,10 @@ export type RuleSetting<Primary, Secondary> =
 	| Primary
 	| [null | Primary]
 	| [null | Primary, Secondary & { [key: string]: any }];
-	// Note about this:            ↑
-	// The most accurate type is `Secondary & StylelintSecondaryOptions`,
-	// but it feels unnecessarily verbose from the end-user's perspective,
-	// so we just open the door to the common Stylelint properties instead.
+// Note about this:            ↑
+// The most accurate type is `Secondary & StylelintSecondaryOptions`,
+// but it feels unnecessarily verbose from the end-user's perspective,
+// so we just open the door to the common Stylelint properties instead.
 
 /**
  * Global plugin settings that may apply to multiple rules.

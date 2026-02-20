@@ -20,9 +20,9 @@ Reports SASS variables that are declared but not used.
 Defining variables that are never used leads to unnecessary noise, confusion, and potential maintenance issues during refactoring. \
 This rule helps keep your component code clean and intentional by reporting variables that:
 
-* Are declared with a valid SASS syntax;
-* Are never referenced within their corresponding scope or nested scopes;
-* Are not explicitly ignored via configuration.
+- Are declared with a valid SASS syntax;
+- Are never referenced within their corresponding scope or nested scopes;
+- Are not explicitly ignored via configuration.
 
 ## Rule options
 
@@ -147,9 +147,9 @@ type IgnoreOption = Array<string | RegExp>;
 
 Supports:
 
-* Exact matches by variable name (without `$` prefix in config)
-* Wildcard patterns using `*`
-* Regular expressions for advanced matching
+- Exact matches by variable name (without `$` prefix in config)
+- Wildcard patterns using `*`
+- Regular expressions for advanced matching
 
 ::: tip
 The `$` prefix is automatically handled by the rule - in the config, you only specify the name part.
@@ -241,5 +241,5 @@ export type MessagesOption = {
 
 ## Additional notes
 
-* The rule correctly tracks scope: nested variables can shadow outer ones.
-* Escaped variables inside strings (e.g., `"\\$var"`) or comments (e.g., `// $foo`) do not count as usage.
+- The rule correctly tracks scope: nested variables can shadow outer ones.
+- Escaped variables inside strings (e.g., `"\\$var"`) or comments (e.g., `// $foo`) do not count as usage.

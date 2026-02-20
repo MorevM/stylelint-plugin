@@ -5,7 +5,6 @@
 Prevents layout-affecting CSS properties within BEM block selectors.
 
 ::: info In other words
-
 Disallows margins, positioning, and similar properties directly on BEM blocks (or their modifiers).
 
 ```html
@@ -30,7 +29,6 @@ Disallows margins, positioning, and similar properties directly on BEM blocks (o
   margin-block-start: 16px;
 }
 ```
-
 :::
 
 ## Motivation
@@ -274,17 +272,19 @@ The `presets` option allows you to quickly apply predefined groups of restricted
 so you don't have to manually list them one by one.
 This makes the rule configuration concise, consistent, and easy to maintain.
 
-The plugin provides several built-in presets, covering common categories of properties that are considered problematic at the BEM block level.
+The plugin provides several built-in presets, covering common categories of properties
+that are considered problematic at the BEM block level.
 
 ::: tip
-You can also extend or completely override these groups with your own custom presets using [`customPresets`](#custompresets) option if needed.
+You can also extend or completely override these groups with your own custom presets
+using [`customPresets`](#custompresets) option if needed.
 :::
 
 #### Built-in presets
 
 | Preset name         | Description                                                                 |
 | ------------------- | --------------------------------------------------------------------------- |
-| `EXTERNAL_GEOMETRY` | Properties that control external geometry *(enabled by default)*.         |
+| `EXTERNAL_GEOMETRY` | Properties that control external geometry *(enabled by default)*.           |
 | `CONTEXT`           | Properties that influence layout behavior within a parent container.        |
 | `POSITIONING`       | Properties related to absolute or relative positioning of the block itself. |
 
@@ -327,6 +327,7 @@ const BUILTIN_PRESETS = {
 ::: info Note
 The exact property lists are defined by the plugin and may be expanded in future versions
 following [Semantic Versioning](https://semver.org/) specification.
+
 :::
 
 
@@ -345,10 +346,10 @@ to ensure more consistent and predictable BEM block isolation.
 
 The properties restricted by `presets` apply to:
 
-| Selector type             | Example                    | Applies by default                |
-| ------------------------- | -------------------------- | --------------------------------- |
-| BEM block selectors       | `.the-component`           | ✅ Yes                            |
-| BEM block modifiers       | `.the-component--modifier` | ✅ Yes                            |
+| Selector type       | Example                    | Applies by default |
+| ------------------- | -------------------------- | ------------------ |
+| BEM block selectors | `.the-component`           | ✅ Yes             |
+| BEM block modifiers | `.the-component--modifier` | ✅ Yes             |
 
 ```scss
 .the-component {
@@ -380,13 +381,13 @@ export type CustomPresetsOption = Record<string, string[]>;
 ```
 
 The `customPresets` option allows you to define your own groups of restricted CSS properties
-and reference them within the rule configuration, similar to the built-in [`presets`](#presets).
+and reference them within the rule configuration, similar to the built-in [`presets`].
 
 #### Use cases
 
-* Define project-specific groups of restricted properties;
-* Override built-in presets with your own property lists;
-* Use custom preset names in [`messages`](#messages) for more meaningful, project-specific reporting.
+- Define project-specific groups of restricted properties;
+- Override built-in presets with your own property lists;
+- Use custom preset names in [`messages`](#messages) for more meaningful, project-specific reporting.
 
 #### Examples
 
@@ -396,9 +397,9 @@ and reference them within the rule configuration, similar to the built-in [`pres
 
 In this example:
 
-* A new preset `STACKING_CONTEXT` is introduced to group all properties related to stacking context;
-* Preset is referenced in `presets` just like built-in ones;
-* A more detailed message is provided for this specific preset.
+- A new preset `STACKING_CONTEXT` is introduced to group all properties related to stacking context;
+- Preset is referenced in `presets` just like built-in ones;
+- A more detailed message is provided for this specific preset.
 
 ```js {8,10,13}
 // 📄 .stylelintrc.js
@@ -428,8 +429,8 @@ export default {
 
 #### Notes
 
-* Custom preset names can be any valid string.
-* Overriding built-in presets is allowed by design. \
+- Custom preset names can be any valid string.
+- Overriding built-in presets is allowed by design. \
   Use this feature with caution to avoid introducing inconsistent rule behavior.
 
 ---
@@ -444,7 +445,7 @@ export type DisallowPropertiesOption = string[];
 ```
 
 The `disallowProperties` option lets you explicitly add individual properties to the restricted list,
-in addition to those defined by [`presets`](#presets).
+in addition to those defined by [`presets`].
 This is useful for introducing project-specific restrictions without modifying or creating new presets.
 
 #### Example
@@ -460,8 +461,8 @@ This is useful for introducing project-specific restrictions without modifying o
 
 In this example:
 
-* All external geometry properties are restricted by default.
-* Additionally, `color` and `background` are explicitly restricted for BEM blocks,
+- All external geometry properties are restricted by default.
+- Additionally, `color` and `background` are explicitly restricted for BEM blocks,
   even though they are not part of the preset.
 
 ::: info
@@ -504,8 +505,8 @@ This gives you fine-grained control over exceptions to global restrictions.
 
 In this example:
 
-* The rule restricts external geometry and context-related properties.
-* `z-index` is explicitly allowed, even though it's part of the `'CONTEXT'` preset.
+- The rule restricts external geometry and context-related properties.
+- `z-index` is explicitly allowed, even though it's part of the `'CONTEXT'` preset.
 
 ---
 
@@ -557,16 +558,16 @@ export type PerEntityOption = {
 
 The `perEntity` option allows you to define **separate restrictions for different types of BEM entities**, such as:
 
-* BEM block selectors (`.the-component`)
-* BEM block modifiers (`.the-component--modifier`)
+- BEM block selectors (`.the-component`)
+- BEM block modifiers (`.the-component--modifier`)
 
 ::: tip Why
 In practice, applying the same strict rules to both blocks and their modifiers can be too limiting.
 
 For example:
 
-* You may want to restrict external geometry and positioning for pure blocks.
-* But allow limited use of `z-index` or `position` for modifiers to handle isolated layout exceptions.
+- You may want to restrict external geometry and positioning for pure blocks.
+- But allow limited use of `z-index` or `position` for modifiers to handle isolated layout exceptions.
 
 The `perEntity` option lets you adjust restrictions for each entity type individually, while keeping global defaults in place -
 or defining only *per-entity restrictions* without global presets if preferred.
@@ -598,8 +599,8 @@ are often difficult to enforce consistently across all entity types in real-worl
 
 In this example:
 
-* Global restrictions apply `EXTERNAL_GEOMETRY` and `z-index` to all entities.
-* For BEM block modifiers, `z-index` is allowed as an exception.
+- Global restrictions apply `EXTERNAL_GEOMETRY` and `z-index` to all entities.
+- For BEM block modifiers, `z-index` is allowed as an exception.
 
 ---
 
@@ -622,16 +623,16 @@ In this example:
 
 In this case:
 
-* No global restrictions apply.
-* BEM block selectors are restricted based on `EXTERNAL_GEOMETRY`.
-* BEM block modifiers are restricted based on `POSITIONING`.
+- No global restrictions apply.
+- BEM block selectors are restricted based on `EXTERNAL_GEOMETRY`.
+- BEM block modifiers are restricted based on `POSITIONING`.
 
 #### Notes
 
-* If both global and `perEntity` options are defined, global restrictions apply first,
+- If both global and `perEntity` options are defined, global restrictions apply first,
   then entity-specific overrides are merged on top.
-* You can selectively configure only the entity types relevant to your project.
-* Using `perEntity` is recommended for teams that want stricter discipline for blocks
+- You can selectively configure only the entity types relevant to your project.
+- Using `perEntity` is recommended for teams that want stricter discipline for blocks
   while keeping reasonable flexibility for modifiers and utilities.
 
 ---
@@ -644,15 +645,15 @@ the rule will skip all property checks for that block and its related selectors.
 
 This is useful for:
 
-* Excluding legacy blocks or third-party components.
-* Gradually adopting the rule in large projects.
-* Allowing temporary exceptions for experimental components.
+- Excluding legacy blocks or third-party components.
+- Gradually adopting the rule in large projects.
+- Allowing temporary exceptions for experimental components.
 
 #### Supported pattern types
 
-* **Exact string match** - Matches block names literally;
-* **String with wildcards (*)** - Supports simple pattern matching;
-* **Regular expressions** - Allows complex, precise matching.
+- **Exact string match** - Matches block names literally;
+- **String with wildcards (*)** - Supports simple pattern matching;
+- **Regular expressions** - Allows complex, precise matching.
 
 #### Examples
 
@@ -695,9 +696,9 @@ This is useful for:
 
 #### Notes
 
-* Only block names are checked - the option does not affect elements, modifiers, or utilities directly.
-* Modifiers, elements, or utilities of ignored blocks are excluded along with their parent block.
-* Wildcard patterns (*) are converted to regular expressions internally - escaping is not required for simple use cases.
+- Only block names are checked - the option does not affect elements, modifiers, or utilities directly.
+- Modifiers, elements, or utilities of ignored blocks are excluded along with their parent block.
+- Wildcard patterns (*) are converted to regular expressions internally - escaping is not required for simple use cases.
 
 ---
 
@@ -789,5 +790,7 @@ export type MessagesOption = {
 ```
 
 :::
+
+[`presets`]: #presets
 
 <!-- @include: @/docs/_parts/custom-messages.md#formatting -->
