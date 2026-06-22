@@ -305,7 +305,7 @@ import {
 
 :::
 
-::: details `RegExp`
+:::: details `RegExp`
 
 A regular expression for advanced matching, if the configuration format allows it. \
 For example, `yaml` and `json` configurations do not support direct `RegExp` usage -
@@ -353,8 +353,9 @@ import {
   SNAKE_CASE_NUMERIC_REGEXP,
 } from '@morev/stylelint-plugin/constants';
 ```
-
 :::
+
+::::
 
 ::: details `array`
 
@@ -453,7 +454,7 @@ and validated against `pattern.modifierName`.
 
 #### Configuration examples
 
-::: details `Two Dashes` style (default)
+:::: details `Two Dashes` style (default)
 
 ::: code-group
 
@@ -484,7 +485,9 @@ export default {
 
 :::
 
-::: details `Traditional` style
+::::
+
+:::: details `Traditional` style
 
 ::: code-group
 
@@ -515,8 +518,9 @@ export default {
 
 :::
 
+::::
 
-::: details `React` style
+:::: details `React` style
 
 ::: code-group
 
@@ -546,6 +550,8 @@ export default {
 ```
 
 :::
+
+::::
 
 <!-- @include: @/docs/_parts/separators.md#footer -->
 

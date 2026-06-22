@@ -28,7 +28,7 @@ for consistency with the BEM-specific rules.
 - Create the [`.stylelintrc` config file](https://stylelint.io/user-guide/configure/) *(or open the existing one)*;
 - Add `@morev/stylelint-plugin` to the [`plugins`](https://stylelint.io/user-guide/configure/#plugins) array;
 
-::: details Show example
+:::: details Show example
 
 ::: code-group
 
@@ -43,10 +43,12 @@ export default {
 
 :::
 
+::::
+
 - Add the general rules from the `base` and `sass` categories to the [`overrides`] array
   (or directly to the `rules` object - it's safe to do so);
 
-::: details Show example
+:::: details Show example
 
 ::: code-group
 
@@ -85,6 +87,8 @@ export default {
 ```
 
 :::
+
+::::
 
 - Add the rules from the `bem` category under `overrides`, using the `files` field to restrict them to the exact paths of BEM components
 

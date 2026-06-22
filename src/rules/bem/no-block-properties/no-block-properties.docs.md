@@ -288,7 +288,7 @@ using [`customPresets`](#custompresets) option if needed.
 | `CONTEXT`           | Properties that influence layout behavior within a parent container.        |
 | `POSITIONING`       | Properties related to absolute or relative positioning of the block itself. |
 
-::: details Show properties list
+:::: details Show properties list
 
 ```ts
 const BUILTIN_PRESETS = {
@@ -327,8 +327,9 @@ const BUILTIN_PRESETS = {
 ::: info Note
 The exact property lists are defined by the plugin and may be expanded in future versions
 following [Semantic Versioning](https://semver.org/) specification.
-
 :::
+
+::::
 
 
 #### Behavior
@@ -791,6 +792,6 @@ export type MessagesOption = {
 
 :::
 
-[`presets`]: #presets
-
 <!-- @include: @/docs/_parts/custom-messages.md#formatting -->
+
+[`presets`]: #presets
