@@ -13,7 +13,7 @@ Security fixes are released as **patch** versions on the latest **minor** line. 
 
 Do **not** open public issues for security problems. Use one of the private channels:
 
-- **GitHub Security Advisory**: [create a private report](./security/advisories/new)
+- **GitHub Security Advisory**: [create a private report](https://github.com/MorevM/stylelint-plugin/security/advisories/new)
 - **Email**: [max.seainside@gmail.com](mailto:max.seainside@gmail.com)
 
 A report should include description, impact, reproduction steps, and affected versions. \
