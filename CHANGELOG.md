@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/MorevM/stylelint-plugin/compare/v0.6.0...v0.6.1) (2026-07-07)
+
+
+### Bug fixes
+
+* Get rid of `WritableDeep` within `defineRules` ([#57](https://github.com/MorevM/stylelint-plugin/issues/57)) ([6dd66bc](https://github.com/MorevM/stylelint-plugin/commit/6dd66bc853ddf23264922ccd8d1a7ecfe81c8a23))
+
 ## [0.6.0](https://github.com/MorevM/stylelint-plugin/compare/v0.5.0...v0.6.0) (2026-07-07)
 
 
