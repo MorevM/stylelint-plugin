@@ -1,22 +1,15 @@
 import { toArray, tsObject } from '@morev/utils';
 import type { PluginGlobals, RulesSchema } from '#modules/meta';
+import type {
+	CreateDefineRules,
+	DefineRulesFunction,
+	DefineRulesInput,
+	DefineRulesResult,
+	EmptyInput,
+	ExactRulesInput,
+	PluginConfig,
+} from './create-define-rules.types';
 
-/**
- * Configuration object for the plugin.
- */
-type PluginConfig = {
-	/**
-	 * Global options for the plugin that may affect multiple rules.
-	 */
-	globals?: PluginGlobals;
-
-	/**
-	 * A set of rules with their options.
-	 */
-	rules?: Partial<RulesSchema>;
-};
-
-// @keep-sorted
 const rulesWithSeparators = [
 	'@morev/bem/block-variable',
 	'@morev/bem/match-file-name',
@@ -24,14 +17,19 @@ const rulesWithSeparators = [
 	'@morev/bem/no-chained-entities',
 	'@morev/bem/no-side-effects',
 	'@morev/bem/selector-pattern',
-];
+] as const satisfies ReadonlyArray<keyof RulesSchema>;
 
-const defineRules = (schema: PluginConfig) => {
+type RuleWithSeparators = (typeof rulesWithSeparators)[number];
+
+const defineRules = <
+	const Globals extends PluginGlobals = EmptyInput,
+	const Rules extends DefineRulesInput = EmptyInput,
+>(schema: PluginConfig<Globals, Rules>): DefineRulesResult<Rules, Globals> => {
 	return tsObject.fromEntries(
 		tsObject.entries(schema.rules ?? {}).map(([key, value_]) => {
 			const value = toArray(value_);
 			const primary = value[0];
-			const secondary = value[1] as any;
+			const secondary = value[1] as Record<string, unknown> | undefined;
 
 			const options = { ...secondary };
 
@@ -41,7 +39,7 @@ const defineRules = (schema: PluginConfig) => {
 
 			return [key, [primary, options]];
 		}),
-	);
+	) as DefineRulesResult<Rules, Globals>;
 };
 
 /**
@@ -69,7 +67,7 @@ const defineRules = (schema: PluginConfig) => {
  *
  * @returns           A function that accepts a `RulesSchema` object and returns a normalized rules config.
  */
-export const createDefineRules = (globals: PluginGlobals) => {
+const createDefineRules = (<const Globals extends PluginGlobals = EmptyInput>(globals?: Globals) => {
 	/**
 	 * Defines Stylelint rules with type-safe options and applied globals.
 	 *
@@ -77,5 +75,13 @@ export const createDefineRules = (globals: PluginGlobals) => {
 	 *
 	 * @returns         A normalized rules object ready for Stylelint configuration.
 	 */
-	return (rules: Partial<RulesSchema>) => defineRules({ globals, rules });
-};
+	return (<const Rules extends DefineRulesInput = EmptyInput>(
+		rules?: ExactRulesInput<Rules>,
+	): DefineRulesResult<Rules, Globals> => {
+		return defineRules<Globals, Rules>({ globals, rules });
+	}) as DefineRulesFunction<Globals>;
+}) as CreateDefineRules;
+
+export { createDefineRules };
+
+export type { RuleWithSeparators };

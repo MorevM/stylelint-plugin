@@ -11,6 +11,7 @@ export default defineConfig({
 		coverage: {
 			enabled: false,
 			provider: 'v8',
+			exclude: ['./src/modules/test-utils/**'],
 		},
 	},
 });

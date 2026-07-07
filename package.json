@@ -5,7 +5,7 @@
 	"private": false,
 	"version": "0.5.0",
 	"engines": {
-		"node": ">=18"
+		"node": ">=20"
 	},
 	"license": "MIT",
 	"publishConfig": {
@@ -82,6 +82,7 @@
 		"@morev/utils": "^3.15.0",
 		"postcss": "^8.5.16",
 		"postcss-selector-parser": "^7.1.4",
+		"type-fest": "^5.8.0",
 		"valibot": "^1.4.2"
 	},
 	"devDependencies": {
