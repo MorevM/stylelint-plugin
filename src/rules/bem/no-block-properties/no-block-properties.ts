@@ -81,7 +81,7 @@ export default createRule({
 		propertyToPresetMap,
 	} = createPropertiesRegistry(secondary);
 
-	const ignorePatterns = secondary.ignoreBlocks
+	const ignoredPatterns = secondary.ignoreBlocks
 		.map((value) => toRegExp(value, { allowWildcard: true }));
 
 	root.walkRules((rule) => {
@@ -108,7 +108,7 @@ export default createRule({
 					.filter((bemEntity) => !bemEntity.element)
 					// Skip ignored blocks
 					.filter((bemEntity) => {
-						return !ignorePatterns
+						return !ignoredPatterns
 							.some((blockPattern) => blockPattern.test(bemEntity.block.value));
 					});
 

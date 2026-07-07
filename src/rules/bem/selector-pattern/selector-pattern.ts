@@ -87,7 +87,7 @@ export default createRule({
 	const messages = mergeMessages(ruleMessages, secondary.messages);
 
 	// Precompile ignore list for block names
-	const ignoreBlocks = toArray(secondary.ignoreBlocks)
+	const ignoredBlocks = toArray(secondary.ignoreBlocks)
 		.map((entry) => toRegExp(entry, { allowWildcard: true }));
 
 	const { violations, hasParentViolation } = createViolationsRegistry();
@@ -97,7 +97,7 @@ export default createRule({
 		if (rule.type === 'atrule' && rule.name !== 'at-root') return;
 
 		resolveBemEntities({ rule, separators }).forEach((bemEntity) => {
-			if (ignoreBlocks.some((pattern) => pattern.test(bemEntity.block.value))) return;
+			if (ignoredBlocks.some((pattern) => pattern.test(bemEntity.block.value))) return;
 
 			BEM_ENTITIES.forEach((entityType) => {
 				const bemEntityPart = bemEntity[entityType];

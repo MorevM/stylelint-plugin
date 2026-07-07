@@ -48,7 +48,6 @@ const appearsInSource = (entity: BemEntity) => {
 	if (entity.block.sourceRange) return true;
 	if (entity.element?.sourceRange) return true;
 	if (entity.modifierName?.sourceRange) return true;
-	// eslint-disable-next-line unicorn/prefer-boolean-return -- Better for readability here
 	if (entity.modifierValue?.sourceRange) return true;
 
 	return false;
