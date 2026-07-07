@@ -132,7 +132,7 @@ export const getResolvedBemSegments = (
 	sourceInject: string,
 ): BemNode[][] => {
 	const relevantSourceSegments = getBemCandidateSegments(sourceSelectorNodes);
-	const sourceHasNesting = relevantSourceSegments
+	const hasNestingInSource = relevantSourceSegments
 		.some((segment) => segment.some((node) => node.type === 'nesting'));
 
 	const isAtRoot = isAtRule(rule, ['at-root', 'nest']);
@@ -149,7 +149,7 @@ export const getResolvedBemSegments = (
 				// Adjust accumulated shift at the start of each segment (or on `&` node)
 				// to account for injected selector parts during nesting resolution.
 				// This keeps source index alignment consistent with the resolved tree.
-				if ((isFirstInSegment && !isAtRoot && !sourceHasNesting) || isNestingNode) {
+				if ((isFirstInSegment && !isAtRoot && !hasNestingInSource) || isNestingNode) {
 					const injectedLength = sourceInject?.length ?? 0;
 					const originalLength = isNestingNode ? node.value.length : 0;
 					sourceShift += injectedLength - originalLength;

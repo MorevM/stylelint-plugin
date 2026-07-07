@@ -60,10 +60,10 @@ export const getBemBlock = (
 			.map((source) => resolveBemEntities({ source, separators })[0]);
 
 		// `.foo-component, .foo-component--modifier {}`
-		const allSame = allBemEntities
+		const areAllBlocksSame = allBemEntities
 			.every((bemEntity) => bemEntity.block.value === allBemEntities[0].block.value);
 
-		if (!allSame) return;
+		if (!areAllBlocksSame) return;
 
 		const bemBlock = allBemEntities[0].block;
 		result = {

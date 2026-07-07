@@ -7,6 +7,6 @@ import { inspect } from 'node:util';
  * @param   depth   Maximum depth to recurse into nested objects (default: 4).
  */
 export const log = (value: unknown, depth = 4) => {
-	// eslint-disable-next-line no-console
+	// eslint-disable-next-line no-console -- Intended usage
 	console.log(inspect(value, { depth, colors: true }));
 };

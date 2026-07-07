@@ -7,16 +7,16 @@ const blockPairs = new Map([
 /**
  * Splits a string by a separator, ignoring separators inside quotes or brackets.
  *
- * @param   string           The input string to split.
- * @param   separator        The character to split by.
- * @param   splitFunctions   Whether to allow splitting inside parentheses (only).
+ * @param   string                 The input string to split.
+ * @param   separator              The character to split by.
+ * @param   shouldSplitFunctions   Whether to allow splitting inside parentheses (only).
  *
- * @returns                  Array of string parts.
+ * @returns                        Array of string parts.
  */
 export const split = (
 	string: string,
 	separator: string,
-	splitFunctions: boolean,
+	shouldSplitFunctions: boolean,
 ): string[] => {
 	const result: string[] = [];
 	let current = '';
@@ -24,21 +24,21 @@ export const split = (
 	// Stack of expected closing brackets
 	const closingBracketsStack: string[] = [];
 
-	let inQuote = false;
+	let isInQuote = false;
 	let quoteChar = '';
-	let escapeNext = false;
+	let shouldEscapeNext = false;
 
 	for (const char of string) {
-		if (escapeNext) {
-			escapeNext = false;
+		if (shouldEscapeNext) {
+			shouldEscapeNext = false;
 		} else if (char === '\\') {
-			escapeNext = true;
-		} else if (inQuote) {
+			shouldEscapeNext = true;
+		} else if (isInQuote) {
 			if (char === quoteChar) {
-				inQuote = false;
+				isInQuote = false;
 			}
 		} else if (char === '"' || char === "'") {
-			inQuote = true;
+			isInQuote = true;
 			quoteChar = char;
 		} else if (blockPairs.has(char)) {
 			closingBracketsStack.push(blockPairs.get(char)!);
@@ -49,7 +49,7 @@ export const split = (
 			&& (
 				closingBracketsStack.length === 0 // Outside any brackets
 				|| (
-					splitFunctions
+					shouldSplitFunctions
 					&& closingBracketsStack.every((c) => c === ')') // Only inside parentheses
 				)
 			)

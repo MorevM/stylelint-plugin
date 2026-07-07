@@ -41,7 +41,7 @@ export const isPseudoElementNode = (node: parser.Node | undefined) => {
 	// A single colon likely a pseudo-class,
 	// but might be an outdated pseudo-element syntax.
 	if (value.startsWith(':')) {
-		const baseName = value.slice(1).split('(')[0];
+		const baseName = value.slice(1).split('(', 1)[0];
 		return KNOWN_PSEUDO_ELEMENTS.has(baseName);
 	}
 

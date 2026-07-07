@@ -22,4 +22,10 @@ export default combine([
 		},
 	}),
 	defineConfiguration('typescript'),
+	{
+		rules: {
+			// Conflicts with SASS variable declarations
+			'unicorn/no-incorrect-template-string-interpolation': 'off',
+		},
+	},
 ]);

@@ -1,5 +1,8 @@
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - esbuild
-  - lefthook
-  - unrs-resolver
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  lefthook: true
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@morev/*'
+  - eslint-plugin-unicorn@71.1.0

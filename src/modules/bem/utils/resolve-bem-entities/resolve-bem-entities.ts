@@ -210,6 +210,7 @@ export const resolveBemEntities = (options: Options) => {
 					if (node.type === 'pseudo') {
 						if (isPseudoElementNode(node)) {
 							bemEntity.context.pseudoElements.push(node.toString());
+							// eslint-disable-next-line unicorn/prefer-hoisting-branch-code -- False positive
 							continue;
 						} else {
 							pseudoStore.markAsSeen(node);

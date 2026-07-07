@@ -12,7 +12,6 @@
 		"checkJs": false,
 		"allowJs": false,
 		"skipLibCheck": true,
-		"baseUrl": ".",
 		"types": ["node", "vitest/globals"],
 		"paths": {
 			"#modules/shared": ["./src/modules/shared/index.ts"],

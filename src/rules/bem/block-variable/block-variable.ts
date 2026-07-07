@@ -272,7 +272,7 @@ export default createRule({
 						if (!fixable) return;
 						const replacement = isTopLevelRule ? '&' : `#{${VARIABLE_NAME}}`;
 
-						rule.selector = rule.selector.replaceAll(bemBlock.selector, replacement);
+						rule.selector = rule.selector.replaceAll(bemBlock.selector, () => replacement);
 					},
 				});
 			});

@@ -40,6 +40,7 @@ export const vMessagesSchema = <
 
 	// eslint-disable-next-line guard-for-in -- Trust me it's safe here
 	for (const key in definition) {
+		// eslint-disable-next-line unicorn/no-unsafe-property-key -- Trust me it's safe here
 		shape[key] = v.optional(vFunction(definition[key], v.string()));
 	}
 

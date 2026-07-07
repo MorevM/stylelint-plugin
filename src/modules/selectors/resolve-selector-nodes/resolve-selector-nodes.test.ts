@@ -1,4 +1,4 @@
-import { isArray, isNumeric } from '@morev/utils';
+import { isArray, isFiniteNumber } from '@morev/utils';
 import { getRuleBySelector, stringifySelectorNodes } from '#modules/test-utils';
 import { resolveSelectorNodes } from './resolve-selector-nodes';
 import type { ResolvedNode } from './resolve-selector-nodes.types';
@@ -109,8 +109,8 @@ describe(resolveSelectorNodes, () => {
 
 			const condition = selectors[0].source
 				.every((sourceNode) => {
-					return isNumeric(sourceNode.meta.resolvedSourceIndex)
-						&& isNumeric(sourceNode.meta.contextOffset);
+					return isFiniteNumber(sourceNode.meta.resolvedSourceIndex)
+						&& isFiniteNumber(sourceNode.meta.contextOffset);
 				});
 
 			expect(condition).toBe(true);
