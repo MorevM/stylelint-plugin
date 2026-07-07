@@ -1,4 +1,4 @@
-import type { ReadonlyDeep, Simplify, WritableDeep } from 'type-fest';
+import type { ReadonlyDeep, Simplify } from 'type-fest';
 import type { PluginGlobals, RulesSchema } from '#modules/meta';
 import type { RuleWithSeparators } from './create-define-rules';
 
@@ -63,15 +63,15 @@ type GlobalSeparators<Globals extends PluginGlobals> =
  * Secondary options after runtime normalization.
  *
  * Rules that consume BEM separators receive separators from plugin globals;
- * all other rules keep their secondary options as writable output objects.
+ * all other rules keep their inferred secondary options.
  */
 type NormalizedRuleOptions<
 	RuleName,
 	Secondary,
 	Globals extends PluginGlobals,
 > = RuleName extends RuleWithSeparators
-	? Simplify<Omit<WritableDeep<Secondary>, 'separators'> & { separators: GlobalSeparators<Globals> }>
-	: WritableDeep<Secondary>;
+	? Simplify<Omit<Secondary, 'separators'> & { readonly separators: GlobalSeparators<Globals> }>
+	: Secondary;
 
 /**
  * Normalized two-item rule tuple returned by `defineRules`.

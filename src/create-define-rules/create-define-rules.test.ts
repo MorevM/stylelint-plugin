@@ -32,8 +32,8 @@ describe(createDefineRules, () => {
 		expectTypeOf(rules['@morev/sass/no-unused-variables']).toEqualTypeOf<[
 			true,
 			{
-				checkRoot: true;
-				ignore: ['b'];
+				readonly checkRoot: true;
+				readonly ignore: readonly ['b'];
 			},
 		]>();
 	});
@@ -48,7 +48,7 @@ describe(createDefineRules, () => {
 		expectTypeOf<keyof typeof rules>().toEqualTypeOf<'@morev/sass/no-unused-variables'>();
 		expectTypeOf(rules['@morev/sass/no-unused-variables']).toEqualTypeOf<[
 			true,
-			{ checkRoot: true },
+			{ readonly checkRoot: true },
 		]>();
 	});
 
@@ -65,9 +65,9 @@ describe(createDefineRules, () => {
 		expectTypeOf(rules['@morev/bem/block-variable']).toEqualTypeOf<[
 			true,
 			{
-				firstChild: true;
-				severity: 'warning';
-				separators: undefined;
+				readonly firstChild: true;
+				readonly severity: 'warning';
+				readonly separators: undefined;
 			},
 		]>();
 	});
@@ -86,8 +86,8 @@ describe(createDefineRules, () => {
 		expectTypeOf(rules['@morev/bem/block-variable']).toEqualTypeOf<[
 			true,
 			{
-				firstChild: true;
-				separators: {
+				readonly firstChild: true;
+				readonly separators: {
 					readonly element: '__';
 				};
 			},
@@ -118,8 +118,8 @@ describe(createDefineRules, () => {
 		expectTypeOf(rules['@morev/bem/block-variable']).toEqualTypeOf<[
 			true,
 			{
-				firstChild: true;
-				separators: typeof separators;
+				readonly firstChild: true;
+				readonly separators: typeof separators;
 			},
 		]>();
 	});
@@ -141,8 +141,8 @@ describe(createDefineRules, () => {
 		expectTypeOf(rules['@morev/bem/block-variable']).toEqualTypeOf<[
 			true,
 			{
-				firstChild: true;
-				separators: undefined;
+				readonly firstChild: true;
+				readonly separators: undefined;
 			},
 		]>();
 	});
