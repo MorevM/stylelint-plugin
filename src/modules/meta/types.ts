@@ -167,8 +167,8 @@ export type RuleMeta = {
 export type RuleSetting<Primary, Secondary> =
 	| null
 	| Primary
-	| [null | Primary]
-	| [null | Primary, Secondary & { [key: string]: any }];
+	| readonly [null | Primary]
+	| readonly [null | Primary, Secondary & { [key: string]: any }];
 // Note about this:            ↑
 // The most accurate type is `Secondary & StylelintSecondaryOptions`,
 // but it feels unnecessarily verbose from the end-user's perspective,
@@ -180,6 +180,10 @@ export type RuleSetting<Primary, Secondary> =
 export type PluginGlobals = {
 	/**
 	 * Defines the separators used to parse BEM class names.
+	 *
+	 * @default { element: '__', modifier: '--', modifierValue: '--' }
 	 */
-	separators?: Separators;
+	separators?: Partial<Separators>;
+	// Note about this: ↑
+	// `Partial` is required to enable autocompletion for some reason.
 };
