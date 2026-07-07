@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/MorevM/stylelint-plugin/compare/v0.5.0...v0.6.0) (2026-07-07)
+
+
+### Features
+
+* Exact types for `createDefineRules` ([#55](https://github.com/MorevM/stylelint-plugin/issues/55)) ([981b47f](https://github.com/MorevM/stylelint-plugin/commit/981b47f69ebab81ba680b7b0318178e6a94a24c3))
+
+
 ## [0.5.0](https://github.com/MorevM/stylelint-plugin/compare/v0.4.0...v0.5.0) (2026-02-20)
 
 
