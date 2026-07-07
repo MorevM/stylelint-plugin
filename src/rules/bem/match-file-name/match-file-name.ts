@@ -47,8 +47,8 @@ export default createRule({
 
 	const entity = secondary.matchDirectory ? 'directory' : 'file';
 
-	const strictMatch = sourceName.startsWith(bemBlock.blockName);
-	const nonStrictMatch = kebabCase(sourceName)
+	const hasStrictMatch = sourceName.startsWith(bemBlock.blockName);
+	const hasNonStrictMatch = kebabCase(sourceName)
 		.startsWith(kebabCase(bemBlock.blockName));
 
 	const reportType = (type: 'match' | 'matchCase') => {
@@ -61,11 +61,11 @@ export default createRule({
 		});
 	};
 
-	if (!strictMatch && secondary.caseSensitive) {
-		reportType(nonStrictMatch ? 'matchCase' : 'match');
+	if (!hasStrictMatch && secondary.caseSensitive) {
+		reportType(hasNonStrictMatch ? 'matchCase' : 'match');
 	}
 
-	if (!nonStrictMatch && !secondary.caseSensitive) {
+	if (!hasNonStrictMatch && !secondary.caseSensitive) {
 		reportType('match');
 	}
 });

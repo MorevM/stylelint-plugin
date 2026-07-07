@@ -77,6 +77,7 @@ export const getBemCandidateSegments = (nodes: parser.Node[]): parser.Node[][] =
 			// (e.g. `__element`, `::after`)
 			while (i < nodes.length) {
 				const next = nodes[i];
+				// eslint-disable-next-line unicorn/no-break-in-nested-loop -- Better for maintainability
 				if (next.type === 'combinator') break;
 
 				// Include common compound types - class selectors can appear in any position,
@@ -130,5 +131,5 @@ export const getBemCandidateSegments = (nodes: parser.Node[]): parser.Node[][] =
 	// Sort segments by their original position in the selector.
 	// Without this, nested selectors (e.g. inside `:not(...)`) may appear
 	// before the main context, which breaks the expected document order.
-	return result.sort((a, b) => a[0].sourceIndex < b[0].sourceIndex ? -1 : 1);
+	return result.sort((a, b) => a[0].sourceIndex - b[0].sourceIndex);
 };

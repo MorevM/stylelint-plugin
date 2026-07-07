@@ -37,13 +37,13 @@ type Violation = {
  * - Skips adding a violation if the selector matches any of the provided ignore patterns.
  * - Calculates `index` and `endIndex` based on the original source ranges of resolved nodes.
  *
- * @param   ignorePatterns   Array of regular expressions for selectors to ignore.
+ * @param   ignoredPatterns   Array of regular expressions for selectors to ignore.
  *
- * @returns                  An object with:
- *                           - `getViolations`: Returns all recorded violations.
- *                           - `addViolation`: Attempts to add a violation for the given node/selector.
+ * @returns                   An object with:
+ *                            - `getViolations`: Returns all recorded violations.
+ *                            - `addViolation`: Attempts to add a violation for the given node/selector.
  */
-export const createViolationsRegistry = (ignorePatterns: RegExp[]) => {
+export const createViolationsRegistry = (ignoredPatterns: RegExp[]) => {
 	const violations: Violation[] = [];
 	const seenBySelector = new Map<string, WeakSet<postcss.Node>>();
 
@@ -77,7 +77,7 @@ export const createViolationsRegistry = (ignorePatterns: RegExp[]) => {
 		// TODO: Skip interpolated selectors for now
 		if (selector.includes('#{')) return;
 
-		if (ignorePatterns.some((pattern) => pattern.test(selector))) return;
+		if (ignoredPatterns.some((pattern) => pattern.test(selector))) return;
 		// Skip if any ancestor node has already reported this selector -
 		// prevents duplicate violations from nested contexts.
 		if (hasAncestorWithSameSelector(node, selector)) return;

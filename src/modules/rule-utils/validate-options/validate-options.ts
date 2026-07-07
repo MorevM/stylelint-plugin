@@ -15,7 +15,7 @@ const createErrorMessage = (
 	const messages = issues.map((issue) => {
 		const message = `expected ${quote(issue.expected, '`')} but got ${quote(issue.received, '`')}`;
 		const path = issue.path?.map((pathPart: any) => pathPart.key).join('.');
-		const formattedBase = base.replace('{path}', path ? quote(path, "'") : ' ');
+		const formattedBase = base.replace('{path}', () => path ? quote(path, "'") : ' ');
 
 		return `${formattedBase}: ${message}`;
 	});

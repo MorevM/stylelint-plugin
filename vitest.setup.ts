@@ -15,8 +15,8 @@ global.createTestRule = createTestRule;
 global.createTestRuleConfig = createTestRuleConfig;
 
 declare global {
-	// eslint-disable-next-line vars-on-top
+	// eslint-disable-next-line vars-on-top -- Known edge case of `declare global`
 	var createTestRule: CreateTestRule;
-	// eslint-disable-next-line vars-on-top
+	// eslint-disable-next-line vars-on-top -- Known edge case of `declare global`
 	var createTestRuleConfig: CreateTestRuleConfig;
 }
