@@ -1,11 +1,12 @@
 import ts from 'typescript';
 
-const virtualCompletionFileName = `${process.cwd()}/typescript-language-service.completions.ts`;
+const currentDirectory = process.cwd();
+const virtualCompletionFileName = `${currentDirectory}/typescript-language-service.completions.ts`;
 
 const typeScriptCompletionMarker = '/* completion */';
 
 const loadTypeScriptCompilerOptions = () => {
-	const configPath = ts.findConfigFile(process.cwd(), ts.sys.fileExists, 'tsconfig.json');
+	const configPath = ts.findConfigFile(currentDirectory, ts.sys.fileExists, 'tsconfig.json');
 
 	if (configPath === undefined) {
 		throw new Error('Cannot find tsconfig.json for TypeScript language service tests.');
@@ -17,10 +18,50 @@ const loadTypeScriptCompilerOptions = () => {
 		throw new Error(ts.flattenDiagnosticMessageText(config.error.messageText, '\n'));
 	}
 
-	return ts.parseJsonConfigFileContent(config.config, ts.sys, process.cwd()).options;
+	const compilerOptions = ts.convertCompilerOptionsFromJson(
+		config.config.compilerOptions ?? {},
+		currentDirectory,
+		configPath,
+	);
+
+	if (compilerOptions.errors.length > 0) {
+		throw new Error(compilerOptions.errors
+			.map((error) => ts.flattenDiagnosticMessageText(error.messageText, '\n'))
+			.join('\n'));
+	}
+
+	return compilerOptions.options;
 };
 
 const typeScriptCompilerOptions = loadTypeScriptCompilerOptions();
+
+let virtualSource = '';
+let virtualSourceVersion = 0;
+
+const host: ts.LanguageServiceHost = {
+	directoryExists: ts.sys.directoryExists,
+	fileExists: ts.sys.fileExists,
+	getCompilationSettings: () => typeScriptCompilerOptions,
+	getCurrentDirectory: () => currentDirectory,
+	getDefaultLibFileName: (options) => ts.getDefaultLibFilePath(options),
+	getDirectories: ts.sys.getDirectories,
+	getScriptFileNames: () => [virtualCompletionFileName],
+	getScriptSnapshot: (fileName) => {
+		const fileContent = fileName === virtualCompletionFileName
+			? virtualSource
+			: ts.sys.readFile(fileName);
+
+		return fileContent === undefined ? undefined : ts.ScriptSnapshot.fromString(fileContent);
+	},
+	getScriptVersion: (fileName) => {
+		return fileName === virtualCompletionFileName ? String(virtualSourceVersion) : '0';
+	},
+	readDirectory: ts.sys.readDirectory,
+	readFile: ts.sys.readFile,
+	realpath: ts.sys.realpath,
+};
+
+const service = ts.createLanguageService(host, ts.createDocumentRegistry());
 
 const getTypeScriptCompletionNames = (source: string) => {
 	const position = source.indexOf(typeScriptCompletionMarker);
@@ -29,33 +70,13 @@ const getTypeScriptCompletionNames = (source: string) => {
 		throw new Error('Cannot find TypeScript completion marker.');
 	}
 
-	const files = new Map([[virtualCompletionFileName, source]]);
-	const host: ts.LanguageServiceHost = {
-		directoryExists: ts.sys.directoryExists,
-		fileExists: ts.sys.fileExists,
-		getCompilationSettings: () => typeScriptCompilerOptions,
-		getCurrentDirectory: () => process.cwd(),
-		getDefaultLibFileName: (options) => ts.getDefaultLibFilePath(options),
-		getDirectories: ts.sys.getDirectories,
-		getScriptFileNames: () => [virtualCompletionFileName],
-		getScriptSnapshot: (fileName) => {
-			const fileContent = files.get(fileName) ?? ts.sys.readFile(fileName);
+	virtualSource = source;
+	virtualSourceVersion++;
 
-			return fileContent === undefined ? undefined : ts.ScriptSnapshot.fromString(fileContent);
-		},
-		getScriptVersion: () => '0',
-		readDirectory: ts.sys.readDirectory,
-		readFile: ts.sys.readFile,
-		realpath: ts.sys.realpath,
-	};
-
-	const service = ts.createLanguageService(host, ts.createDocumentRegistry());
 	const completions = service.getCompletionsAtPosition(virtualCompletionFileName, position, {
 		includeCompletionsForModuleExports: false,
 		includeCompletionsWithInsertText: true,
 	});
-
-	service.dispose();
 
 	return completions?.entries.map((entry) => entry.name) ?? [];
 };
