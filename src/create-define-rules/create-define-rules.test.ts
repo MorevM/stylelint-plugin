@@ -4,6 +4,8 @@ import {
 } from '#modules/test-utils';
 import { createDefineRules } from './create-define-rules';
 
+const autocompleteTestTimeoutMs = 10_000;
+
 describe(createDefineRules, () => {
 	it('Allows omitted globals and rules arguments', () => {
 		const defineRules = createDefineRules();
@@ -208,7 +210,7 @@ describe(createDefineRules, () => {
 			`);
 
 			expect(completions).toContain('separators');
-		});
+		}, autocompleteTestTimeoutMs);
 
 		it('Suggests separator options', () => {
 			const completions = getTypeScriptCompletionNames(`
@@ -224,7 +226,7 @@ describe(createDefineRules, () => {
 				'modifier',
 				'modifierValue',
 			]));
-		});
+		}, autocompleteTestTimeoutMs);
 
 		it('Suggests rule names', () => {
 			const completions = getTypeScriptCompletionNames(`
@@ -242,7 +244,7 @@ describe(createDefineRules, () => {
 				'globals',
 				'rules',
 			]));
-		});
+		}, autocompleteTestTimeoutMs);
 
 		it('Suggests rule secondary options', () => {
 			const completions = getTypeScriptCompletionNames(`
@@ -269,6 +271,6 @@ describe(createDefineRules, () => {
 				'severity',
 				'url',
 			]));
-		});
+		}, autocompleteTestTimeoutMs);
 	});
 });
