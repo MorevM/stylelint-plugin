@@ -71,7 +71,7 @@
 		"docs:dev": "vitepress dev docs",
 		"docs:build": "pnpm generate-meta && vitepress build docs",
 		"docs:preview": "vitepress preview docs --base /stylelint-plugin/",
-		"build": "pnpm generate-meta && rm -rf dist && tsup",
+		"build": "pnpm generate-meta && rm -rf dist && tsdown",
 		"release": "release-it --disable-metrics",
 		"generate-meta": "tsx src/modules/meta/generate.ts"
 	},
@@ -101,7 +101,7 @@
 		"release-it": "^20.2.1",
 		"sass-embedded": "^1.100.0",
 		"stylelint": "^17.14.0",
-		"tsup": "^8.5.1",
+		"tsdown": "^0.22.3",
 		"tsx": "^4.23.0",
 		"typescript": "^6.0.3",
 		"unplugin-vue-components": "^32.1.0",
