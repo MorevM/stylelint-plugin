@@ -167,6 +167,18 @@ testRule({
 				}
 			`,
 		},
+		{
+			description: 'Function parameter is mutated within conditional at-rules',
+			code: `
+				@function get-value($value) {
+					@if true {
+						$value: null;
+					}
+
+					@return $value;
+				}
+			`,
+		},
 	],
 	reject: [
 		{
