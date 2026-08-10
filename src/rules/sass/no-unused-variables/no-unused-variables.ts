@@ -67,28 +67,38 @@ export default createRule({
 	const seenVariables = new Set<Declaration>();
 	const scopesMap = new Map<Node, Scope>();
 
-	// Functions and mixins define scopes through their parameters,
-	// even when their bodies contain no direct variable declarations.
-	root.walkAtRules(/^(?:function|mixin)$/, (atRule) => {
-		scopesMap.set(atRule, { usages: new Set(), variables: new Map() });
-	});
+	// Utility function for the next loop.
+	// Returns an existing scope or creates a new one.
+	const ensureScope = (node: Node) => {
+		const existingScope = scopesMap.get(node);
+		if (existingScope) return existingScope;
 
-	// First, we create a scope for every variable we encounter.
-	root.walkDecls(/^\$[\w-]+$/, (declaration) => {
-		const { parent } = declaration;
+		const scope: Scope = { usages: new Set(), variables: new Map() };
+		scopesMap.set(node, scope);
+
+		return scope;
+	};
+
+	// First, we create callable scopes and a scope for every variable we encounter.
+	root.walk((node) => {
+		// Function and mixin parameters aren't represented as declarations,
+		// but their bodies still need scopes for tracking nested reassignments.
+		if (node.type === 'atrule' && (node.name === 'function' || node.name === 'mixin')) {
+			ensureScope(node);
+			return;
+		}
+
+		// Skip nodes that aren't SASS variable declarations.
+		if (node.type !== 'decl' || !/^\$[\w-]+$/.test(node.prop)) return;
 
 		// Top-level variables can be imported by other files,
 		// so they are not checked by default.
-		if (!parent || (!secondary.checkRoot && parent === root)) return;
-
-		if (!scopesMap.has(parent)) {
-			scopesMap.set(parent, { usages: new Set(), variables: new Map() });
-		}
+		if (!node.parent || (!secondary.checkRoot && node.parent === root)) return;
 
 		// If multiple variables share the same name,
 		// only the most recent one should be taken into account.
-		scopesMap.get(parent)!.variables.set(declaration.prop, declaration);
-		seenVariables.add(declaration);
+		ensureScope(node.parent).variables.set(node.prop, node);
+		seenVariables.add(node);
 	});
 
 	// Utility function for the next loop.
