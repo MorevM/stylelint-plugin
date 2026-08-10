@@ -288,6 +288,34 @@ testRule({
 });
 
 testRule({
+	description: '`CONTEXT_DEPENDENT` preset',
+	config: [true, { presets: ['CONTEXT_DEPENDENT'] }],
+	accept: [
+		{
+			description: 'Block uses the grid container shorthand',
+			code: `
+				.the-component { grid: none; }
+			`,
+		},
+	],
+	reject: [
+		{
+			description: 'Block has a context-dependent property',
+			code: `
+				.the-component { vertical-align: middle; }
+			`,
+			warnings: [
+				{
+					message: messages.unexpected('vertical-align', '.the-component', 'block', 'CONTEXT_DEPENDENT'),
+					line: 1, column: 18,
+					endLine: 1, endColumn: 32,
+				},
+			],
+		},
+	],
+});
+
+testRule({
 	description: '`ignoreBlocks` option',
 	config: [true, { ignoreBlocks: ['swiper-*', /.*legacy.*/] }],
 	accept: [
