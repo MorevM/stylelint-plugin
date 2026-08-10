@@ -107,7 +107,7 @@ export default {
         '@morev/bem/block-variable': true, // [!code ++]
         '@morev/bem/match-file-name': true, // [!code ++]
         '@morev/bem/no-block-properties': [true, { // [!code ++]
-          presets: ['EXTERNAL_GEOMETRY', 'CONTEXT'], // [!code ++]
+          presets: ['EXTERNAL_GEOMETRY', 'CONTEXT_DEPENDENT'], // [!code ++]
         }], // [!code ++]
         '@morev/bem/no-chained-entities': true, // [!code ++]
         '@morev/bem/no-side-effects': true, // [!code ++]
@@ -198,7 +198,7 @@ export default {
         '@morev/bem/block-variable': [true, {}],
         '@morev/bem/match-file-name': [true, {}],
         '@morev/bem/no-block-properties': [true, {
-          presets: ['EXTERNAL_GEOMETRY', 'CONTEXT'],
+          presets: ['EXTERNAL_GEOMETRY', 'CONTEXT_DEPENDENT'],
           ignoreBlocks: ['*swiper*'],
         }],
         '@morev/bem/no-chained-entities': [true, {}],

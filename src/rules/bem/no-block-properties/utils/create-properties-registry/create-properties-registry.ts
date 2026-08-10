@@ -12,15 +12,16 @@ const BUILTIN_PRESETS = {
 		'margin-inline', 'margin-inline-start', 'margin-inline-end',
 		'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
 	]),
-	CONTEXT: new Set([
+	CONTEXT_DEPENDENT: new Set([
 		'float', 'clear',
+		'vertical-align',
 		'flex', 'flex-grow', 'flex-shrink', 'flex-basis',
-		'grid', 'grid-area',
+		'grid-area',
 		'grid-row', 'grid-row-start', 'grid-row-end',
 		'grid-column', 'grid-column-start', 'grid-column-end',
-		'place-self', 'align-self',
+		'place-self', 'align-self', 'justify-self',
 		'order',
-		'counter-increment',
+		'counter-increment', 'counter-set',
 		'z-index',
 	]),
 	POSITIONING: new Set([

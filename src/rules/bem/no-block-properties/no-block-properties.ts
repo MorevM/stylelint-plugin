@@ -25,7 +25,7 @@ export default createRule({
 			const propertyType = (() => {
 				if (presetName === 'EXTERNAL_GEOMETRY') return 'external geometry';
 				if (presetName === 'POSITIONING') return 'positioning';
-				if (presetName === 'CONTEXT') return 'contextual';
+				if (presetName === 'CONTEXT_DEPENDENT') return 'context-dependent';
 				return '';
 			})();
 

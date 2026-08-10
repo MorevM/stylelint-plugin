@@ -107,7 +107,7 @@ export default {
 export type NoBlockPropertiesOptions = {
   /**
    * List of presets to apply globally. \
-   * Available built-in presets: `['EXTERNAL_GEOMETRY', 'CONTEXT', 'POSITIONING']`.
+   * Available built-in presets: `['EXTERNAL_GEOMETRY', 'CONTEXT_DEPENDENT', 'POSITIONING']`.
    *
    * @default ['EXTERNAL_GEOMETRY']
    */
@@ -282,11 +282,11 @@ using [`customPresets`](#custompresets) option if needed.
 
 #### Built-in presets
 
-| Preset name         | Description                                                                 |
-| ------------------- | --------------------------------------------------------------------------- |
-| `EXTERNAL_GEOMETRY` | Properties that control external geometry *(enabled by default)*.           |
-| `CONTEXT`           | Properties that influence layout behavior within a parent container.        |
-| `POSITIONING`       | Properties related to absolute or relative positioning of the block itself. |
+| Preset name         | Description                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| `EXTERNAL_GEOMETRY` | Properties that control external geometry *(enabled by default)*.                      |
+| `CONTEXT_DEPENDENT` | Properties whose behavior depends on an external layout, counter, or stacking context. |
+| `POSITIONING`       | Properties related to absolute or relative positioning of the block itself.            |
 
 :::: details Show properties list
 
@@ -300,16 +300,17 @@ const BUILTIN_PRESETS = {
     'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
   ]),
 
-  // Properties that influence layout behavior within a parent container
-  CONTEXT: new Set([
+  // Properties whose behavior depends on an external layout, counter, or stacking context
+  CONTEXT_DEPENDENT: new Set([
     'float', 'clear',
+    'vertical-align',
     'flex', 'flex-grow', 'flex-shrink', 'flex-basis',
-    'grid', 'grid-area',
+    'grid-area',
     'grid-row', 'grid-row-start', 'grid-row-end',
     'grid-column', 'grid-column-start', 'grid-column-end',
-    'place-self', 'align-self',
+    'place-self', 'align-self', 'justify-self',
     'order',
-    'counter-increment',
+    'counter-increment', 'counter-set',
     'z-index',
   ]),
 
@@ -340,7 +341,7 @@ This preset covers properties that directly affect external layout,
 and is considered the most universally recommended restriction for BEM blocks.
 
 ::: warning
-It is strongly encouraged to extend the rule configuration with additional presets like `CONTEXT` and `POSITIONING`,
+It is strongly encouraged to extend the rule configuration with additional presets like `CONTEXT_DEPENDENT` and `POSITIONING`,
 or by manually specifying properties using [disallowProperties](#disallowproperties) option
 to ensure more consistent and predictable BEM block isolation.
 :::
@@ -498,7 +499,7 @@ This gives you fine-grained control over exceptions to global restrictions.
 ```js
 {
   '@morev/bem/no-block-properties': [true, {
-    presets: ['EXTERNAL_GEOMETRY', 'CONTEXT'],
+    presets: ['EXTERNAL_GEOMETRY', 'CONTEXT_DEPENDENT'],
     allowProperties: ['z-index'],
   }],
 }
@@ -507,7 +508,7 @@ This gives you fine-grained control over exceptions to global restrictions.
 In this example:
 
 - The rule restricts external geometry and context-related properties.
-- `z-index` is explicitly allowed, even though it's part of the `'CONTEXT'` preset.
+- `z-index` is explicitly allowed, even though it's part of the `'CONTEXT_DEPENDENT'` preset.
 
 ---
 
@@ -726,7 +727,7 @@ export default {
         unexpected: (property, selector, context, preset) => {
           const propertyType = (() => {
             if (preset === 'EXTERNAL_GEOMETRY') return 'свойство внешней геометрии';
-            if (preset === 'CONTEXT') return 'контекстуально-зависимое свойство';
+            if (preset === 'CONTEXT_DEPENDENT') return 'контекстуально-зависимое свойство';
             if (preset === 'POSITIONING') return 'свойство позиционирования';
             return 'свойство';
           })();

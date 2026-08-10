@@ -3,17 +3,25 @@ import { createPropertiesRegistry } from './create-properties-registry';
 describe(createPropertiesRegistry, () => {
 	it('Merges built-in presets and property-to-preset map correctly', () => {
 		const registry = createPropertiesRegistry({
-			presets: ['EXTERNAL_GEOMETRY', 'CONTEXT'],
+			presets: ['EXTERNAL_GEOMETRY', 'CONTEXT_DEPENDENT'],
 		});
 
 		expect(registry.propertyToPresetMap.get('margin')).toBe('EXTERNAL_GEOMETRY');
-		expect(registry.propertyToPresetMap.get('z-index')).toBe('CONTEXT');
+		expect(registry.propertyToPresetMap.get('counter-set')).toBe('CONTEXT_DEPENDENT');
+		expect(registry.propertyToPresetMap.get('justify-self')).toBe('CONTEXT_DEPENDENT');
+		expect(registry.propertyToPresetMap.get('vertical-align')).toBe('CONTEXT_DEPENDENT');
+		expect(registry.propertyToPresetMap.get('z-index')).toBe('CONTEXT_DEPENDENT');
+		expect(registry.propertyToPresetMap.has('grid')).toBe(false);
 
 		expect(registry.disallowedProperties.block.has('margin')).toBe(true);
 		expect(registry.disallowedProperties.modifier.has('margin')).toBe(true);
 
 		expect(registry.disallowedProperties.block.has('z-index')).toBe(true);
 		expect(registry.disallowedProperties.modifier.has('z-index')).toBe(true);
+		expect(registry.disallowedProperties.block.has('counter-set')).toBe(true);
+		expect(registry.disallowedProperties.block.has('justify-self')).toBe(true);
+		expect(registry.disallowedProperties.block.has('vertical-align')).toBe(true);
+		expect(registry.disallowedProperties.block.has('grid')).toBe(false);
 	});
 
 	it('Merges custom presets into property-to-preset map', () => {

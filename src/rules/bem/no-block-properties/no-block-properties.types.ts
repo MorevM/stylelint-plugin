@@ -11,7 +11,7 @@ export type PrimaryOption = true;
 export type SecondaryOption = {
 	/**
 	 * List of presets to apply globally. \
-	 * Available built-in presets: `['EXTERNAL_GEOMETRY', 'CONTEXT', 'POSITIONING']`.
+	 * Available built-in presets: `['EXTERNAL_GEOMETRY', 'CONTEXT_DEPENDENT', 'POSITIONING']`.
 	 *
 	 * @default ['EXTERNAL_GEOMETRY']
 	 */
