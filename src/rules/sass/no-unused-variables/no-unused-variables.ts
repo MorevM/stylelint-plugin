@@ -67,6 +67,12 @@ export default createRule({
 	const seenVariables = new Set<Declaration>();
 	const scopesMap = new Map<Node, Scope>();
 
+	// Functions and mixins define scopes through their parameters,
+	// even when their bodies contain no direct variable declarations.
+	root.walkAtRules(/^(?:function|mixin)$/, (atRule) => {
+		scopesMap.set(atRule, { usages: new Set(), variables: new Map() });
+	});
+
 	// First, we create a scope for every variable we encounter.
 	root.walkDecls(/^\$[\w-]+$/, (declaration) => {
 		const { parent } = declaration;
