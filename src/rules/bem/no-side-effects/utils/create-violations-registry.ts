@@ -74,7 +74,7 @@ export const createViolationsRegistry = (ignoredPatterns: RegExp[]) => {
 	 */
 	const addViolation = (node: postcss.Node, nodes: ResolvedNode[]) => {
 		const selector = selectorNodesToString(nodes);
-		// TODO: Skip interpolated selectors for now
+		// Unknown or complex interpolations cannot be analyzed reliably.
 		if (selector.includes('#{')) return;
 
 		if (ignoredPatterns.some((pattern) => pattern.test(selector))) return;

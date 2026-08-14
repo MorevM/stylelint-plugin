@@ -83,8 +83,7 @@ testRule({
 			`,
 		},
 		{
-			// TODO: Try to resolve variables
-			description: 'Component with some interpolated class',
+			description: 'Does not report a resolved interpolated block reference',
 			code: `
 				.the-component {
 					$b: #{&};
@@ -121,19 +120,38 @@ testRule({
 				.the-component:is(&--mod, .bar) {}
 			`,
 		},
+	],
+	reject: [
 		{
-			description: 'Does not report side-effects containing SASS interpolation (for a while)',
+			description: 'Reports side-effects after resolved SASS variables',
 			code: `
 				.the-component {
 					$b: #{&};
 					$link: #{$b}__link;
 
+					@at-root #{$b} .foreign {}
+					@at-root #{$link}--active span {}
 					@at-root #{$b}:has(#{$link}:hover) td {}
 				}
 			`,
+			warnings: [
+				{
+					message: messages.rejected('.foreign'),
+					line: 5, column: 17,
+					endLine: 5, endColumn: 25,
+				},
+				{
+					message: messages.rejected('span'),
+					line: 6, column: 28,
+					endLine: 6, endColumn: 32,
+				},
+				{
+					message: messages.rejected('td'),
+					line: 7, column: 37,
+					endLine: 7, endColumn: 39,
+				},
+			],
 		},
-	],
-	reject: [
 		{
 			description: 'Reports side-effects at root level',
 			code: `
