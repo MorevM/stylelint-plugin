@@ -30,7 +30,7 @@ export const resolveSelectorNodes = (options: Options): MappedSelector[] => {
 		const sourceOffset = selector.offset;
 
 		const sourceNodes = adjustSource(sourceSelectorNodes, selector, contextOffset);
-		const sourceNodeMeta = extractSourceNodeMeta(sourceNodes, selector.parent);
+		const sourceNodeMeta = extractSourceNodeMeta(sourceNodes, selector);
 
 		const resolvedNodes = resolvedSelectorNodes
 			.map((node) => linkSourceMeta(node, sourceNodeMeta, sourceOffset, contextOffset));

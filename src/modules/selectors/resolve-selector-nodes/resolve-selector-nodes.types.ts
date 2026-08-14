@@ -122,6 +122,12 @@ export type MappedSelector = {
  */
 export type SourceNodeMeta = {
 	/**
+	 * Nesting depth in the selector AST,
+	 * used to separate functional pseudo descendants.
+	 */
+	depth: number;
+
+	/**
 	 * The normalized string value of the source node.
 	 */
 	value: string;

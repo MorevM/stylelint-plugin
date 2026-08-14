@@ -526,6 +526,88 @@ describe(resolveSelectorNodes, () => {
 				]);
 			});
 
+			it('Adjusts source ranges after resolved SASS variables', () => {
+				const code = `
+					.the-component {
+						$b: #{&};
+						$link: #{$b}__link;
+
+						@at-root #{$b} .foreign {}
+						@at-root #{$link}--active span {}
+
+						&__element {
+							#{$link}--disabled strong {}
+						}
+					}
+				`;
+
+				const firstNode = getRuleBySelector(code, '#{$b} .foreign');
+				const secondNode = getRuleBySelector(code, '#{$link}--active span');
+				const thirdNode = getRuleBySelector(code, '#{$link}--disabled strong');
+				const [{ resolved: firstResolved }] = resolveSelectorNodes({ node: firstNode });
+				const [{ resolved: secondResolved }] = resolveSelectorNodes({ node: secondNode });
+				const [{ resolved: thirdResolved }] = resolveSelectorNodes({ node: thirdNode });
+
+				// .the-component .foreign
+				expect(getSourceMatches(firstResolved)).toStrictEqual([
+					[{
+						value: '#{$b}',
+						sourceRange: [0, 5], resolvedRange: [0, 14],
+						sourceOffset: 0, contextOffset: 9,
+					}],
+					[{
+						value: ' ',
+						sourceRange: [5, 6], resolvedRange: [14, 15],
+						sourceOffset: 0, contextOffset: 9,
+					}],
+					[{
+						value: '.foreign',
+						sourceRange: [6, 14], resolvedRange: [15, 23],
+						sourceOffset: 0, contextOffset: 9,
+					}],
+				]);
+
+				// .the-component__link--active span
+				expect(getSourceMatches(secondResolved)).toStrictEqual([
+					[{
+						value: '#{$link}--active',
+						sourceRange: [0, 16], resolvedRange: [0, 28],
+						sourceOffset: 0, contextOffset: 9,
+					}],
+					[{
+						value: ' ',
+						sourceRange: [16, 17], resolvedRange: [28, 29],
+						sourceOffset: 0, contextOffset: 9,
+					}],
+					[{
+						value: 'span',
+						sourceRange: [17, 21], resolvedRange: [29, 33],
+						sourceOffset: 0, contextOffset: 9,
+					}],
+				]);
+
+				// .the-component__element .the-component__link--disabled strong
+				expect(getSourceMatches(thirdResolved)).toStrictEqual([
+					[],
+					[],
+					[{
+						value: '#{$link}--disabled',
+						sourceRange: [0, 18], resolvedRange: [24, 54],
+						sourceOffset: 0, contextOffset: 0,
+					}],
+					[{
+						value: ' ',
+						sourceRange: [18, 19], resolvedRange: [54, 55],
+						sourceOffset: 0, contextOffset: 0,
+					}],
+					[{
+						value: 'strong',
+						sourceRange: [19, 25], resolvedRange: [55, 61],
+						sourceOffset: 0, contextOffset: 0,
+					}],
+				]);
+			});
+
 			it('Adjusts source index using `&` in compound selector', () => {
 				const node = getRuleBySelector(`
 					.block {
