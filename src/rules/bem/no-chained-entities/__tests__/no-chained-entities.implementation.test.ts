@@ -100,6 +100,26 @@ testRule({
 	],
 	reject: [
 		{
+			description: 'Resolves chained SASS variables without losing source ranges',
+			code: `
+				.the-component {
+					$b: #{&};
+					$link: #{$b}__link;
+
+					&__element {
+						#{$link}:hover &-title {}
+					}
+				}
+			`,
+			warnings: [
+				{
+					line: 6, column: 18,
+					endLine: 6, endColumn: 25,
+					message: messages.element('&-title', '&__element-title'),
+				},
+			],
+		},
+		{
 			description: 'Splitted element selector (simple case)',
 			code: `
 				.the-component {
