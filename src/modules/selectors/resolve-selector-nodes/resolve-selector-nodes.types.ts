@@ -1,5 +1,6 @@
 import type postcss from 'postcss';
 import type parser from 'postcss-selector-parser';
+import type { ResolvedSelectorReplacement } from '#modules/selectors/resolve-nested-selector/resolve-nested-selector.types';
 
 /**
  * Options for resolving a nested selector.
@@ -67,9 +68,20 @@ export type ResolvedNode<Base = parser.Node> = Base & {
  */
 export type MappedSelector = {
 	/**
+	 * Parsed resolved parent selector for the current branch. \
+	 * `null` for a top-level selector.
+	 */
+	parent: parser.Node[] | null;
+
+	/**
 	 * Resolved selector nodes with links to corresponding source nodes.
 	 */
 	resolved: ResolvedNode[];
+
+	/**
+	 * Ordered replacements applied while resolving the selector.
+	 */
+	replacements: ResolvedSelectorReplacement[];
 
 	/**
 	 * Original source selector nodes.

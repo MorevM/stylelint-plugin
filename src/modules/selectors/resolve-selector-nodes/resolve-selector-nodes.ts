@@ -21,6 +21,9 @@ export const resolveSelectorNodes = (options: Options): MappedSelector[] => {
 		// so it's safe to take the first one directly.
 		const sourceSelectorNodes = parseSelectors(selector.source)[0];
 		const resolvedSelectorNodes = parseSelectors(selector.resolved)[0];
+		const parentSelectorNodes = selector.parent
+			? parseSelectors(selector.parent)[0]
+			: null;
 
 		// Filter out incomplete/invalid input.
 		if (isEmpty(sourceSelectorNodes) || isEmpty(resolvedSelectorNodes)) {
@@ -34,7 +37,9 @@ export const resolveSelectorNodes = (options: Options): MappedSelector[] => {
 			.map((node) => linkSourceMeta(node, sourceNodeMeta, offset));
 
 		return {
+			parent: parentSelectorNodes,
 			resolved: resolvedNodes,
+			replacements: selector.replacements,
 			source: sourceSelectorNodes,
 		};
 	});

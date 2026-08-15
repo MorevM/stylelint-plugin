@@ -71,6 +71,19 @@ describe(resolveSelectorNodes, () => {
 			);
 		});
 
+		it('Exposes the parsed parent and selector replacements', () => {
+			const node = getRuleBySelector(`
+				.layout .block__element {
+					.block:hover & + & {}
+				}
+			`, `.block:hover & + &`);
+
+			const [{ parent, replacements }] = resolveSelectorNodes({ node });
+
+			expect(stringifySelectorNodes(parent ?? [])).toStrictEqual(['.layout', ' ', '.block__element']);
+			expect(replacements.map(({ type }) => type)).toStrictEqual(['nesting', 'nesting']);
+		});
+
 		it('All resolved nodes have `meta.sourceMatches` property', () => {
 			const node = getRuleBySelector(`
 				.foo .block {
