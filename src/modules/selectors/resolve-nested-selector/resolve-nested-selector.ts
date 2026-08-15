@@ -75,6 +75,62 @@ const getNestingSourceRanges = (source: string): Array<[number, number]> => {
 };
 
 /**
+ * Checks whether a selector depends on its parent context.
+ *
+ * Both raw `&` and interpolated `#{&}` require the parent selector.
+ * Syntax-aware splitting avoids false positives.
+ * Ampersands in strings, attributes, or escapes are not nesting selectors.
+ *
+ * @param   value   Selector value to inspect.
+ *
+ * @returns         Whether the selector contains a parent reference.
+ */
+const hasParentReference = (value: string) => {
+	return getNestingSourceRanges(value).length > 0
+		|| value.search(SASS_NESTING_INTERPOLATION_REGEXP) !== -1;
+};
+
+/**
+ * Applies one resolved path segment to the accumulated selector context.
+ *
+ * `#{&}` is expanded first but remains a regular selector fragment.
+ * This keeps it eligible for implicit parent nesting.
+ * For example, `.block { #{&}__element {} }` still gets the `.block` parent.
+ * A raw nesting selector, in contrast, replaces `&` in place.
+ *
+ * @param   context          Fully resolved parent selector.
+ * @param   item             Current resolved path segment.
+ * @param   remainingItems   Descendants checked for bare `@at-root`.
+ *
+ * @returns                  Resolved context after this segment.
+ */
+const resolvePathItemContext = (
+	context: string,
+	item: Pick<ResolvedPathItem, 'node' | 'resolvedValue'>,
+	remainingItems: PathItem[],
+) => {
+	const value = item.resolvedValue
+		.replaceAll(SASS_NESTING_INTERPOLATION_REGEXP, () => context);
+	const nestingParts = split(value, '&', true);
+
+	if (nestingParts.length > 1) {
+		return nestingParts.join(context).trim();
+	}
+
+	if (isAtRule(item.node, ['at-root'])) {
+		// An explicit `@at-root` selector replaces the accumulated ancestry.
+		if (value) return value;
+
+		// Bare `@at-root` drops context only when no descendant needs it.
+		return remainingItems.some(({ value: remainingValue }) => hasParentReference(remainingValue))
+			? context
+			: '';
+	}
+
+	return context ? `${context} ${value}` : value;
+};
+
+/**
  * Maps an original selector boundary to its position after selector resolution.
  *
  * @param   selector      Resolved selector and its exact replacements.
@@ -271,7 +327,9 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 		} = tree.at(-1)!;
 		assert(offset, '`getTrees` ensures that the last element includes `offset`');
 
-		let context = '';
+		// Every path segment has already been resolved sequentially.
+		// The preceding segment therefore contains the exact parent context.
+		const context = tree.at(-2)?.resolvedContext ?? '';
 		// Variable interpolation has already changed `resolvedValue`, but its ranges are still
 		// expressed in source coordinates. Resolve all ranges together after nesting is handled.
 		const pendingReplacements: PendingSelectorReplacement[] =
@@ -279,37 +337,6 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 				type: 'interpolation',
 				...replacement,
 			}));
-
-		// Traverse all nodes except the last one (which holds the source selector).
-		for (let i = 0, l = tree.length; i < l; i++) {
-			const item = tree[i];
-			const isLast = i === tree.length - 1;
-			const remainingItems = tree.slice(i);
-
-			if (isLast) continue;
-
-			// If the value contains `&`, replace it with the current context...
-			if (item.value.includes('&')) {
-				context = split(item.value, '&', true).join(context).trim();
-			// ...at-root needs to be processed separately
-			} else if (isAtRule(item.node, ['at-root'])) {
-				// `@at-root` with an explicit parameter without `&`: start from it directly.
-				// Example: `@at-root .bar { ... }`
-				if (item.value) {
-					context = item.value;
-				// Bare `@at-root` (no parameter).
-				// If any of the next path items relies on `&`, we cannot drop the context yet
-				} else {
-					const hasNestDescendants = remainingItems
-						.some((item_) => item_.value.includes('&'));
-
-					context = hasNestDescendants ? context : '';
-				}
-			// ...for `Rule`s without `&` concatenate the value as a descendant selector.
-			} else {
-				context = context.length ? `${context} ${item.value}` : item.value;
-			}
-		}
 
 		// `#{&}` depends on the fully accumulated parent context,
 		// so it cannot be resolved during the earlier variable pass.
@@ -442,22 +469,24 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
  * // => { $b: '.block', $link: '.block__link' }
  * ```
  *
- * @param   node      A PostCSS node (e.g. `Rule`, `AtRule`, or `Root`) to collect variables from.
- * @param   context   A string to substitute in place of the parent selector `&` or `#{&}`.
- *                    If not provided, such variables will resolve to `null`.
+ * @param   node                 Node whose direct variables are collected.
+ * @param   context              Parent selector used for `&` and `#{&}`.
+ *                               If omitted, these references resolve to `null`.
+ * @param   inheritedVariables   Variables available from outer scopes.
  *
- * @returns           A record of resolved variable names to their values,
- *                    or `null` if resolution was not possible.
+ * @returns                      Variables declared directly in the node.
  */
 const resolveNodeVariables = (
 	node: ChildNode | Root | null,
 	context?: string,
+	inheritedVariables: Record<string, string | null> = {},
 ): Record<string, string | null> => {
 	if (!node) return {};
 
-	const variables: Record<string, string | null> = {};
+	const variables = { ...inheritedVariables };
+	const directVariables: Record<string, string | null> = {};
 
-	if (node && 'nodes' in node) {
+	if ('nodes' in node) {
 		const nodeVariables = getRuleDeclarations(node, { mode: 'direct' })
 			.filter((declaration) => !!declaration.prop.match(/^\$[\w-]+$/));
 
@@ -468,18 +497,20 @@ const resolveNodeVariables = (
 				declaration.value === '&'
 				|| SASS_NESTING_INTERPOLATION_VALUE_REGEXP.test(declaration.value)
 			) {
-				variables[declaration.prop] = context ?? null;
+				directVariables[declaration.prop] = context ?? null;
 			} else {
-				if (declaration.value.includes('&') && context) {
-					variables['&'] = context;
-				}
-
-				variables[declaration.prop] = resolveSassVariable(declaration.value, variables);
+				directVariables[declaration.prop] = resolveSassVariable(declaration.value, {
+					...variables,
+					...directVariables,
+					'&': context ?? null,
+				});
 			}
+
+			variables[declaration.prop] = directVariables[declaration.prop];
 		});
 	}
 
-	return variables;
+	return directVariables;
 };
 
 /**
@@ -500,23 +531,17 @@ const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 	const trees = getTrees(options.node, options.source);
 	// All branches have the same root, so we pick it once.
 	const root = getRoot(trees[0][0].node);
-	let nodeVariables: Record<string, string | null> = resolveNodeVariables(root);
+	const rootVariables = resolveNodeVariables(root);
 
 	const resolvedTrees: ResolvedPathItem[][] = trees.map((pathItems) => {
+		let context = '';
+		let nodeVariables = { ...rootVariables };
+
 		return pathItems.map((pathItem, index) => {
 			const usedVariables: Record<string, string> = {};
 			// Capture ranges at substitution time: after `resolvedValue` changes length,
 			// searching it again could no longer recover original selector coordinates.
 			const interpolationReplacements: ResolvedPathItem['interpolationReplacements'] = [];
-
-			const currentItem = pathItems[index];
-			const prevItems = pathItems.slice(0, index + 1);
-			const context = prevItems.map((item) => item.value).join(' ');
-
-			nodeVariables = {
-				...nodeVariables,
-				...resolveNodeVariables(currentItem.node, context),
-			};
 
 			const resolvedValue = pathItem.value.replaceAll(
 				/#{([^}]+)}/g,
@@ -534,12 +559,32 @@ const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 					return variableValue ?? fullMatch;
 				},
 			);
-
-			return {
+			const resolvedPathItem = {
 				...pathItem,
 				usedVariables,
 				interpolationReplacements,
 				resolvedValue,
+			};
+
+			// Resolve paths from root to leaf.
+			// Each descendant receives the resolved selector from its ancestors.
+			context = resolvePathItemContext(
+				context,
+				resolvedPathItem,
+				pathItems.slice(index + 1),
+			);
+
+			// Declarations inside a rule belong to its descendants.
+			// Resolve them after the current selector context is known.
+			// Keep inherited variables available during resolution.
+			nodeVariables = {
+				...nodeVariables,
+				...resolveNodeVariables(pathItem.node, context, nodeVariables),
+			};
+
+			return {
+				...resolvedPathItem,
+				resolvedContext: context,
 			};
 		});
 	});

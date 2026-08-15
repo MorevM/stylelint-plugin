@@ -33,6 +33,12 @@ export type PathItem = {
  */
 export type ResolvedPathItem = PathItem & {
 	/**
+	 * Fully resolved selector context after applying this path segment.
+	 * Descendants use it as their parent selector and as the value of `&`.
+	 */
+	resolvedContext: string;
+
+	/**
 	 * The selector after static resolution of SASS variables,
 	 * formatted as (S)CSS would expand it at this point in the path.
 	 */

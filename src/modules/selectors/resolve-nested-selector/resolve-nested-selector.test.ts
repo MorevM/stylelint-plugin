@@ -745,6 +745,83 @@ describe(resolveNestedSelector, () => {
 				]);
 			});
 
+			it('Uses resolved variables in ancestor selector contexts', () => {
+				const code = `
+					.block {
+						$b: #{&};
+
+						#{$b}__element {
+							$current: #{&};
+
+							span {}
+							#{$current} strong {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, 'span')).toStrictEqual([
+					{
+						source: 'span',
+						resolved: '.block .block__element span',
+						substitutions: null,
+						parent: '.block .block__element ',
+						offset: 0,
+					},
+				]);
+
+				expect(resolveSelectorInContext(code, '#{$current} strong')).toStrictEqual([
+					{
+						source: '#{$current} strong',
+						resolved: '.block .block__element .block .block__element strong',
+						substitutions: {
+							'#{$current}': '.block .block__element',
+						},
+						parent: '.block .block__element ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves interpolated nesting in ancestor selector contexts', () => {
+				const code = `
+					.block {
+						#{&}__element {
+							span {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, 'span')).toStrictEqual([
+					{
+						source: 'span',
+						resolved: '.block .block__element span',
+						substitutions: null,
+						parent: '.block .block__element ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Preserves parent context for literal ampersands in ancestor selectors', () => {
+				const code = `
+					.block {
+						[data-ref="&"] {
+							span {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, 'span')).toStrictEqual([
+					{
+						source: 'span',
+						resolved: '.block [data-ref="&"] span',
+						substitutions: null,
+						parent: '.block [data-ref="&"] ',
+						offset: 0,
+					},
+				]);
+			});
+
 			it('Resolves whitespace inside simple interpolations', () => {
 				const code = `
 					.block {
