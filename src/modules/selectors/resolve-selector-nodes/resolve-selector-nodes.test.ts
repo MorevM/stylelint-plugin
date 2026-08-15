@@ -1,4 +1,4 @@
-import { isArray, isFiniteNumber } from '@morev/utils';
+import { isArray } from '@morev/utils';
 import { getRuleBySelector, stringifySelectorNodes } from '#modules/test-utils';
 import { resolveSelectorNodes } from './resolve-selector-nodes';
 import type { ResolvedNode } from './resolve-selector-nodes.types';
@@ -91,287 +91,9 @@ describe(resolveSelectorNodes, () => {
 
 			expect(condition).toBe(true);
 		});
-
-		it('All source nodes have `meta` properties', () => {
-			const node = getRuleBySelector(`
-				.foo .block {
-					&__element {
-						&:hover {
-							.block__bar {
-								&-title:has(.card:hover) {}
-							}
-						}
-					}
-				}
-			`, `&-title:has(.card:hover)`);
-
-			const selectors = resolveSelectorNodes({ node });
-
-			const condition = selectors[0].source
-				.every((sourceNode) => {
-					return isFiniteNumber(sourceNode.meta.resolvedSourceIndex)
-						&& isFiniteNumber(sourceNode.meta.contextOffset);
-				});
-
-			expect(condition).toBe(true);
-		});
 	});
 
 	describe('Meta', () => {
-		describe('source', () => {
-			it('Adjusts source indices without `&` character', () => {
-				const node = getRuleBySelector(`
-					.block {
-						&__element {
-							span {}
-						}
-					}
-				`, `span`);
-				// .block__element span
-
-				const [{ source }] = resolveSelectorNodes({ node });
-
-				expect(source).toHaveLength(1);
-
-				expect(source[0].meta).toStrictEqual({
-					resolvedSourceIndex: 16,
-					contextOffset: 0,
-					sourceOffset: 0,
-				});
-			});
-
-			it('Adjusts source indices without `&` character in case of compound selector', () => {
-				const node = getRuleBySelector(`
-					.block {
-						&__element {
-							span, .foo {}
-						}
-					}
-				`, `span, .foo`);
-
-				const selectors = resolveSelectorNodes({ node });
-
-				expect(selectors).toHaveLength(2);
-
-				// .block__element span
-				expect(selectors[0].source[0].meta).toStrictEqual({
-					resolvedSourceIndex: 16,
-					contextOffset: 0,
-					sourceOffset: 0,
-				});
-
-				// .block__element .foo
-				expect(selectors[1].source[0].meta).toStrictEqual({
-					resolvedSourceIndex: 16,
-					contextOffset: 0,
-					sourceOffset: 6,
-				});
-			});
-
-			it('Adjusts source indices using `&` character', () => {
-				const node = getRuleBySelector(`
-					.block {
-						&__element {
-							&:hover {}
-						}
-					}
-				`, `&:hover`);
-				// .block__element:hover
-
-				const selectors = resolveSelectorNodes({ node });
-
-				expect(selectors).toHaveLength(1);
-
-				expect(selectors[0].source[0].meta).toStrictEqual({
-					resolvedSourceIndex: 14,
-					contextOffset: 0,
-					sourceOffset: 0,
-				});
-
-				expect(selectors[0].source[1].meta).toStrictEqual({
-					resolvedSourceIndex: 15,
-					contextOffset: 0,
-					sourceOffset: 0,
-				});
-			});
-
-			it('Adjusts source indices using multiple `&` characters', () => {
-				const node = getRuleBySelector(`
-					.foo {
-						&:hover & & & .bar {}
-					}
-				`, `&:hover & & & .bar`);
-
-				const [{ source }] = resolveSelectorNodes({ node });
-
-				// .foo:hover .foo .foo .bar
-				expect(source[0].meta).toStrictEqual({ resolvedSourceIndex: 3, contextOffset: 0, sourceOffset: 0 });
-				expect(source[1].meta).toStrictEqual({ resolvedSourceIndex: 4, contextOffset: 0, sourceOffset: 0 });
-				expect(source[2].meta).toStrictEqual({ resolvedSourceIndex: 10, contextOffset: 0, sourceOffset: 0 });
-				expect(source[3].meta).toStrictEqual({ resolvedSourceIndex: 14, contextOffset: 0, sourceOffset: 0 });
-				expect(source[4].meta).toStrictEqual({ resolvedSourceIndex: 15, contextOffset: 0, sourceOffset: 0 });
-				expect(source[5].meta).toStrictEqual({ resolvedSourceIndex: 19, contextOffset: 0, sourceOffset: 0 });
-				expect(source[6].meta).toStrictEqual({ resolvedSourceIndex: 20, contextOffset: 0, sourceOffset: 0 });
-				expect(source[7].meta).toStrictEqual({ resolvedSourceIndex: 24, contextOffset: 0, sourceOffset: 0 });
-			});
-
-			it('Adjusts source indices within `@at-root` using `&` character', () => {
-				const node = getRuleBySelector(`
-					.block {
-						&__element {
-							@at-root &   span {}
-						}
-					}
-				`, `&   span`);
-				// .block__element   span
-
-				const [{ source }] = resolveSelectorNodes({ node });
-
-				expect(source[0].meta).toStrictEqual({
-					resolvedSourceIndex: 14,
-					contextOffset: 9,
-					sourceOffset: 0,
-				});
-
-				expect(source[1].meta).toStrictEqual({
-					resolvedSourceIndex: 15,
-					contextOffset: 9,
-					sourceOffset: 0,
-				});
-
-				expect(source[2].meta).toStrictEqual({
-					resolvedSourceIndex: 18,
-					contextOffset: 9,
-					sourceOffset: 0,
-				});
-			});
-
-			it('Adjusts source indices within `@at-root` without `&` character', () => {
-				const node = getRuleBySelector(`
-					.block {
-						&__element {
-							@at-root span    strong {}
-						}
-					}
-				`, `span    strong`);
-				// span    strong
-
-				const [{ source }] = resolveSelectorNodes({ node });
-
-				expect(source[0].meta).toStrictEqual({
-					resolvedSourceIndex: 0,
-					contextOffset: 9,
-					sourceOffset: 0,
-				});
-
-				expect(source[1].meta).toStrictEqual({
-					resolvedSourceIndex: 4,
-					contextOffset: 9,
-					sourceOffset: 0,
-				});
-
-				expect(source[2].meta).toStrictEqual({
-					resolvedSourceIndex: 8,
-					contextOffset: 9,
-					sourceOffset: 0,
-				});
-			});
-
-			it('Adjusts source index using single `&`', () => {
-				const node = getRuleBySelector(`
-					.block {
-						&__element {
-							&:hover {
-								.block__bar {
-									&-title {}
-								}
-							}
-						}
-					}
-				`, `&-title`);
-
-				const [{ source }] = resolveSelectorNodes({ node });
-
-				expect(source).toHaveLength(2);
-
-				// .block__element:hover .block__bar-title
-				// &
-				expect(source[0].meta).toStrictEqual({ resolvedSourceIndex: 32, contextOffset: 0, sourceOffset: 0 });
-				// -title
-				expect(source[1].meta).toStrictEqual({ resolvedSourceIndex: 33, contextOffset: 0, sourceOffset: 0 });
-			});
-
-			it('Adjusts source index using `&` in compound selector', () => {
-				const node = getRuleBySelector(`
-					.block {
-						&__element {
-							&:hover {
-								.block__bar {
-									&-title, span .block {}
-								}
-							}
-						}
-					}
-				`, `&-title, span .block`);
-				// .block__element:hover .block__bar-title,
-				// .block__element:hover .block__bar span .block
-
-				const [first, second] = resolveSelectorNodes({ node });
-
-				expect(stringifySelectorNodes(first.source)).toStrictEqual(
-					['&', '-title'],
-				);
-
-				// &
-				expect(first.source[0].meta)
-					.toStrictEqual({ resolvedSourceIndex: 32, contextOffset: 0, sourceOffset: 0 });
-				// -title
-				expect(first.source[1].meta)
-					.toStrictEqual({ resolvedSourceIndex: 33, contextOffset: 0, sourceOffset: 0 });
-
-				expect(stringifySelectorNodes(second.source)).toStrictEqual(
-					['span', ' ', '.block'],
-				);
-
-				// span
-				expect(second.source[0].meta)
-					.toStrictEqual({ resolvedSourceIndex: 34, contextOffset: 0, sourceOffset: 9 });
-				// ' '
-				expect(second.source[1].meta)
-					.toStrictEqual({ resolvedSourceIndex: 38, contextOffset: 0, sourceOffset: 9 });
-				// '.block'
-				expect(second.source[2].meta)
-					.toStrictEqual({ resolvedSourceIndex: 39, contextOffset: 0, sourceOffset: 9 });
-			});
-
-			it('Tracks nested `at-root` offsets', () => {
-				const node = getRuleBySelector(`
-					.block {
-						@at-root .foo & {
-							@at-root &__foo, &__bar {}
-						}
-					}
-				`, `&__foo, &__bar`);
-				// .foo .block__foo
-				// .foo .block__bar
-
-				const [first, second] = resolveSelectorNodes({ node });
-
-				expect(stringifySelectorNodes(first.source)).toStrictEqual(['&', '__foo']);
-				expect(first.source[0].meta)
-					.toStrictEqual({ resolvedSourceIndex: 10, contextOffset: 9, sourceOffset: 0 });
-				expect(first.source[1].meta)
-					.toStrictEqual({ resolvedSourceIndex: 11, contextOffset: 9, sourceOffset: 0 });
-
-
-				expect(stringifySelectorNodes(second.source)).toStrictEqual(['&', '__bar']);
-				expect(second.source[0].meta)
-					.toStrictEqual({ resolvedSourceIndex: 10, contextOffset: 9, sourceOffset: 8 });
-				expect(second.source[1].meta)
-					.toStrictEqual({ resolvedSourceIndex: 11, contextOffset: 9, sourceOffset: 8 });
-			});
-		});
-
 		describe('resolved', () => {
 			it('Properly determines ranges of non-space combinators', () => {
 				const node = getRuleBySelector(`
@@ -382,13 +104,13 @@ describe(resolveSelectorNodes, () => {
 
 				expect(getSourceMatches(resolved)).toStrictEqual([
 					[
-						{ value: '.block', sourceRange: [0, 6], resolvedRange: [0, 6], sourceOffset: 0, contextOffset: 0 },
+						{ value: '.block', sourceRange: [0, 6], resolvedRange: [0, 6], offset: 0 },
 					],
 					[
-						{ value: '>', sourceRange: [7, 8], resolvedRange: [7, 8], sourceOffset: 0, contextOffset: 0 },
+						{ value: '>', sourceRange: [7, 8], resolvedRange: [7, 8], offset: 0 },
 					],
 					[
-						{ value: 'a', sourceRange: [9, 10], resolvedRange: [9, 10], sourceOffset: 0, contextOffset: 0 },
+						{ value: 'a', sourceRange: [9, 10], resolvedRange: [9, 10], offset: 0 },
 					],
 				]);
 			});
@@ -402,13 +124,13 @@ describe(resolveSelectorNodes, () => {
 
 				expect(getSourceMatches(resolved)).toStrictEqual([
 					[
-						{ value: '.block', sourceRange: [0, 6], resolvedRange: [0, 6], sourceOffset: 0, contextOffset: 0 },
+						{ value: '.block', sourceRange: [0, 6], resolvedRange: [0, 6], offset: 0 },
 					],
 					[
-						{ value: ' ', sourceRange: [6, 7], resolvedRange: [6, 7], sourceOffset: 0, contextOffset: 0 },
+						{ value: ' ', sourceRange: [6, 7], resolvedRange: [6, 7], offset: 0 },
 					],
 					[
-						{ value: 'a', sourceRange: [7, 8], resolvedRange: [7, 8], sourceOffset: 0, contextOffset: 0 },
+						{ value: 'a', sourceRange: [7, 8], resolvedRange: [7, 8], offset: 0 },
 					],
 				]);
 			});
@@ -429,7 +151,7 @@ describe(resolveSelectorNodes, () => {
 					[],
 					[],
 					[
-						{ value: 'span', sourceRange: [0, 4], resolvedRange: [16, 20], contextOffset: 0, sourceOffset: 0 },
+						{ value: 'span', sourceRange: [0, 4], resolvedRange: [16, 20], offset: 0 },
 					],
 				]);
 			});
@@ -450,7 +172,7 @@ describe(resolveSelectorNodes, () => {
 					[],
 					[],
 					[
-						{ value: 'span', sourceRange: [0, 4], resolvedRange: [16, 20], contextOffset: 0, sourceOffset: 0 },
+						{ value: 'span', sourceRange: [0, 4], resolvedRange: [16, 20], offset: 0 },
 					],
 				]);
 
@@ -459,7 +181,7 @@ describe(resolveSelectorNodes, () => {
 					[],
 					[],
 					[
-						{ value: '.foo', sourceRange: [0, 4], resolvedRange: [16, 20], contextOffset: 0, sourceOffset: 6 },
+						{ value: '.foo', sourceRange: [0, 4], resolvedRange: [16, 20], offset: 6 },
 					],
 				]);
 			});
@@ -477,8 +199,8 @@ describe(resolveSelectorNodes, () => {
 				const [{ resolved }] = resolveSelectorNodes({ node });
 
 				expect(getSourceMatches(resolved)).toStrictEqual([
-					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 15], contextOffset: 0, sourceOffset: 0 }],
-					[{ value: ':hover', sourceRange: [1, 7], resolvedRange: [15, 21], contextOffset: 0, sourceOffset: 0 }],
+					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 15], offset: 0 }],
+					[{ value: ':hover', sourceRange: [1, 7], resolvedRange: [15, 21], offset: 0 }],
 				]);
 			});
 
@@ -494,16 +216,16 @@ describe(resolveSelectorNodes, () => {
 				// .foo:hover .foo .foo .bar
 				// &:hover & & & .bar
 				expect(getSourceMatches(resolved)).toStrictEqual([
-					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 4], sourceOffset: 0, contextOffset: 0 }],
-					[{ value: ':hover', sourceRange: [1, 7], resolvedRange: [4, 10], sourceOffset: 0, contextOffset: 0 }],
-					[{ value: ' ', sourceRange: [7, 8], resolvedRange: [10, 11], sourceOffset: 0, contextOffset: 0 }],
-					[{ value: '&', sourceRange: [8, 9], resolvedRange: [11, 15], sourceOffset: 0, contextOffset: 0 }],
-					[{ value: ' ', sourceRange: [9, 10], resolvedRange: [15, 16], sourceOffset: 0, contextOffset: 0 }],
-					[{ value: '&', sourceRange: [10, 11], resolvedRange: [16, 20], sourceOffset: 0, contextOffset: 0 }],
-					[{ value: ' ', sourceRange: [11, 12], resolvedRange: [20, 21], sourceOffset: 0, contextOffset: 0 }],
-					[{ value: '&', sourceRange: [12, 13], resolvedRange: [21, 25], sourceOffset: 0, contextOffset: 0 }],
-					[{ value: ' ', sourceRange: [13, 14], resolvedRange: [25, 26], sourceOffset: 0, contextOffset: 0 }],
-					[{ value: '.bar', sourceRange: [14, 18], resolvedRange: [26, 30], sourceOffset: 0, contextOffset: 0 }],
+					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 4], offset: 0 }],
+					[{ value: ':hover', sourceRange: [1, 7], resolvedRange: [4, 10], offset: 0 }],
+					[{ value: ' ', sourceRange: [7, 8], resolvedRange: [10, 11], offset: 0 }],
+					[{ value: '&', sourceRange: [8, 9], resolvedRange: [11, 15], offset: 0 }],
+					[{ value: ' ', sourceRange: [9, 10], resolvedRange: [15, 16], offset: 0 }],
+					[{ value: '&', sourceRange: [10, 11], resolvedRange: [16, 20], offset: 0 }],
+					[{ value: ' ', sourceRange: [11, 12], resolvedRange: [20, 21], offset: 0 }],
+					[{ value: '&', sourceRange: [12, 13], resolvedRange: [21, 25], offset: 0 }],
+					[{ value: ' ', sourceRange: [13, 14], resolvedRange: [25, 26], offset: 0 }],
+					[{ value: '.bar', sourceRange: [14, 18], resolvedRange: [26, 30], offset: 0 }],
 				]);
 			});
 
@@ -520,9 +242,91 @@ describe(resolveSelectorNodes, () => {
 				const [{ resolved }] = resolveSelectorNodes({ node });
 
 				expect(getSourceMatches(resolved)).toStrictEqual([
-					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 15], sourceOffset: 0, contextOffset: 9 }],
-					[{ value: '   ', sourceRange: [1, 4], resolvedRange: [15, 18], sourceOffset: 0, contextOffset: 9 }],
-					[{ value: 'span', sourceRange: [4, 8], resolvedRange: [18, 22], sourceOffset: 0, contextOffset: 9 }],
+					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 15], offset: 9 }],
+					[{ value: '   ', sourceRange: [1, 4], resolvedRange: [15, 18], offset: 9 }],
+					[{ value: 'span', sourceRange: [4, 8], resolvedRange: [18, 22], offset: 9 }],
+				]);
+			});
+
+			it('Adjusts source ranges after resolved SASS variables', () => {
+				const code = `
+					.the-component {
+						$b: #{&};
+						$link: #{$b}__link;
+
+						@at-root #{$b} .foreign {}
+						@at-root #{$link}--active span {}
+
+						&__element {
+							#{$link}--disabled strong {}
+						}
+					}
+				`;
+
+				const firstNode = getRuleBySelector(code, '#{$b} .foreign');
+				const secondNode = getRuleBySelector(code, '#{$link}--active span');
+				const thirdNode = getRuleBySelector(code, '#{$link}--disabled strong');
+				const [{ resolved: firstResolved }] = resolveSelectorNodes({ node: firstNode });
+				const [{ resolved: secondResolved }] = resolveSelectorNodes({ node: secondNode });
+				const [{ resolved: thirdResolved }] = resolveSelectorNodes({ node: thirdNode });
+
+				// .the-component .foreign
+				expect(getSourceMatches(firstResolved)).toStrictEqual([
+					[{
+						value: '#{$b}',
+						sourceRange: [0, 5], resolvedRange: [0, 14],
+						offset: 9,
+					}],
+					[{
+						value: ' ',
+						sourceRange: [5, 6], resolvedRange: [14, 15],
+						offset: 9,
+					}],
+					[{
+						value: '.foreign',
+						sourceRange: [6, 14], resolvedRange: [15, 23],
+						offset: 9,
+					}],
+				]);
+
+				// .the-component__link--active span
+				expect(getSourceMatches(secondResolved)).toStrictEqual([
+					[{
+						value: '#{$link}--active',
+						sourceRange: [0, 16], resolvedRange: [0, 28],
+						offset: 9,
+					}],
+					[{
+						value: ' ',
+						sourceRange: [16, 17], resolvedRange: [28, 29],
+						offset: 9,
+					}],
+					[{
+						value: 'span',
+						sourceRange: [17, 21], resolvedRange: [29, 33],
+						offset: 9,
+					}],
+				]);
+
+				// .the-component__element .the-component__link--disabled strong
+				expect(getSourceMatches(thirdResolved)).toStrictEqual([
+					[],
+					[],
+					[{
+						value: '#{$link}--disabled',
+						sourceRange: [0, 18], resolvedRange: [24, 54],
+						offset: 0,
+					}],
+					[{
+						value: ' ',
+						sourceRange: [18, 19], resolvedRange: [54, 55],
+						offset: 0,
+					}],
+					[{
+						value: 'strong',
+						sourceRange: [19, 25], resolvedRange: [55, 61],
+						offset: 0,
+					}],
 				]);
 			});
 
@@ -542,14 +346,14 @@ describe(resolveSelectorNodes, () => {
 				// .block__element .block__bar-title,
 				expect(getSourceMatches(first.resolved)).toStrictEqual([
 					[
-						{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 15], sourceOffset: 0, contextOffset: 0 },
+						{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 15], offset: 0 },
 					],
 					[
-						{ value: '&', sourceRange: [0, 1], resolvedRange: [15, 16], sourceOffset: 0, contextOffset: 0 },
+						{ value: '&', sourceRange: [0, 1], resolvedRange: [15, 16], offset: 0 },
 					],
 					[
-						{ value: '&', sourceRange: [0, 1], resolvedRange: [16, 27], sourceOffset: 0, contextOffset: 0 },
-						{ value: '-title', sourceRange: [1, 7], resolvedRange: [27, 33], sourceOffset: 0, contextOffset: 0 },
+						{ value: '&', sourceRange: [0, 1], resolvedRange: [16, 27], offset: 0 },
+						{ value: '-title', sourceRange: [1, 7], resolvedRange: [27, 33], offset: 0 },
 					],
 				]);
 
@@ -559,9 +363,9 @@ describe(resolveSelectorNodes, () => {
 					[], // ' '
 					[], // '.block__bar'
 					[], // ' '
-					[{ value: 'span', sourceRange: [0, 4], resolvedRange: [28, 32], sourceOffset: 9, contextOffset: 0 }],
-					[{ value: ' ', sourceRange: [4, 5], resolvedRange: [32, 33], sourceOffset: 9, contextOffset: 0 }],
-					[{ value: '.block', sourceRange: [5, 11], resolvedRange: [33, 39], sourceOffset: 9, contextOffset: 0 }],
+					[{ value: 'span', sourceRange: [0, 4], resolvedRange: [28, 32], offset: 9 }],
+					[{ value: ' ', sourceRange: [4, 5], resolvedRange: [32, 33], offset: 9 }],
+					[{ value: '.block', sourceRange: [5, 11], resolvedRange: [33, 39], offset: 9 }],
 				]);
 			});
 
@@ -580,28 +384,28 @@ describe(resolveSelectorNodes, () => {
 				// .foo .block__foo
 				expect(getSourceMatches(first.resolved)).toStrictEqual([
 					[
-						{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 4], sourceOffset: 0, contextOffset: 9 },
+						{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 4], offset: 9 },
 					],
 					[
-						{ value: '&', sourceRange: [0, 1], resolvedRange: [4, 5], sourceOffset: 0, contextOffset: 9 },
+						{ value: '&', sourceRange: [0, 1], resolvedRange: [4, 5], offset: 9 },
 					],
 					[
-						{ value: '&', sourceRange: [0, 1], resolvedRange: [5, 11], sourceOffset: 0, contextOffset: 9 },
-						{ value: '__foo', sourceRange: [1, 6], resolvedRange: [11, 16], sourceOffset: 0, contextOffset: 9 },
+						{ value: '&', sourceRange: [0, 1], resolvedRange: [5, 11], offset: 9 },
+						{ value: '__foo', sourceRange: [1, 6], resolvedRange: [11, 16], offset: 9 },
 					],
 				]);
 
 				// .foo .block__bar
 				expect(getSourceMatches(second.resolved)).toStrictEqual([
 					[
-						{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 4], sourceOffset: 8, contextOffset: 9 },
+						{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 4], offset: 17 },
 					],
 					[
-						{ value: '&', sourceRange: [0, 1], resolvedRange: [4, 5], sourceOffset: 8, contextOffset: 9 },
+						{ value: '&', sourceRange: [0, 1], resolvedRange: [4, 5], offset: 17 },
 					],
 					[
-						{ value: '&', sourceRange: [0, 1], resolvedRange: [5, 11], sourceOffset: 8, contextOffset: 9 },
-						{ value: '__bar', sourceRange: [1, 6], resolvedRange: [11, 16], sourceOffset: 8, contextOffset: 9 },
+						{ value: '&', sourceRange: [0, 1], resolvedRange: [5, 11], offset: 17 },
+						{ value: '__bar', sourceRange: [1, 6], resolvedRange: [11, 16], offset: 17 },
 					],
 				]);
 			});
@@ -619,8 +423,8 @@ describe(resolveSelectorNodes, () => {
 				// &:has(&__foo, span.bar &__baz:is(&--foo))
 				// .block:has(.block__foo, span.bar .block__baz:is(.block--foo))
 				expect(getSourceMatches(resolved)).toStrictEqual([
-					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 6], sourceOffset: 0, contextOffset: 9 }],
-					[{ value: ':has(&__foo, span.bar &__baz:is(&--foo))', sourceRange: [1, 41], resolvedRange: [6, 61], sourceOffset: 0, contextOffset: 9 }],
+					[{ value: '&', sourceRange: [0, 1], resolvedRange: [0, 6], offset: 9 }],
+					[{ value: ':has(&__foo, span.bar &__baz:is(&--foo))', sourceRange: [1, 41], resolvedRange: [6, 61], offset: 9 }],
 				]);
 
 				// @ts-expect-error -- Trust me this is `Pseudo.nodes`
@@ -632,22 +436,22 @@ describe(resolveSelectorNodes, () => {
 					[
 						// .block__foo
 						[
-							{ value: '&', sourceRange: [6, 7], resolvedRange: [11, 17], sourceOffset: 0, contextOffset: 9 },
-							{ value: '__foo', sourceRange: [7, 12], resolvedRange: [17, 22], sourceOffset: 0, contextOffset: 9 },
+							{ value: '&', sourceRange: [6, 7], resolvedRange: [11, 17], offset: 9 },
+							{ value: '__foo', sourceRange: [7, 12], resolvedRange: [17, 22], offset: 9 },
 						],
 					],
 					[
-						[{ value: 'span', sourceRange: [14, 18], resolvedRange: [24, 28], sourceOffset: 0, contextOffset: 9 }],
-						[{ value: '.bar', sourceRange: [18, 22], resolvedRange: [28, 32], sourceOffset: 0, contextOffset: 9 }],
-						[{ value: ' ', sourceRange: [22, 23], resolvedRange: [32, 33], sourceOffset: 0, contextOffset: 9 }],
+						[{ value: 'span', sourceRange: [14, 18], resolvedRange: [24, 28], offset: 9 }],
+						[{ value: '.bar', sourceRange: [18, 22], resolvedRange: [28, 32], offset: 9 }],
+						[{ value: ' ', sourceRange: [22, 23], resolvedRange: [32, 33], offset: 9 }],
 						// .block__baz
 						[
-							{ value: '&', sourceRange: [23, 24], resolvedRange: [33, 39], sourceOffset: 0, contextOffset: 9 },
-							{ value: '__baz', sourceRange: [24, 29], resolvedRange: [39, 44], sourceOffset: 0, contextOffset: 9 },
+							{ value: '&', sourceRange: [23, 24], resolvedRange: [33, 39], offset: 9 },
+							{ value: '__baz', sourceRange: [24, 29], resolvedRange: [39, 44], offset: 9 },
 						],
 						// :is(.block--foo)
 						[
-							{ value: ':is(&--foo)', sourceRange: [29, 40], resolvedRange: [44, 60], sourceOffset: 0, contextOffset: 9 },
+							{ value: ':is(&--foo)', sourceRange: [29, 40], resolvedRange: [44, 60], offset: 9 },
 						],
 					],
 				]);
@@ -661,8 +465,8 @@ describe(resolveSelectorNodes, () => {
 					[
 						// .block--foo
 						[
-							{ value: '&', sourceRange: [33, 34], resolvedRange: [48, 53], sourceOffset: 0, contextOffset: 9 },
-							{ value: '--foo', sourceRange: [34, 39], resolvedRange: [48, 59], sourceOffset: 0, contextOffset: 9 },
+							{ value: '&', sourceRange: [33, 34], resolvedRange: [48, 54], offset: 9 },
+							{ value: '--foo', sourceRange: [34, 39], resolvedRange: [54, 59], offset: 9 },
 						],
 					],
 				]);

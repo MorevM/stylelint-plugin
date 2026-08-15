@@ -44,6 +44,10 @@ const collectRepeatingGroups = (
 		const chains = resolveBemChain(rule, separators);
 
 		chains.forEach((chain) => {
+			// Known interpolations are already substituted by `resolveBemChain`.
+			// Keep ignoring only chains whose values could not be resolved statically.
+			if (chain.some((item) => item.selector.includes('#{'))) return;
+
 			for (let index = 0; index < chain.length; index++) {
 				const current = chain[index];
 

@@ -1,28 +1,30 @@
+import { resolveSelectorSourceIndex } from '#modules/selectors/resolve-nested-selector/resolve-nested-selector';
 import { getNormalizedNodeString } from './get-normalized-node-string';
-import type { AdjustedNode, SourceNodeMeta } from '../resolve-selector-nodes.types';
+import type parser from 'postcss-selector-parser';
+import type { ResolvedSelector } from '#modules/selectors';
+import type { SourceNodeMeta } from '../resolve-selector-nodes.types';
 
 /**
  * Extracts metadata for each atomic node in the source selector tree,
  * including its string value, original position in the raw selector, and
  * resolved position after nesting resolution.
  *
- * @param   nodes    A list of top-level selector nodes.
- * @param   inject   The injected selector string used to resolve nesting.
+ * @param   nodes      A list of top-level selector nodes.
+ * @param   selector   Selector resolution metadata.
  *
- * @returns          An array of metadata objects for each non-container node, containing:
- *                   - `value`: the string representation of the node
- *                   - `sourceRange`: its original position in the raw source selector
- *                   - `resolvedRange`: its position in the resolved selector
+ * @returns            An array of metadata objects for each non-container node, containing:
+ *                     - `value`: the string representation of the node
+ *                     - `sourceRange`: its original position in the raw source selector
+ *                     - `resolvedRange`: its position in the resolved selector
  */
 export const extractSourceNodeMeta = (
-	nodes: AdjustedNode[],
-	inject: string,
+	nodes: parser.Node[],
+	selector: ResolvedSelector,
 ): SourceNodeMeta[] => {
 	const result: SourceNodeMeta[] = [];
-
-	const walk = (node: AdjustedNode) => {
+	const walk = (node: parser.Node, depth: number = 0) => {
 		if ('nodes' in node) {
-			node.nodes.forEach((inner) => walk(inner as AdjustedNode));
+			node.nodes.forEach((inner) => walk(inner, depth + 1));
 		}
 
 		// Nodes of type `selector` are skipped, since they act as containers and
@@ -31,20 +33,16 @@ export const extractSourceNodeMeta = (
 		if (node.type === 'selector') return;
 
 		const value = getNormalizedNodeString(node);
-		const { sourceIndex, meta: { resolvedSourceIndex } } = node;
-
-		// Adjust offset for `&` (nesting) nodes: their resolved position
-		// is shifted by injected selector length.
-		const nestingShift = node.type === 'nesting'
-			? -inject.length + node.value.length
-			: 0;
+		const { sourceIndex } = node;
+		const sourceEndIndex = sourceIndex + value.length;
 
 		result.push({
+			depth,
 			value,
-			sourceRange: [sourceIndex, sourceIndex + value.length],
+			sourceRange: [sourceIndex, sourceEndIndex],
 			resolvedRange: [
-				resolvedSourceIndex + nestingShift,
-				resolvedSourceIndex + value.length,
+				resolveSelectorSourceIndex(selector, sourceIndex),
+				resolveSelectorSourceIndex(selector, sourceEndIndex),
 			],
 		});
 	};

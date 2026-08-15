@@ -1,5 +1,6 @@
+import { omit } from '@morev/utils';
 import { getRuleBySelector } from '#modules/test-utils';
-import { resolveNestedSelector } from './resolve-nested-selector';
+import { resolveNestedSelector, resolveSelectorSourceIndex } from './resolve-nested-selector';
 
 const resolveSelectorInContext = (
 	code: string,
@@ -9,7 +10,14 @@ const resolveSelectorInContext = (
 	return resolveNestedSelector({
 		source: customSelector,
 		node: getRuleBySelector(code, selector),
-	});
+	}).map((result) => omit(result, 'replacements'));
+};
+
+const resolveSelectorWithReplacements = (
+	code: string,
+	selector: string,
+) => {
+	return resolveNestedSelector({ node: getRuleBySelector(code, selector) });
 };
 
 describe(resolveNestedSelector, () => {
@@ -22,20 +30,20 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'a')).toStrictEqual([
-				{ source: 'a', resolved: 'a', inject: '', offset: 0 },
+				{ source: 'a', resolved: 'a', substitutions: null, parent: null, offset: 0 },
 			]);
 
 			expect(resolveSelectorInContext(code, 'b, c')).toStrictEqual([
-				{ source: 'b', resolved: 'b', inject: '', offset: 0 },
-				{ source: 'c', resolved: 'c', inject: '', offset: 3 },
+				{ source: 'b', resolved: 'b', substitutions: null, parent: null, offset: 0 },
+				{ source: 'c', resolved: 'c', substitutions: null, parent: null, offset: 3 },
 			]);
 
 			expect(resolveSelectorInContext(code, 'b, c', 'b')).toStrictEqual([
-				{ source: 'b', resolved: 'b', inject: '', offset: 0 },
+				{ source: 'b', resolved: 'b', substitutions: null, parent: null, offset: 0 },
 			]);
 
 			expect(resolveSelectorInContext(code, 'b, c', 'c')).toStrictEqual([
-				{ source: 'c', resolved: 'c', inject: '', offset: 0 },
+				{ source: 'c', resolved: 'c', substitutions: null, parent: null, offset: 0 },
 			]);
 		});
 
@@ -43,10 +51,10 @@ describe(resolveNestedSelector, () => {
 			const code = `a { b, c { d { e, f {}}}}`;
 
 			expect(resolveSelectorInContext(code, 'e, f')).toStrictEqual([
-				{ source: 'e', resolved: 'a b d e', inject: 'a b d ', offset: 0 },
-				{ source: 'e', resolved: 'a c d e', inject: 'a c d ', offset: 0 },
-				{ source: 'f', resolved: 'a b d f', inject: 'a b d ', offset: 3 },
-				{ source: 'f', resolved: 'a c d f', inject: 'a c d ', offset: 3 },
+				{ source: 'e', resolved: 'a b d e', substitutions: null, parent: 'a b d ', offset: 0 },
+				{ source: 'e', resolved: 'a c d e', substitutions: null, parent: 'a c d ', offset: 0 },
+				{ source: 'f', resolved: 'a b d f', substitutions: null, parent: 'a b d ', offset: 3 },
+				{ source: 'f', resolved: 'a c d f', substitutions: null, parent: 'a c d ', offset: 3 },
 			]);
 		});
 
@@ -58,9 +66,9 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar &, a, & + &:hover')).toStrictEqual([
-				{ source: '.bar &', resolved: '.bar .foo', inject: '.foo', offset: 0 },
-				{ source: 'a', resolved: '.foo a', inject: '.foo ', offset: 8 },
-				{ source: '& + &:hover', resolved: '.foo + .foo:hover', inject: '.foo', offset: 11 },
+				{ source: '.bar &', resolved: '.bar .foo', substitutions: { '&': '.foo' }, parent: '.foo', offset: 0 },
+				{ source: 'a', resolved: '.foo a', substitutions: null, parent: '.foo ', offset: 8 },
+				{ source: '& + &:hover', resolved: '.foo + .foo:hover', substitutions: { '&': '.foo' }, parent: '.foo', offset: 11 },
 			]);
 		});
 
@@ -72,15 +80,15 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar &, a', '.bar &')).toStrictEqual([
-				{ source: '.bar &', resolved: '.bar .foo', inject: '.foo', offset: 0 },
+				{ source: '.bar &', resolved: '.bar .foo', substitutions: { '&': '.foo' }, parent: '.foo', offset: 0 },
 			]);
 
 			expect(resolveSelectorInContext(code, '.bar &, a', 'a')).toStrictEqual([
-				{ source: 'a', resolved: '.foo a', inject: '.foo ', offset: 0 },
+				{ source: 'a', resolved: '.foo a', substitutions: null, parent: '.foo ', offset: 0 },
 			]);
 
 			expect(resolveSelectorInContext(code, '.bar &, a', 'custom')).toStrictEqual([
-				{ source: 'custom', resolved: '.foo custom', inject: '.foo ', offset: 0 },
+				{ source: 'custom', resolved: '.foo custom', substitutions: null, parent: '.foo ', offset: 0 },
 			]);
 		});
 
@@ -94,8 +102,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'b')).toStrictEqual([
-				{ source: 'b', resolved: '.bar .foo b', inject: '.bar .foo ', offset: 0 },
-				{ source: 'b', resolved: '.foo + .foo:hover b', inject: '.foo + .foo:hover ', offset: 0 },
+				{ source: 'b', resolved: '.bar .foo b', substitutions: null, parent: '.bar .foo ', offset: 0 },
+				{ source: 'b', resolved: '.foo + .foo:hover b', substitutions: null, parent: '.foo + .foo:hover ', offset: 0 },
 			]);
 		});
 
@@ -109,8 +117,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'c > &')).toStrictEqual([
-				{ source: 'c > &', resolved: 'c > .bar .foo', inject: '.bar .foo', offset: 0 },
-				{ source: 'c > &', resolved: 'c > .foo + .foo:hover', inject: '.foo + .foo:hover', offset: 0 },
+				{ source: 'c > &', resolved: 'c > .bar .foo', substitutions: { '&': '.bar .foo' }, parent: '.bar .foo', offset: 0 },
+				{ source: 'c > &', resolved: 'c > .foo + .foo:hover', substitutions: { '&': '.foo + .foo:hover' }, parent: '.foo + .foo:hover', offset: 0 },
 			]);
 		});
 
@@ -124,8 +132,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, 'c > &')).toStrictEqual([
-				{ source: 'c > &', resolved: 'c > .bar .foo', inject: '.bar .foo', offset: 0 },
-				{ source: 'c > &', resolved: 'c > .foo + .foo:hover', inject: '.foo + .foo:hover', offset: 0 },
+				{ source: 'c > &', resolved: 'c > .bar .foo', substitutions: { '&': '.bar .foo' }, parent: '.bar .foo', offset: 0 },
+				{ source: 'c > &', resolved: 'c > .foo + .foo:hover', substitutions: { '&': '.foo + .foo:hover' }, parent: '.foo + .foo:hover', offset: 0 },
 			]);
 		});
 
@@ -139,8 +147,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '> b')).toStrictEqual([
-				{ source: '> b', resolved: '.foo:hover > b', inject: '.foo:hover ', offset: 0 },
-				{ source: '> b', resolved: '.foo_bar > b', inject: '.foo_bar ', offset: 0 },
+				{ source: '> b', resolved: '.foo:hover > b', substitutions: null, parent: '.foo:hover ', offset: 0 },
+				{ source: '> b', resolved: '.foo_bar > b', substitutions: null, parent: '.foo_bar ', offset: 0 },
 			]);
 		});
 
@@ -152,9 +160,9 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.b:is(:hover, :focus) &, b, b &')).toStrictEqual([
-				{ source: '.b:is(:hover, :focus) &', resolved: '.b:is(:hover, :focus) .a', inject: '.a', offset: 0 },
-				{ source: 'b', resolved: '.a b', inject: '.a ', offset: 25 },
-				{ source: 'b &', resolved: 'b .a', inject: '.a', offset: 28 },
+				{ source: '.b:is(:hover, :focus) &', resolved: '.b:is(:hover, :focus) .a', substitutions: { '&': '.a' }, parent: '.a', offset: 0 },
+				{ source: 'b', resolved: '.a b', substitutions: null, parent: '.a ', offset: 25 },
+				{ source: 'b &', resolved: 'b .a', substitutions: { '&': '.a' }, parent: '.a', offset: 28 },
 			]);
 		});
 
@@ -168,7 +176,13 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
-				{ source: '& .c', resolved: '.b:is(:hover, :focus) .a .c', inject: '.b:is(:hover, :focus) .a', offset: 0 },
+				{
+					source: '& .c',
+					resolved: '.b:is(:hover, :focus) .a .c',
+					substitutions: { '&': '.b:is(:hover, :focus) .a' },
+					parent: '.b:is(:hover, :focus) .a',
+					offset: 0,
+				},
 			]);
 		});
 
@@ -180,7 +194,13 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar:is(&, &.active)')).toStrictEqual([
-				{ source: '.bar:is(&, &.active)', resolved: '.bar:is(.foo, .foo.active)', inject: '.foo', offset: 0 },
+				{
+					source: '.bar:is(&, &.active)',
+					resolved: '.bar:is(.foo, .foo.active)',
+					substitutions: { '&': '.foo' },
+					parent: '.foo',
+					offset: 0,
+				},
 			]);
 		});
 
@@ -196,7 +216,13 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
-				{ source: '& .c', resolved: '.b:not(:hover, :focus) .a .c', inject: '.b:not(:hover, :focus) .a', offset: 0 },
+				{
+					source: '& .c',
+					resolved: '.b:not(:hover, :focus) .a .c',
+					substitutions: { '&': '.b:not(:hover, :focus) .a' },
+					parent: '.b:not(:hover, :focus) .a',
+					offset: 0,
+				},
 			]);
 		});
 
@@ -212,7 +238,13 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
-				{ source: '& .c', resolved: '[a=,] .a .c', inject: '[a=,] .a', offset: 0 },
+				{
+					source: '& .c',
+					resolved: '[a=,] .a .c',
+					substitutions: { '&': '[a=,] .a' },
+					parent: '[a=,] .a',
+					offset: 0,
+				},
 			]);
 		});
 
@@ -228,7 +260,13 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
-				{ source: '& .c', resolved: 'a \\, .a .c', inject: 'a \\, .a', offset: 0 },
+				{
+					source: '& .c',
+					resolved: 'a \\, .a .c',
+					substitutions: { '&': 'a \\, .a' },
+					parent: 'a \\, .a',
+					offset: 0,
+				},
 			]);
 		});
 
@@ -244,7 +282,13 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
-				{ source: '& .c', resolved: '[a=","] .a .c', inject: '[a=","] .a', offset: 0 },
+				{
+					source: '& .c',
+					resolved: '[a=","] .a .c',
+					substitutions: { '&': '[a=","] .a' },
+					parent: '[a=","] .a',
+					offset: 0,
+				},
 			]);
 		});
 
@@ -260,9 +304,9 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .e')).toStrictEqual([
-				{ source: '& .e', resolved: '.b .a .e', inject: '.b .a', offset: 0 },
-				{ source: '& .e', resolved: '.a .c .e', inject: '.a .c', offset: 0 },
-				{ source: '& .e', resolved: '.a .d .a .e', inject: '.a .d .a', offset: 0 },
+				{ source: '& .e', resolved: '.b .a .e', substitutions: { '&': '.b .a' }, parent: '.b .a', offset: 0 },
+				{ source: '& .e', resolved: '.a .c .e', substitutions: { '&': '.a .c' }, parent: '.a .c', offset: 0 },
+				{ source: '& .e', resolved: '.a .d .a .e', substitutions: { '&': '.a .d .a' }, parent: '.a .d .a', offset: 0 },
 			]);
 		});
 
@@ -274,7 +318,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.b [c="&"] &')).toStrictEqual([
-				{ source: '.b [c="&"] &', resolved: '.b [c="&"] .a', inject: '.a', offset: 0 },
+				{ source: '.b [c="&"] &', resolved: '.b [c="&"] .a', substitutions: { '&': '.a' }, parent: '.a', offset: 0 },
 			]);
 		});
 
@@ -286,7 +330,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.b [c=&] &')).toStrictEqual([
-				{ source: '.b [c=&] &', resolved: '.b [c=&] .a', inject: '.a', offset: 0 },
+				{ source: '.b [c=&] &', resolved: '.b [c=&] .a', substitutions: { '&': '.a' }, parent: '.a', offset: 0 },
 			]);
 		});
 
@@ -298,7 +342,7 @@ describe(resolveNestedSelector, () => {
 			}`;
 
 			expect(resolveSelectorInContext(code, '& .c')).toStrictEqual([
-				{ source: '& .c', resolved: '.b \\& + .a .c', inject: '.b \\& + .a', offset: 0 },
+				{ source: '& .c', resolved: '.b \\& + .a .c', substitutions: { '&': '.b \\& + .a' }, parent: '.b \\& + .a', offset: 0 },
 			]);
 		});
 
@@ -314,8 +358,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&:hover, & b')).toStrictEqual([
-				{ source: '&:hover', resolved: '.foo .bar:hover', inject: '.foo .bar', offset: 0 },
-				{ source: '& b', resolved: '.foo .bar b', inject: '.foo .bar', offset: 9 },
+				{ source: '&:hover', resolved: '.foo .bar:hover', substitutions: { '&': '.foo .bar' }, parent: '.foo .bar', offset: 0 },
+				{ source: '& b', resolved: '.foo .bar b', substitutions: { '&': '.foo .bar' }, parent: '.foo .bar', offset: 9 },
 			]);
 		});
 
@@ -333,7 +377,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&.active')).toStrictEqual([
-				{ source: '&.active', resolved: '.foo .bar.active', inject: '.foo .bar', offset: 0 },
+				{ source: '&.active', resolved: '.foo .bar.active', substitutions: { '&': '.foo .bar' }, parent: '.foo .bar', offset: 0 },
 			]);
 		});
 
@@ -355,11 +399,11 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '& .baz')).toStrictEqual([
-				{ source: '& .baz', resolved: '.foo .bar .baz', inject: '.foo .bar', offset: 0 },
+				{ source: '& .baz', resolved: '.foo .bar .baz', substitutions: { '&': '.foo .bar' }, parent: '.foo .bar', offset: 0 },
 			]);
 
 			expect(resolveSelectorInContext(code, '& .bar')).toStrictEqual([
-				{ source: '& .bar', resolved: '.foo .foo .bar', inject: '.foo .foo', offset: 0 },
+				{ source: '& .bar', resolved: '.foo .foo .bar', substitutions: { '&': '.foo .foo' }, parent: '.foo .foo', offset: 0 },
 			]);
 		});
 
@@ -378,7 +422,8 @@ describe(resolveNestedSelector, () => {
 				{
 					source: '&:hover:where(.foo--active, .foo-disabled)',
 					resolved: '.card:hover:where(.foo--active, .foo-disabled)',
-					inject: '.card',
+					substitutions: { '&': '.card' },
+					parent: '.card',
 					offset: 0,
 				},
 			]);
@@ -402,8 +447,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&-value')).toStrictEqual([
-				{ source: '&-value', resolved: '.block__el-value', inject: '.block__el', offset: 0 },
-				{ source: '&-value', resolved: '.block--mod-value', inject: '.block--mod', offset: 0 },
+				{ source: '&-value', resolved: '.block__el-value', substitutions: { '&': '.block__el' }, parent: '.block__el', offset: 0 },
+				{ source: '&-value', resolved: '.block--mod-value', substitutions: { '&': '.block--mod' }, parent: '.block--mod', offset: 0 },
 			]);
 		});
 
@@ -419,8 +464,8 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.baz &, &-c')).toStrictEqual([
-				{ source: '.baz &', resolved: '.baz .bar .foo-b', inject: '.bar .foo-b', offset: 0 },
-				{ source: '&-c', resolved: '.bar .foo-b-c', inject: '.bar .foo-b', offset: 8 },
+				{ source: '.baz &', resolved: '.baz .bar .foo-b', substitutions: { '&': '.bar .foo-b' }, parent: '.bar .foo-b', offset: 0 },
+				{ source: '&-c', resolved: '.bar .foo-b-c', substitutions: { '&': '.bar .foo-b' }, parent: '.bar .foo-b', offset: 8 },
 			]);
 		});
 
@@ -446,11 +491,11 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&--mod')).toStrictEqual([
-				{ source: '&--mod', resolved: '.page--mod', inject: '.page', offset: 0 },
+				{ source: '&--mod', resolved: '.page--mod', substitutions: { '&': '.page' }, parent: '.page', offset: 0 },
 			]);
 
 			expect(resolveSelectorInContext(code, '&--mod2')).toStrictEqual([
-				{ source: '&--mod2', resolved: '.page--mod2', inject: '.page', offset: 0 },
+				{ source: '&--mod2', resolved: '.page--mod2', substitutions: { '&': '.page' }, parent: '.page', offset: 0 },
 			]);
 		});
 
@@ -464,7 +509,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar')).toStrictEqual([
-				{ source: '.bar', resolved: '.bar', inject: '', offset: 0 },
+				{ source: '.bar', resolved: '.bar', substitutions: null, parent: null, offset: 0 },
 			]);
 		});
 
@@ -480,7 +525,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar')).toStrictEqual([
-				{ source: '.bar', resolved: '.bar', inject: '', offset: 0 },
+				{ source: '.bar', resolved: '.bar', substitutions: null, parent: null, offset: 0 },
 			]);
 		});
 
@@ -494,7 +539,7 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&__item')).toStrictEqual([
-				{ source: '&__item', resolved: '.bar__item', inject: '.bar', offset: 0 },
+				{ source: '&__item', resolved: '.bar__item', substitutions: { '&': '.bar' }, parent: '.bar', offset: 0 },
 			]);
 		});
 
@@ -508,8 +553,23 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '.bar, .baz')).toStrictEqual([
-				{ source: '.bar', resolved: '.bar', inject: '', offset: 0 },
-				{ source: '.baz', resolved: '.baz', inject: '', offset: 6 },
+				{ source: '.bar', resolved: '.bar', substitutions: null, parent: null, offset: 0 },
+				{ source: '.baz', resolved: '.baz', substitutions: null, parent: null, offset: 6 },
+			]);
+		});
+
+		it('Resolves multiple branches of `@at-root` directive', () => {
+			const code = `
+				.foo {
+					@at-root .bar, .baz {
+						&__item {}
+					}
+				}
+			`;
+
+			expect(resolveSelectorInContext(code, '&__item')).toStrictEqual([
+				{ source: '&__item', resolved: '.bar__item', substitutions: { '&': '.bar' }, parent: '.bar', offset: 0 },
+				{ source: '&__item', resolved: '.baz__item', substitutions: { '&': '.baz' }, parent: '.baz', offset: 0 },
 			]);
 		});
 
@@ -523,14 +583,14 @@ describe(resolveNestedSelector, () => {
 			`;
 
 			expect(resolveSelectorInContext(code, '&--mod-mod, &--mod2, span,      b & b')).toStrictEqual([
-				{ source: '&--mod-mod', resolved: '.card__item--mod-mod', inject: '.card__item', offset: 0 },
-				{ source: '&--mod-mod', resolved: '.card__title--mod-mod', inject: '.card__title', offset: 0 },
-				{ source: '&--mod2', resolved: '.card__item--mod2', inject: '.card__item', offset: 12 },
-				{ source: '&--mod2', resolved: '.card__title--mod2', inject: '.card__title', offset: 12 },
-				{ source: 'span', resolved: '.card__item span', inject: '.card__item ', offset: 21 },
-				{ source: 'span', resolved: '.card__title span', inject: '.card__title ', offset: 21 },
-				{ source: 'b & b', resolved: 'b .card__item b', inject: '.card__item', offset: 32 },
-				{ source: 'b & b', resolved: 'b .card__title b', inject: '.card__title', offset: 32 },
+				{ source: '&--mod-mod', resolved: '.card__item--mod-mod', substitutions: { '&': '.card__item' }, parent: '.card__item', offset: 0 },
+				{ source: '&--mod-mod', resolved: '.card__title--mod-mod', substitutions: { '&': '.card__title' }, parent: '.card__title', offset: 0 },
+				{ source: '&--mod2', resolved: '.card__item--mod2', substitutions: { '&': '.card__item' }, parent: '.card__item', offset: 12 },
+				{ source: '&--mod2', resolved: '.card__title--mod2', substitutions: { '&': '.card__title' }, parent: '.card__title', offset: 12 },
+				{ source: 'span', resolved: '.card__item span', substitutions: null, parent: '.card__item ', offset: 21 },
+				{ source: 'span', resolved: '.card__title span', substitutions: null, parent: '.card__title ', offset: 21 },
+				{ source: 'b & b', resolved: 'b .card__item b', substitutions: { '&': '.card__item' }, parent: '.card__item', offset: 32 },
+				{ source: 'b & b', resolved: 'b .card__title b', substitutions: { '&': '.card__title' }, parent: '.card__title', offset: 32 },
 			]);
 		});
 
@@ -539,15 +599,853 @@ describe(resolveNestedSelector, () => {
 				.card {
 					&__item #{&}__foo {}
 					&--mod#{&}--mod2 {}
+					&__item #{ &    }__foo {}
 				}
 			`;
 
 			expect(resolveSelectorInContext(code, '&__item #{&}__foo')).toStrictEqual([
-				{ source: '&__item #{&}__foo', resolved: '.card__item .card__foo', inject: '.card', offset: 0 },
+				{ source: '&__item #{&}__foo', resolved: '.card__item .card__foo', substitutions: { '&': '.card', '#{&}': '.card' }, parent: '.card', offset: 0 },
 			]);
 
 			expect(resolveSelectorInContext(code, '&--mod#{&}--mod2')).toStrictEqual([
-				{ source: '&--mod#{&}--mod2', resolved: '.card--mod.card--mod2', inject: '.card', offset: 0 },
+				{ source: '&--mod#{&}--mod2', resolved: '.card--mod.card--mod2', substitutions: { '&': '.card', '#{&}': '.card' }, parent: '.card', offset: 0 },
+			]);
+
+			expect(resolveSelectorInContext(code, '&__item #{ &    }__foo')).toStrictEqual([
+				{ source: '&__item #{ &    }__foo', resolved: '.card__item .card__foo', substitutions: { '&': '.card', '#{ &    }': '.card' }, parent: '.card', offset: 0 },
+			]);
+		});
+
+		describe('SASS variables', () => {
+			it('Resolves static variables from root and local scope', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$local: .local;
+
+						&__el {
+							#{$static} {}
+							#{$local} {}
+						}
+					}
+				`;
+
+				// Root-level variable in a nested selector
+				expect(resolveSelectorInContext(code, '#{$static}')).toStrictEqual([
+					{
+						source: '#{$static}',
+						resolved: '.block__el .static',
+						substitutions: {
+							'#{$static}': '.static',
+						},
+						parent: '.block__el ',
+						offset: 0,
+					},
+				]);
+
+				// Local variable in the same nested selector
+				expect(resolveSelectorInContext(code, '#{$local}')).toStrictEqual([
+					{
+						source: '#{$local}',
+						resolved: '.block__el .local',
+						substitutions: {
+							'#{$local}': '.local',
+						},
+						parent: '.block__el ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves `&` and `#{&}` in nested selector', () => {
+				const code = `
+					.block {
+						&__el {
+							#{&} & {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{&} &')).toStrictEqual([
+					{
+						source: '#{&} &',
+						resolved: '.block__el .block__el',
+						substitutions: {
+							'#{&}': '.block__el',
+							'&': '.block__el',
+						},
+						parent: '.block__el',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves chained variables in selector', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+						$link: #{$b}__link;
+
+						&__link {
+							#{$b} {}
+							#{$link} {}
+						}
+					}
+				`;
+
+				// $b comes from parent scope: #{&} at .block → ".block"
+				expect(resolveSelectorInContext(code, '#{$b}')).toStrictEqual([
+					{
+						source: '#{$b}',
+						resolved: '.block__link .block',
+						substitutions: {
+							'#{$b}': '.block',
+						},
+						parent: '.block__link ',
+						offset: 0,
+					},
+				]);
+
+				// $link is chained: #{$b}__link at .block → ".block__link"
+				expect(resolveSelectorInContext(code, '#{$link}')).toStrictEqual([
+					{
+						source: '#{$link}',
+						resolved: '.block__link .block__link',
+						substitutions: {
+							'#{$link}': '.block__link',
+						},
+						parent: '.block__link ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves chained variables that use `#{&}`', () => {
+				const code = `
+					.block {
+						$link: #{&}__link;
+
+						#{$link} {}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$link}')).toStrictEqual([
+					{
+						source: '#{$link}',
+						resolved: '.block .block__link',
+						substitutions: {
+							'#{$link}': '.block__link',
+						},
+						parent: '.block ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Uses resolved variables in ancestor selector contexts', () => {
+				const code = `
+					.block {
+						$b: #{&};
+
+						#{$b}__element {
+							$current: #{&};
+
+							span {}
+							#{$current} strong {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, 'span')).toStrictEqual([
+					{
+						source: 'span',
+						resolved: '.block .block__element span',
+						substitutions: null,
+						parent: '.block .block__element ',
+						offset: 0,
+					},
+				]);
+
+				expect(resolveSelectorInContext(code, '#{$current} strong')).toStrictEqual([
+					{
+						source: '#{$current} strong',
+						resolved: '.block .block__element .block .block__element strong',
+						substitutions: {
+							'#{$current}': '.block .block__element',
+						},
+						parent: '.block .block__element ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves interpolated nesting in ancestor selector contexts', () => {
+				const code = `
+					.block {
+						#{&}__element {
+							span {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, 'span')).toStrictEqual([
+					{
+						source: 'span',
+						resolved: '.block .block__element span',
+						substitutions: null,
+						parent: '.block .block__element ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Preserves parent context for literal ampersands in ancestor selectors', () => {
+				const code = `
+					.block {
+						[data-ref="&"] {
+							span {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, 'span')).toStrictEqual([
+					{
+						source: 'span',
+						resolved: '.block [data-ref="&"] span',
+						substitutions: null,
+						parent: '.block [data-ref="&"] ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves whitespace inside simple interpolations', () => {
+				const code = `
+					.block {
+						$b: #{ &    };
+
+						#{ $b   }__element {}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{ $b   }__element')).toStrictEqual([
+					{
+						source: '#{ $b   }__element',
+						resolved: '.block .block__element',
+						substitutions: {
+							'#{ $b   }': '.block',
+						},
+						parent: '.block ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves whitespace inside compound interpolated variable values', () => {
+				const code = `
+					.block {
+						$link: #{ &    }__link;
+
+						#{$link} {}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$link}')).toStrictEqual([
+					{
+						source: '#{$link}',
+						resolved: '.block .block__link',
+						substitutions: {
+							'#{$link}': '.block__link',
+						},
+						parent: '.block ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves mixed placeholders with combinators and pseudos', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+						$link: #{$b}__link;
+
+						&__link {
+							#{$b}:hover #{&} #{$static} & {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b}:hover #{&} #{$static} &')).toStrictEqual([
+					{
+						source: '#{$b}:hover #{&} #{$static} &',
+						resolved: '.block:hover .block__link .static .block__link',
+						substitutions: {
+							'#{$static}': '.static',
+							'#{$b}': '.block',
+							'#{&}': '.block__link',
+							'&': '.block__link',
+						},
+						parent: '.block__link',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves shadowed variable from inner scope', () => {
+				const code = `
+					$var: .root;
+
+					.block {
+						$var: .local;
+
+						&__el {
+							#{$var} {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$var}')).toStrictEqual([
+					{
+						source: '#{$var}',
+						resolved: '.block__el .local',
+						substitutions: {
+							'#{$var}': '.local',
+						},
+						parent: '.block__el ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Does not leak variables across sibling rules', () => {
+				const code = `
+					$shared: .shared;
+
+					.block {
+						&__a {
+							$local: .local-a;
+						}
+
+						&__b {
+							#{$shared} {}
+							#{$local} {}
+						}
+					}
+				`;
+
+				// root-level variable works everywhere
+				expect(resolveSelectorInContext(code, '#{$shared}')).toStrictEqual([
+					{
+						source: '#{$shared}',
+						resolved: '.block__b .shared',
+						substitutions: {
+							'#{$shared}': '.shared',
+						},
+						parent: '.block__b ',
+						offset: 0,
+					},
+				]);
+
+				// local variable from sibling should NOT resolve here
+				expect(resolveSelectorInContext(code, '#{$local}')).toStrictEqual([
+					{
+						source: '#{$local}',
+						resolved: '.block__b #{$local}',
+						substitutions: null,
+						parent: '.block__b ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Leaves unknown variable interpolation unresolved', () => {
+				const code = `
+					.block {
+						&__el {
+							#{$unknown} {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$unknown}')).toStrictEqual([
+					{
+						source: '#{$unknown}',
+						resolved: '.block__el #{$unknown}',
+						substitutions: null,
+						parent: '.block__el ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves placeholder at leading, middle and trailing positions', () => {
+				const code = `
+					.block {
+						$b: #{&};
+
+						&__el {
+							#{$b} {}
+							.x #{$b} .y {}
+							.a .b #{$b} {}
+						}
+					}
+				`;
+
+				// Leading
+				expect(resolveSelectorInContext(code, '#{$b}')).toStrictEqual([
+					{
+						source: '#{$b}',
+						resolved: '.block__el .block',
+						substitutions: {
+							'#{$b}': '.block',
+						},
+						parent: '.block__el ',
+						offset: 0,
+					},
+				]);
+
+				// Middle
+				expect(resolveSelectorInContext(code, '.x #{$b} .y')).toStrictEqual([
+					{
+						source: '.x #{$b} .y',
+						resolved: '.block__el .x .block .y',
+						substitutions: {
+							'#{$b}': '.block',
+						},
+						parent: '.block__el ',
+						offset: 0,
+					},
+				]);
+
+				// Trailing
+				expect(resolveSelectorInContext(code, '.a .b #{$b}')).toStrictEqual([
+					{
+						source: '.a .b #{$b}',
+						resolved: '.block__el .a .b .block',
+						substitutions: {
+							'#{$b}': '.block',
+						},
+						parent: '.block__el ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves variables inside at-rules', () => {
+				const code = `
+					.block {
+						$b: #{&};
+
+						@media (min-width: 600px) {
+							&__el {
+								#{$b} & {}
+							}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b} &')).toStrictEqual([
+					{
+						source: '#{$b} &',
+						resolved: '.block .block__el',
+						substitutions: {
+							'#{$b}': '.block',
+							'&': '.block__el',
+						},
+						parent: '.block__el',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Leaves circular variable references unresolved', () => {
+				const code = `
+					.block {
+						$a: #{$b};
+						$b: #{$a};
+
+						&__el {
+							#{$a} {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$a}')).toStrictEqual([
+					{
+						source: '#{$a}',
+						resolved: '.block__el #{$a}',
+						substitutions: null,
+						parent: '.block__el ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves variables inside functional pseudos like `:is()`', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+
+						&__link {
+							:is(#{$b}, #{&}, #{$static}) {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, ':is(#{$b}, #{&}, #{$static})')).toStrictEqual([
+					{
+						source: ':is(#{$b}, #{&}, #{$static})',
+						resolved: '.block__link :is(.block, .block__link, .static)',
+						substitutions: {
+							'#{$b}': '.block',
+							'#{&}': '.block__link',
+							'#{$static}': '.static',
+						},
+						parent: '.block__link',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Partially resolves when some variables are unknown', () => {
+				const code = `
+					.block {
+						$b: #{&};
+
+						&__el {
+							#{$b} .x #{$unknown} & {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b} .x #{$unknown} &')).toStrictEqual([
+					{
+						source: '#{$b} .x #{$unknown} &',
+						resolved: '.block .x #{$unknown} .block__el',
+						substitutions: {
+							'#{$b}': '.block',
+							'&': '.block__el',
+						},
+						parent: '.block__el',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves variables inside attribute selector and preserves quotes', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+
+						&__el {
+							[data-ref="#{$b} #{&} #{$static}"] {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '[data-ref="#{$b} #{&} #{$static}"]')).toStrictEqual([
+					{
+						source: '[data-ref="#{$b} #{&} #{$static}"]',
+						resolved: '.block__el [data-ref=".block .block__el .static"]',
+						substitutions: {
+							'#{$b}': '.block',
+							'#{&}': '.block__el',
+							'#{$static}': '.static',
+						},
+						parent: '.block__el',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves adjacent interpolation inside identifier', () => {
+				const code = `
+					.block {
+						$b: #{&};
+
+						&__el {
+							#{$b}__child {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b}__child')).toStrictEqual([
+					{
+						source: '#{$b}__child',
+						resolved: '.block__el .block__child',
+						substitutions: {
+							'#{$b}': '.block',
+						},
+						parent: '.block__el ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves variables correctly inside `@at-root`', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+
+						&__el {
+							@at-root {
+								#{$b} & #{$static} {}
+							}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b} & #{$static}')).toStrictEqual([
+					{
+						source: '#{$b} & #{$static}',
+						resolved: '.block .block__el .static',
+						substitutions: {
+							'#{$b}': '.block',
+							'#{$static}': '.static',
+							'&': '.block__el',
+						},
+						parent: '.block__el',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves variables correctly inside `@at-root (without: media)`', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+
+						@media (min-width: 600px) {
+							&__el {
+								@at-root (without: media) {
+									#{$b} & #{$static} {}
+								}
+							}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b} & #{$static}')).toStrictEqual([
+					{
+						source: '#{$b} & #{$static}',
+						resolved: '.block .block__el .static',
+						substitutions: {
+							'#{$b}': '.block',
+							'#{$static}': '.static',
+							'&': '.block__el',
+						},
+						parent: '.block__el',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves combined selector into separate results', () => {
+				const code = `
+					$static: .static;
+
+					.block {
+						$b: #{&};
+
+						&__el {
+							#{$b} a, & #{$static} b {}
+						}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$b} a, & #{$static} b')).toStrictEqual([
+					{
+						source: '#{$b} a',
+						resolved: '.block__el .block a',
+						substitutions: {
+							'#{$b}': '.block',
+						},
+						parent: '.block__el ',
+						offset: 0,
+					},
+					{
+						source: '& #{$static} b',
+						resolved: '.block__el .static b',
+						substitutions: {
+							'#{$static}': '.static',
+							'&': '.block__el',
+						},
+						parent: '.block__el',
+						offset: 9,
+					},
+				]);
+			});
+
+			it('Resolves selector using custom source', () => {
+				const code = `
+					.block {
+						$b: #{&};
+						$link: #{$b}__link;
+
+						&__el {
+							& {}
+						}
+					}
+				`;
+
+				expect(
+					resolveSelectorInContext(code, '&', '#{$link} &'),
+				).toStrictEqual([
+					{
+						source: '#{$link} &',
+						resolved: '.block__link .block__el',
+						substitutions: {
+							'#{$link}': '.block__link',
+							'&': '.block__el',
+						},
+						parent: '.block__el',
+						offset: 0,
+					},
+				]);
+			});
+		});
+	});
+
+	describe('Replacement ranges', () => {
+		const code = `
+			.block {
+				$b: #{&};
+
+				&__el {
+					#{$b}:hover #{&} #{$b} & {}
+					#{$b}__child strong {}
+					:is(#{$b}, #{&}) {}
+					#{&} {}
+					#{ &    } {}
+					[data-ref="&"] #{$b} {}
+					#{$b} a, & #{$b} b {}
+					@at-root #{$b} em {}
+				}
+			}
+		`;
+
+		it('Maps repeated interpolations and nesting selectors', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '#{$b}:hover #{&} #{$b} &');
+
+			// .block:hover .block__el .block .block__el
+			// #{$b}:hover #{&} #{$b} &
+			expect(selector.resolved).toBe('.block:hover .block__el .block .block__el');
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'interpolation', sourceRange: [0, 5], resolvedRange: [0, 6] },
+				{ type: 'interpolation', sourceRange: [12, 16], resolvedRange: [13, 23] },
+				{ type: 'interpolation', sourceRange: [17, 22], resolvedRange: [24, 30] },
+				{ type: 'nesting', sourceRange: [23, 24], resolvedRange: [31, 41] },
+			]);
+		});
+
+		it('Maps parent injection before an adjacent interpolation', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '#{$b}__child strong');
+
+			// .block__el .block__child strong
+			// #{$b}__child strong
+			expect(selector.resolved).toBe('.block__el .block__child strong');
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+				{ type: 'interpolation', sourceRange: [0, 5], resolvedRange: [11, 17] },
+			]);
+			expect([0, 5, 13].map((index) => resolveSelectorSourceIndex(selector, index)))
+				.toStrictEqual([11, 17, 25]);
+		});
+
+		it('Maps interpolations inside a functional pseudo', () => {
+			const [selector] = resolveSelectorWithReplacements(code, ':is(#{$b}, #{&})');
+
+			// .block__el :is(.block, .block__el)
+			// :is(#{$b}, #{&})
+			expect(selector.resolved).toBe('.block__el :is(.block, .block__el)');
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+				{ type: 'interpolation', sourceRange: [4, 9], resolvedRange: [15, 21] },
+				{ type: 'interpolation', sourceRange: [11, 15], resolvedRange: [23, 33] },
+			]);
+		});
+
+		it('Does not map a literal ampersand as a nesting replacement', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '[data-ref="&"] #{$b}');
+
+			// .block__el [data-ref="&"] .block
+			// [data-ref="&"] #{$b}
+			expect(selector.substitutions).toStrictEqual({ '#{$b}': '.block' });
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+				{ type: 'interpolation', sourceRange: [15, 20], resolvedRange: [26, 32] },
+			]);
+		});
+
+		it('Maps standalone interpolated nesting with parent injection', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '#{&}');
+
+			// .block__el .block__el
+			// #{&}
+			expect(selector.resolved).toBe('.block__el .block__el');
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+				{ type: 'interpolation', sourceRange: [0, 4], resolvedRange: [11, 21] },
+			]);
+		});
+
+		it('Maps spaced interpolated nesting with parent injection', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '#{ &    }');
+
+			// .block__el .block__el
+			// #{ &    }
+			expect(selector.resolved).toBe('.block__el .block__el');
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+				{ type: 'interpolation', sourceRange: [0, 9], resolvedRange: [11, 21] },
+			]);
+		});
+
+		it('Keeps replacement ranges local to each selector-list branch', () => {
+			const selectors = resolveSelectorWithReplacements(code, '#{$b} a, & #{$b} b');
+
+			// .block__el .block a
+			// #{$b} a
+			// .block__el .block b
+			// & #{$b} b
+			expect(selectors.map(({ offset, replacements }) => ({ offset, replacements }))).toStrictEqual([
+				{
+					offset: 0,
+					replacements: [
+						{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+						{ type: 'interpolation', sourceRange: [0, 5], resolvedRange: [11, 17] },
+					],
+				},
+				{
+					offset: 9,
+					replacements: [
+						{ type: 'nesting', sourceRange: [0, 1], resolvedRange: [0, 10] },
+						{ type: 'interpolation', sourceRange: [2, 7], resolvedRange: [11, 17] },
+					],
+				},
+			]);
+		});
+
+		it('Does not inject a parent range inside `@at-root`', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '#{$b} em');
+
+			// .block em
+			// #{$b} em
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'interpolation', sourceRange: [0, 5], resolvedRange: [0, 6] },
 			]);
 		});
 	});
