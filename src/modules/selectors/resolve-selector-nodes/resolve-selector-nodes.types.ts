@@ -18,28 +18,6 @@ export type Options = {
 };
 
 /**
- * Enhanced `postcss-selector-parser` node, for internal usage only.
- */
-export type AdjustedNode<Base = parser.Node> = Base & {
-	meta: {
-		/**
-		 * Offset applied due to contextual constructs like `@at-root` or `@nest`.
-		 *
-		 * Used when computing absolute source positions.
-		 */
-		contextOffset: number;
-
-		/**
-		 * Offset applied due to position of the selector in case of compound selectors,
-		 * e.g. `.foo, .bar` -> `.bar` has offset `6`.
-		 *
-		 * Used when computing absolute source positions.
-		 */
-		sourceOffset: number;
-	};
-};
-
-/**
  * Enhanced `postcss-selector-parser` node.
  */
 export type ResolvedNode<Base = parser.Node> = Base & {
@@ -71,17 +49,10 @@ export type ResolvedNode<Base = parser.Node> = Base & {
 			resolvedRange: [number, number];
 
 			/**
-			 * Offset applied due to surrounding context (e.g., from `@at-root` or `@nest`).
+			 * Offset of the selector branch within the PostCSS node header.
+			 * Combines an at-rule prefix and a selector-list branch offset.
 			 */
-			contextOffset: number;
-
-			/**
-			 * Offset applied due to position of the selector in case of compound selectors,
-			 * e.g. `.foo, .bar` -> `.bar` has offset `6`.
-			 *
-			 * Used when computing absolute source positions.
-			 */
-			sourceOffset: number;
+			offset: number;
 		}>;
 	};
 };
@@ -101,9 +72,9 @@ export type MappedSelector = {
 	resolved: ResolvedNode[];
 
 	/**
-	 * Original source selector nodes with adjustments meta.
+	 * Original source selector nodes.
 	 */
-	source: AdjustedNode[];
+	source: parser.Node[];
 };
 
 /**

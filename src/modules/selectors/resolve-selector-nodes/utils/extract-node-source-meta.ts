@@ -1,7 +1,8 @@
 import { resolveSelectorSourceIndex } from '#modules/selectors/resolve-nested-selector/resolve-nested-selector';
 import { getNormalizedNodeString } from './get-normalized-node-string';
+import type parser from 'postcss-selector-parser';
 import type { ResolvedSelector } from '#modules/selectors';
-import type { AdjustedNode, SourceNodeMeta } from '../resolve-selector-nodes.types';
+import type { SourceNodeMeta } from '../resolve-selector-nodes.types';
 
 /**
  * Extracts metadata for each atomic node in the source selector tree,
@@ -17,13 +18,13 @@ import type { AdjustedNode, SourceNodeMeta } from '../resolve-selector-nodes.typ
  *                     - `resolvedRange`: its position in the resolved selector
  */
 export const extractSourceNodeMeta = (
-	nodes: AdjustedNode[],
+	nodes: parser.Node[],
 	selector: ResolvedSelector,
 ): SourceNodeMeta[] => {
 	const result: SourceNodeMeta[] = [];
-	const walk = (node: AdjustedNode, depth: number = 0) => {
+	const walk = (node: parser.Node, depth: number = 0) => {
 		if ('nodes' in node) {
-			node.nodes.forEach((inner) => walk(inner as AdjustedNode, depth + 1));
+			node.nodes.forEach((inner) => walk(inner, depth + 1));
 		}
 
 		// Nodes of type `selector` are skipped, since they act as containers and

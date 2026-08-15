@@ -90,10 +90,8 @@ export const createViolationsRegistry = (ignoredPatterns: RegExp[]) => {
 			sourcePresentedNodes[0].meta.sourceMatches.at(-1)!,
 			sourcePresentedNodes.at(-1)!.meta.sourceMatches[0],
 		];
-		const offset = firstMatch.contextOffset + firstMatch.sourceOffset;
-
-		const index = firstMatch.sourceRange[0] + offset;
-		const endIndex = lastMatch.sourceRange[1] + offset;
+		const index = firstMatch.sourceRange[0] + firstMatch.offset;
+		const endIndex = lastMatch.sourceRange[1] + firstMatch.offset;
 
 		violations.push({ node, index, endIndex, selector });
 

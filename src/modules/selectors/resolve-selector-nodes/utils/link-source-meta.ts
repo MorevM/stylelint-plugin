@@ -10,16 +10,14 @@ import type { ResolvedNode, SourceNodeMeta } from '../resolve-selector-nodes.typ
  *
  * @param   node             A resolved selector node.
  * @param   sourceNodeMeta   Flattened metadata collected from source selector nodes
- * @param   sourceOffset     Offset of the selector inside the rule (after `@at-root`, etc.)
- * @param   contextOffset    Offset of the rule's content in the source selector (`.bar, .baz`)
+ * @param   offset           Offset of the selector branch within the PostCSS node header.
  *
  * @returns                  The same node, enriched with `.meta.sourceMatches`
  */
 export const linkSourceMeta = (
 	node: parser.Node,
 	sourceNodeMeta: SourceNodeMeta[],
-	sourceOffset: number,
-	contextOffset: number,
+	offset: number,
 ) => {
 	const seenMeta = new Set<SourceNodeMeta>();
 
@@ -94,8 +92,7 @@ export const linkSourceMeta = (
 					value: meta.value,
 					sourceRange: meta.sourceRange,
 					resolvedRange,
-					sourceOffset,
-					contextOffset,
+					offset,
 				};
 			});
 
