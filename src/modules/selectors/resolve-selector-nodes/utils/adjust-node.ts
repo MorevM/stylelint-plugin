@@ -2,54 +2,16 @@ import type parser from 'postcss-selector-parser';
 import type { ResolvedSelector } from '#modules/selectors';
 import type { AdjustedNode } from '../resolve-selector-nodes.types';
 
-type GetNodeShiftOptions = {
-	node: parser.Node;
-	index: number;
-	isTopLevelNode: boolean;
-	selector: ResolvedSelector;
-};
-
-/**
- * Computes the shift in character offset caused by replacing
- * a nesting selector (`&`) with the parent selector value.
- *
- * This ensures proper alignment of source positions in the resolved selector.
- *
- * @param   options   Options.
- *
- * @returns           The amount of character shift needed to align resolved position.
- */
-const getNodeShift = (options: GetNodeShiftOptions) => {
-	const { index, isTopLevelNode, node, selector } = options;
-	const isFirst = index === 0;
-	const isNestingNode = node.type === 'nesting';
-
-	const condition = isTopLevelNode
-		? (isFirst || isNestingNode)
-		: (isNestingNode && !isFirst);
-
-	if (!condition) return 0;
-
-	const injected = selector.parent?.length ?? 0;
-	const original = isNestingNode ? node.value.length : 0;
-
-	return injected - original;
-};
-
 /**
  * Recursively annotates a selector node with positional metadata for nesting resolution.
  *
  * Updates:
  * - `meta.sourceOffset`: offset inside the selector string (e.g. after `@at-root`)
- * - `meta.resolvedSourceIndex`: adjusted index in resolved selector
  * - `meta.contextOffset`: offset of rule content in full CSS
- *
- * Applies accumulated shifts to account for replaced `&` tokens and pseudo-constructs.
  *
  * @param   input           Selector node to adjust.
  * @param   selector        ResolvedSelector context.
  * @param   contextOffset   Offset of rule content in the source selector.
- * @param   nestingShift    Accumulated shift caused by replaced `&`, pseudo(), etc.
  *
  * @returns                 The same node, annotated with positional metadata (`AdjustedNode`)
  */
@@ -57,18 +19,14 @@ const adjustNode = (
 	input: parser.Node,
 	selector: ResolvedSelector,
 	contextOffset: number = 0,
-	nestingShift = 0,
 ) => {
 	const node = input;
 	const adjusted = node as AdjustedNode;
 
 	adjusted.meta ??= {
 		sourceOffset: 0,
-		resolvedSourceIndex: node.sourceIndex,
 		contextOffset: 0,
 	};
-
-	adjusted.meta.resolvedSourceIndex = node.sourceIndex + nestingShift;
 
 	if (selector.offset) {
 		adjusted.meta.sourceOffset = selector.offset;
@@ -79,23 +37,9 @@ const adjustNode = (
 	}
 
 	if ('nodes' in adjusted) {
-		let innerShift = 0;
-
 		/* @ts-expect-error -- TS doesn't see `.nodes` on parser.Container */
-		adjusted.nodes = adjusted.nodes.map((child, index) => {
-			innerShift += getNodeShift({ index, node: child, isTopLevelNode: false, selector });
-
-			const extraOffset = adjusted.type === 'pseudo'
-				? adjusted.value.length + 1 // +1 accounts for `:` character
-				: 0;
-
-			return adjustNode(
-				child,
-				selector,
-				contextOffset,
-				nestingShift + innerShift + extraOffset,
-			);
-		});
+		adjusted.nodes = adjusted.nodes
+			.map((child) => adjustNode(child, selector, contextOffset));
 	}
 
 	return adjusted;
@@ -103,23 +47,18 @@ const adjustNode = (
 
 /**
  * Recursively annotates all top-level nodes in the source selector with positional metadata.
- * Handles nested structures and offsets caused by replaced `&` or pseudo wrappers.
+ * Handles nested structures and selector/context offsets.
  *
  * @param   sourceNodes     Top-level nodes from source selector
  * @param   selector        ResolvedSelector context
  * @param   contextOffset   Offset from beginning of rule content (e.g. after `@at-root`)
  *
- * @returns                 A list of adjusted selector nodes with resolved source positions.
+ * @returns                 A list of adjusted selector nodes with positional metadata.
  */
 export const adjustSource = (
 	sourceNodes: parser.Node[],
 	selector: ResolvedSelector,
 	contextOffset: number = 0,
 ): AdjustedNode[] => {
-	let accumulatedShift = 0;
-
-	return sourceNodes.map((node, index) => {
-		accumulatedShift += getNodeShift({ node, index, selector, isTopLevelNode: true });
-		return adjustNode(node, selector, contextOffset, accumulatedShift);
-	});
+	return sourceNodes.map((node) => adjustNode(node, selector, contextOffset));
 };

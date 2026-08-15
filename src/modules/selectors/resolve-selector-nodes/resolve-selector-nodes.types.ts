@@ -23,14 +23,6 @@ export type Options = {
 export type AdjustedNode<Base = parser.Node> = Base & {
 	meta: {
 		/**
-		 * Adjusted `sourceIndex` of the node, accounting for injected content
-		 * during selector resolution (e.g., replacing `&` with parent selector).
-		 *
-		 * Used to align original and resolved selector nodes when their positions differ.
-		 */
-		resolvedSourceIndex: number;
-
-		/**
 		 * Offset applied due to contextual constructs like `@at-root` or `@nest`.
 		 *
 		 * Used when computing absolute source positions.
