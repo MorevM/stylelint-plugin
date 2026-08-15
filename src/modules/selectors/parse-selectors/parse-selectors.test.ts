@@ -106,6 +106,14 @@ describe(parseSelectors, () => {
 		expect(result.toString()).toBe(selector);
 	});
 
+	it('Restores interpolation in a raw attribute name', () => {
+		const selector = String.raw`[data\-#{$name}]`;
+		const result = parseSelectors(selector)[0];
+
+		expect(result[0].type).toBe('attribute');
+		expect(result[0].toString()).toBe(selector);
+	});
+
 	it('Restores interpolation in a selector namespace', () => {
 		const selector = '#{namespace}|button';
 		const result = parseSelectors(selector)[0];
