@@ -45,6 +45,62 @@ export type ResolvedPathItem = PathItem & {
 	 * Unresolved placeholders are omitted.
 	 */
 	usedVariables: Record<string, string>;
+
+	/**
+	 * Interpolations replaced while computing `resolvedValue`, with exact ranges
+	 * in the original path item value.
+	 */
+	interpolationReplacements: Array<{
+		/**
+		 * Resolved interpolation value.
+		 */
+		resolvedValue: string;
+
+		/**
+		 * Range occupied by the interpolation in the original path item value.
+		 */
+		sourceRange: [number, number];
+	}>;
+};
+
+/**
+ * A replacement performed while resolving a selector.
+ */
+export type ResolvedSelectorReplacement = {
+	/**
+	 * Kind of selector transformation represented by this replacement.
+	 */
+	type: 'parent-injection' | 'nesting' | 'interpolation';
+
+	/**
+	 * Exact range occupied by the replaced text in the original selector.
+	 */
+	sourceRange: [number, number];
+
+	/**
+	 * Exact corresponding range in the resolved selector.
+	 */
+	resolvedRange: [number, number];
+};
+
+/**
+ * A selector replacement whose final resolved range has not been calculated yet.
+ */
+export type PendingSelectorReplacement = {
+	/**
+	 * Kind of selector transformation represented by this replacement.
+	 */
+	type: ResolvedSelectorReplacement['type'];
+
+	/**
+	 * Exact range occupied by the replaced text in the original selector.
+	 */
+	sourceRange: [number, number];
+
+	/**
+	 * Text inserted into the resolved selector.
+	 */
+	resolvedValue: string;
 };
 
 /**
@@ -100,6 +156,12 @@ export type ResolvedSelector = {
 	 * }
 	 */
 	substitutions: ResolvedSelectorSubstitutions;
+
+	/**
+	 * Ordered replacements that map the original selector to the resolved selector.
+	 * Parent injection is represented by a zero-width source range at index `0`.
+	 */
+	replacements: ResolvedSelectorReplacement[];
 
 	/**
 	 * The resolved parent selector for this context.

@@ -2,7 +2,102 @@ import { assert, isEmpty, isNullish, tsObject } from '@morev/utils';
 import { getRoot, getRuleDeclarations, isAtRule, isRule, resolveSassVariable } from '#modules/postcss';
 import { split } from './utils';
 import type { AtRule, ChildNode, Node, Root, Rule } from 'postcss';
-import type { Options, PathItem, ResolvedPathItem, ResolvedSelector } from './resolve-nested-selector.types';
+import type {
+	Options,
+	PathItem,
+	PendingSelectorReplacement,
+	ResolvedPathItem,
+	ResolvedSelector,
+	ResolvedSelectorReplacement,
+} from './resolve-nested-selector.types';
+
+// The global form finds every selector occurrence, while the anchored form distinguishes
+// a standalone parent reference in a variable value from a larger expression.
+const SASS_NESTING_INTERPOLATION_REGEXP = /#{\s*&\s*}/g;
+const SASS_NESTING_INTERPOLATION_VALUE_REGEXP = /^#{\s*&\s*}$/;
+
+/**
+ * Calculates exact resolved ranges for ordered selector replacements.
+ *
+ * @param   replacements   Replacements expressed in original selector coordinates.
+ *
+ * @returns                Replacements with corresponding resolved selector ranges.
+ */
+const resolveReplacementRanges = (
+	replacements: PendingSelectorReplacement[],
+): ResolvedSelectorReplacement[] => {
+	let shift = 0;
+
+	// Replacements are discovered in separate phases, so normalize them to source order
+	// before carrying each length change forward to the following ranges. Sorting by the
+	// end index also puts a zero-width parent injection before a replacement at index `0`.
+	return replacements
+		.toSorted((a, b) => {
+			return a.sourceRange[0] - b.sourceRange[0]
+				|| a.sourceRange[1] - b.sourceRange[1];
+		})
+		.map(({ type, sourceRange, resolvedValue }) => {
+			const [sourceStart, sourceEnd] = sourceRange;
+			const resolvedStart = sourceStart + shift;
+			const resolvedEnd = resolvedStart + resolvedValue.length;
+
+			// Replacing source text changes the coordinate space of every later replacement.
+			shift += resolvedValue.length - (sourceEnd - sourceStart);
+
+			return {
+				type,
+				sourceRange,
+				resolvedRange: [resolvedStart, resolvedEnd],
+			};
+		});
+};
+
+/**
+ * Finds raw nesting selectors using the same syntax-aware splitting rules as resolution.
+ * A regexp or `indexOf()` would also count escaped ampersands and ampersands inside
+ * attributes, quotes, or SASS interpolation, none of which are nesting selectors.
+ *
+ * @param   source   Original selector.
+ *
+ * @returns          Exact ranges of nesting selector characters.
+ */
+const getNestingSourceRanges = (source: string): Array<[number, number]> => {
+	const parts = split(source, '&', true);
+	let sourceIndex = 0;
+
+	return parts.slice(0, -1).map((part) => {
+		sourceIndex += part.length;
+		const sourceRange: [number, number] = [sourceIndex, sourceIndex + 1];
+		sourceIndex += 1;
+
+		return sourceRange;
+	});
+};
+
+/**
+ * Maps an original selector boundary to its position after selector resolution.
+ *
+ * @param   selector      Resolved selector and its exact replacements.
+ * @param   sourceIndex   Boundary in the original selector.
+ *
+ * @returns               Corresponding boundary in the resolved selector.
+ */
+const resolveSelectorSourceIndex = (
+	selector: ResolvedSelector,
+	sourceIndex: number,
+) => {
+	return selector.replacements.reduce((resolvedIndex, replacement) => {
+		const [sourceStart, sourceEnd] = replacement.sourceRange;
+
+		// Only replacements ending at or before a boundary can shift it.
+		// Callers map AST node boundaries, which are expected to stay outside
+		// the interior of a replaced span.
+		if (sourceEnd > sourceIndex) return resolvedIndex;
+
+		const [resolvedStart, resolvedEnd] = replacement.resolvedRange;
+		return resolvedIndex + (resolvedEnd - resolvedStart) - (sourceEnd - sourceStart);
+	}, sourceIndex);
+};
 
 /**
  * Calculates the character offset of a specific selector part within
@@ -140,8 +235,15 @@ const uniqueTrees = (items: ResolvedSelector[]): ResolvedSelector[] => {
 				.map(([key, value]) => `${key}:${value ?? 'null'}`)
 				.join(',')
 			: 'null';
+		const replacementsKey = item.replacements
+			.map(({ type, sourceRange, resolvedRange }) => {
+				return `${type}:${sourceRange.join('-')}:${resolvedRange.join('-')}`;
+			})
+			.join(',');
 
-		const key = `${item.source}|${item.resolved}|${item.offset}|${substitutionsKey}`;
+		// Equal resolved selectors can still point to different source ranges.
+		// Keep those mappings distinct so diagnostics are attached to the correct branch.
+		const key = `${item.source}|${item.resolved}|${item.offset}|${substitutionsKey}|${replacementsKey}`;
 
 		if (seen.has(key)) return false;
 
@@ -159,10 +261,24 @@ const uniqueTrees = (items: ResolvedSelector[]): ResolvedSelector[] => {
  */
 const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] => {
 	const resolvedTrees = trees.map((tree) => {
-		let { offset, value: source, resolvedValue, usedVariables, node } = tree.at(-1)!;
+		let {
+			offset,
+			value: source,
+			resolvedValue,
+			usedVariables,
+			interpolationReplacements,
+			node,
+		} = tree.at(-1)!;
 		assert(offset, '`getTrees` ensures that the last element includes `offset`');
 
 		let context = '';
+		// Variable interpolation has already changed `resolvedValue`, but its ranges are still
+		// expressed in source coordinates. Resolve all ranges together after nesting is handled.
+		const pendingReplacements: PendingSelectorReplacement[] =
+			interpolationReplacements.map((replacement) => ({
+				type: 'interpolation',
+				...replacement,
+			}));
 
 		// Traverse all nodes except the last one (which holds the source selector).
 		for (let i = 0, l = tree.length; i < l; i++) {
@@ -195,46 +311,111 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 			}
 		}
 
-		if (resolvedValue.includes('#{&}')) {
-			resolvedValue = resolvedValue.replaceAll('#{&}', context);
-			usedVariables['#{&}'] = context;
+		// `#{&}` depends on the fully accumulated parent context,
+		// so it cannot be resolved during the earlier variable pass.
+		// Search the source to retain exact ranges and spelling,
+		// including whitespace variants such as `#{ & }`.
+		const nestingInterpolationMatches = [
+			...source.matchAll(SASS_NESTING_INTERPOLATION_REGEXP),
+		];
+
+		if (!isEmpty(nestingInterpolationMatches)) {
+			for (const match of nestingInterpolationMatches) {
+				pendingReplacements.push({
+					type: 'interpolation',
+					sourceRange: [match.index, match.index + match[0].length],
+					resolvedValue: context,
+				});
+				usedVariables[match[0]] = context;
+			}
+
+			resolvedValue = resolvedValue.replaceAll(SASS_NESTING_INTERPOLATION_REGEXP, () => context);
 		}
+
+		let parent: string | null;
+		let resolved: string;
+		let substitutions: ResolvedSelector['substitutions'];
 
 		if (source.includes('&')) {
 			const nonContextParts = split(resolvedValue, '&', true);
+			const nestingSourceRanges = getNestingSourceRanges(source);
 
-			// If the resolved selector contains `&`,
-			// replace it with the accumulated context.
-			const resolved = nonContextParts.length === 1
-				? `${context} ${nonContextParts.join(context)}`
-				: nonContextParts.join(context);
+			// If syntax-aware splitting finds no raw nesting token, `&` occurred only inside
+			// an interpolation or another preserved construct. The resulting selector is still
+			// a descendant, so its implicit parent is represented as a zero-width injection.
+			if (nonContextParts.length === 1) {
+				const inject = `${context} `;
+				resolved = inject + nonContextParts.join(context);
+				pendingReplacements.push({
+					type: 'parent-injection',
+					sourceRange: [0, 0],
+					resolvedValue: inject,
+				});
+			} else {
+				// Raw nesting tokens are replaced in place. Recording each source occurrence
+				// lets downstream consumers map resolved nodes back without reconstructing shifts.
+				resolved = nonContextParts.join(context);
+				nestingSourceRanges.forEach((sourceRange) => {
+					pendingReplacements.push({
+						type: 'nesting',
+						sourceRange,
+						resolvedValue: context,
+					});
+				});
+			}
 
-			const substitutions = { ...usedVariables };
+			substitutions = { ...usedVariables };
 
-			// Raw amp, `&`
-			if (/(?<!#\{)&/.test(source)) {
+			// Report `&` only when syntax-aware splitting found a real nesting token;
+			// ampersands inside interpolation, attributes, or quotes are represented separately.
+			if (!isEmpty(nestingSourceRanges)) {
 				substitutions['&'] = context;
 			}
 
-			return {
-				source,
-				resolved,
-				parent: context || null,
-				substitutions,
-				offset,
-			};
+			parent = context || null;
+		} else {
+			// If there is no `&`, treat the source selector as an additional descendant.
+			const inject = context && !isAtRule(node, ['at-root'])
+				? `${context} `
+				: '';
+
+			resolved = inject + resolvedValue;
+			parent = inject || null;
+			substitutions = isEmpty(usedVariables) ? null : usedVariables;
+
+			if (inject) {
+				// The implicit parent prefix has no characters in the source branch,
+				// therefore its source range is the zero-width boundary before the selector.
+				pendingReplacements.push({
+					type: 'parent-injection',
+					sourceRange: [0, 0],
+					resolvedValue: inject,
+				});
+			}
 		}
 
-		// If there is no `&`, treat the source selector as an additional descendant.
-		const inject = context && !isAtRule(node, ['at-root'])
-			? `${context} `
-			: '';
+		const replacements = resolveReplacementRanges(pendingReplacements);
+
+		// This invariant prevents a partially described transformation from silently
+		// producing corrupt source-to-resolved mappings.
+		const mappedResolvedLength = replacements.reduce((length, replacement) => {
+			const [sourceStart, sourceEnd] = replacement.sourceRange;
+			const [resolvedStart, resolvedEnd] = replacement.resolvedRange;
+
+			return length + (resolvedEnd - resolvedStart) - (sourceEnd - sourceStart);
+		}, source.length);
+
+		assert(
+			mappedResolvedLength === resolved.length,
+			'Replacements must describe every selector length change',
+		);
 
 		return {
 			source,
-			resolved: inject + resolvedValue,
-			parent: inject || null,
-			substitutions: isEmpty(usedVariables) ? null : usedVariables,
+			resolved,
+			parent,
+			substitutions,
+			replacements,
 			offset,
 		};
 	});
@@ -281,7 +462,12 @@ const resolveNodeVariables = (
 			.filter((declaration) => !!declaration.prop.match(/^\$[\w-]+$/));
 
 		nodeVariables.forEach((declaration) => {
-			if (['&', '#{&}'].includes(declaration.value)) {
+			// A standalone parent reference resolves to the whole current context.
+			// Handle it before generic value parsing, which splits whitespace inside `#{ & }`.
+			if (
+				declaration.value === '&'
+				|| SASS_NESTING_INTERPOLATION_VALUE_REGEXP.test(declaration.value)
+			) {
 				variables[declaration.prop] = context ?? null;
 			} else {
 				if (declaration.value.includes('&') && context) {
@@ -310,7 +496,7 @@ const resolveNodeVariables = (
  *
  * @returns           An array of `ResolvedSelector` objects, where each represents a complete flattened selector.
  */
-export const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
+const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 	const trees = getTrees(options.node, options.source);
 	// All branches have the same root, so we pick it once.
 	const root = getRoot(trees[0][0].node);
@@ -319,6 +505,9 @@ export const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 	const resolvedTrees: ResolvedPathItem[][] = trees.map((pathItems) => {
 		return pathItems.map((pathItem, index) => {
 			const usedVariables: Record<string, string> = {};
+			// Capture ranges at substitution time: after `resolvedValue` changes length,
+			// searching it again could no longer recover original selector coordinates.
+			const interpolationReplacements: ResolvedPathItem['interpolationReplacements'] = [];
 
 			const currentItem = pathItems[index];
 			const prevItems = pathItems.slice(0, index + 1);
@@ -331,10 +520,16 @@ export const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 
 			const resolvedValue = pathItem.value.replaceAll(
 				/#{([^}]+)}/g,
-				(fullMatch, variableName: string) => {
-					const variableValue = nodeVariables[variableName];
+				(fullMatch, variableName: string, sourceIndex: number) => {
+					// SASS ignores surrounding whitespace in a simple interpolation expression.
+					// Normalize lookup while preserving `fullMatch` for exact source metadata.
+					const variableValue = nodeVariables[variableName.trim()];
 					if (!isNullish(variableValue)) {
-						usedVariables[`#{${variableName}}`] = variableValue;
+						usedVariables[fullMatch] = variableValue;
+						interpolationReplacements.push({
+							sourceRange: [sourceIndex, sourceIndex + fullMatch.length],
+							resolvedValue: variableValue,
+						});
 					}
 					return variableValue ?? fullMatch;
 				},
@@ -343,6 +538,7 @@ export const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 			return {
 				...pathItem,
 				usedVariables,
+				interpolationReplacements,
 				resolvedValue,
 			};
 		});
@@ -350,3 +546,5 @@ export const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 
 	return resolveSelectorTrees(resolvedTrees);
 };
+
+export { resolveNestedSelector, resolveSelectorSourceIndex };

@@ -1,5 +1,6 @@
+import { omit } from '@morev/utils';
 import { getRuleBySelector } from '#modules/test-utils';
-import { resolveNestedSelector } from './resolve-nested-selector';
+import { resolveNestedSelector, resolveSelectorSourceIndex } from './resolve-nested-selector';
 
 const resolveSelectorInContext = (
 	code: string,
@@ -9,7 +10,14 @@ const resolveSelectorInContext = (
 	return resolveNestedSelector({
 		source: customSelector,
 		node: getRuleBySelector(code, selector),
-	});
+	}).map((result) => omit(result, 'replacements'));
+};
+
+const resolveSelectorWithReplacements = (
+	code: string,
+	selector: string,
+) => {
+	return resolveNestedSelector({ node: getRuleBySelector(code, selector) });
 };
 
 describe(resolveNestedSelector, () => {
@@ -591,6 +599,7 @@ describe(resolveNestedSelector, () => {
 				.card {
 					&__item #{&}__foo {}
 					&--mod#{&}--mod2 {}
+					&__item #{ &    }__foo {}
 				}
 			`;
 
@@ -600,6 +609,10 @@ describe(resolveNestedSelector, () => {
 
 			expect(resolveSelectorInContext(code, '&--mod#{&}--mod2')).toStrictEqual([
 				{ source: '&--mod#{&}--mod2', resolved: '.card--mod.card--mod2', substitutions: { '&': '.card', '#{&}': '.card' }, parent: '.card', offset: 0 },
+			]);
+
+			expect(resolveSelectorInContext(code, '&__item #{ &    }__foo')).toStrictEqual([
+				{ source: '&__item #{ &    }__foo', resolved: '.card__item .card__foo', substitutions: { '&': '.card', '#{ &    }': '.card' }, parent: '.card', offset: 0 },
 			]);
 		});
 
@@ -725,6 +738,28 @@ describe(resolveNestedSelector, () => {
 						resolved: '.block .block__link',
 						substitutions: {
 							'#{$link}': '.block__link',
+						},
+						parent: '.block ',
+						offset: 0,
+					},
+				]);
+			});
+
+			it('Resolves whitespace inside simple interpolations', () => {
+				const code = `
+					.block {
+						$b: #{ &    };
+
+						#{ $b   }__element {}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{ $b   }__element')).toStrictEqual([
+					{
+						source: '#{ $b   }__element',
+						resolved: '.block .block__element',
+						substitutions: {
+							'#{ $b   }': '.block',
 						},
 						parent: '.block ',
 						offset: 0,
@@ -1182,6 +1217,137 @@ describe(resolveNestedSelector, () => {
 					},
 				]);
 			});
+		});
+	});
+
+	describe('Replacement ranges', () => {
+		const code = `
+			.block {
+				$b: #{&};
+
+				&__el {
+					#{$b}:hover #{&} #{$b} & {}
+					#{$b}__child strong {}
+					:is(#{$b}, #{&}) {}
+					#{&} {}
+					#{ &    } {}
+					[data-ref="&"] #{$b} {}
+					#{$b} a, & #{$b} b {}
+					@at-root #{$b} em {}
+				}
+			}
+		`;
+
+		it('Maps repeated interpolations and nesting selectors', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '#{$b}:hover #{&} #{$b} &');
+
+			// .block:hover .block__el .block .block__el
+			// #{$b}:hover #{&} #{$b} &
+			expect(selector.resolved).toBe('.block:hover .block__el .block .block__el');
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'interpolation', sourceRange: [0, 5], resolvedRange: [0, 6] },
+				{ type: 'interpolation', sourceRange: [12, 16], resolvedRange: [13, 23] },
+				{ type: 'interpolation', sourceRange: [17, 22], resolvedRange: [24, 30] },
+				{ type: 'nesting', sourceRange: [23, 24], resolvedRange: [31, 41] },
+			]);
+		});
+
+		it('Maps parent injection before an adjacent interpolation', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '#{$b}__child strong');
+
+			// .block__el .block__child strong
+			// #{$b}__child strong
+			expect(selector.resolved).toBe('.block__el .block__child strong');
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+				{ type: 'interpolation', sourceRange: [0, 5], resolvedRange: [11, 17] },
+			]);
+			expect([0, 5, 13].map((index) => resolveSelectorSourceIndex(selector, index)))
+				.toStrictEqual([11, 17, 25]);
+		});
+
+		it('Maps interpolations inside a functional pseudo', () => {
+			const [selector] = resolveSelectorWithReplacements(code, ':is(#{$b}, #{&})');
+
+			// .block__el :is(.block, .block__el)
+			// :is(#{$b}, #{&})
+			expect(selector.resolved).toBe('.block__el :is(.block, .block__el)');
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+				{ type: 'interpolation', sourceRange: [4, 9], resolvedRange: [15, 21] },
+				{ type: 'interpolation', sourceRange: [11, 15], resolvedRange: [23, 33] },
+			]);
+		});
+
+		it('Does not map a literal ampersand as a nesting replacement', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '[data-ref="&"] #{$b}');
+
+			// .block__el [data-ref="&"] .block
+			// [data-ref="&"] #{$b}
+			expect(selector.substitutions).toStrictEqual({ '#{$b}': '.block' });
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+				{ type: 'interpolation', sourceRange: [15, 20], resolvedRange: [26, 32] },
+			]);
+		});
+
+		it('Maps standalone interpolated nesting with parent injection', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '#{&}');
+
+			// .block__el .block__el
+			// #{&}
+			expect(selector.resolved).toBe('.block__el .block__el');
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+				{ type: 'interpolation', sourceRange: [0, 4], resolvedRange: [11, 21] },
+			]);
+		});
+
+		it('Maps spaced interpolated nesting with parent injection', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '#{ &    }');
+
+			// .block__el .block__el
+			// #{ &    }
+			expect(selector.resolved).toBe('.block__el .block__el');
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+				{ type: 'interpolation', sourceRange: [0, 9], resolvedRange: [11, 21] },
+			]);
+		});
+
+		it('Keeps replacement ranges local to each selector-list branch', () => {
+			const selectors = resolveSelectorWithReplacements(code, '#{$b} a, & #{$b} b');
+
+			// .block__el .block a
+			// #{$b} a
+			// .block__el .block b
+			// & #{$b} b
+			expect(selectors.map(({ offset, replacements }) => ({ offset, replacements }))).toStrictEqual([
+				{
+					offset: 0,
+					replacements: [
+						{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 11] },
+						{ type: 'interpolation', sourceRange: [0, 5], resolvedRange: [11, 17] },
+					],
+				},
+				{
+					offset: 9,
+					replacements: [
+						{ type: 'nesting', sourceRange: [0, 1], resolvedRange: [0, 10] },
+						{ type: 'interpolation', sourceRange: [2, 7], resolvedRange: [11, 17] },
+					],
+				},
+			]);
+		});
+
+		it('Does not inject a parent range inside `@at-root`', () => {
+			const [selector] = resolveSelectorWithReplacements(code, '#{$b} em');
+
+			// .block em
+			// #{$b} em
+			expect(selector.replacements).toStrictEqual([
+				{ type: 'interpolation', sourceRange: [0, 5], resolvedRange: [0, 6] },
+			]);
 		});
 	});
 });
