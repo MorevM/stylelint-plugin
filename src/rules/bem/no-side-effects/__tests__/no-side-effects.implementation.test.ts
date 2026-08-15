@@ -184,6 +184,27 @@ testRule({
 			],
 		},
 		{
+			description: 'Reports the full source range of a resolved nested selector',
+			code: `
+				.the-component {}
+				.foreign {
+					&--modifier {}
+				}
+			`,
+			warnings: [
+				{
+					message: messages.rejected('.foreign'),
+					line: 2, column: 1,
+					endLine: 2, endColumn: 9,
+				},
+				{
+					message: messages.rejected('.foreign--modifier'),
+					line: 3, column: 2,
+					endLine: 3, endColumn: 13,
+				},
+			],
+		},
+		{
 			description: 'Reports inline side-effect',
 			code: `
 				.the-component {}

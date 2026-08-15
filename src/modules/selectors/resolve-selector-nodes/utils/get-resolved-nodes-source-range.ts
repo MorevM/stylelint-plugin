@@ -14,8 +14,8 @@ export const getResolvedNodesSourceRange = (nodes: ResolvedNode[]) => {
 		.filter((node) => !isEmpty(node.meta.sourceMatches));
 	if (isEmpty(sourceMappedNodes)) return null;
 
-	const firstMatch = sourceMappedNodes[0].meta.sourceMatches.at(-1)!;
-	const lastMatch = sourceMappedNodes.at(-1)!.meta.sourceMatches[0];
+	const firstMatch = sourceMappedNodes[0].meta.sourceMatches[0];
+	const lastMatch = sourceMappedNodes.at(-1)!.meta.sourceMatches.at(-1)!;
 
 	return {
 		index: firstMatch.sourceRange[0] + firstMatch.offset,

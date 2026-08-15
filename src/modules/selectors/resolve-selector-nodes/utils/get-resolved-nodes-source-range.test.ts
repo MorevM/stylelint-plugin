@@ -19,4 +19,30 @@ describe(getResolvedNodesSourceRange, () => {
 			endIndex: 26,
 		});
 	});
+
+	it('Spans multiple source matches collapsed into one resolved node', () => {
+		const node = getRuleBySelector(
+			'.block { &__item { &:hover &--active {} } }',
+			'&:hover &--active',
+		);
+		const [{ resolved }] = resolveSelectorNodes({ node });
+
+		expect(getResolvedNodesSourceRange(resolved.slice(-1))).toStrictEqual({
+			index: 8,
+			endIndex: 17,
+		});
+	});
+
+	it('Spans a parent interpolation and its suffix collapsed into one resolved node', () => {
+		const node = getRuleBySelector(
+			'.block { &__item { &:hover #{&}--active {} } }',
+			'&:hover #{&}--active',
+		);
+		const [{ resolved }] = resolveSelectorNodes({ node });
+
+		expect(getResolvedNodesSourceRange(resolved.slice(-1))).toStrictEqual({
+			index: 8,
+			endIndex: 20,
+		});
+	});
 });
