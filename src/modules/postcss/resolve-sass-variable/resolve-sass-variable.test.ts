@@ -138,6 +138,7 @@ describe(resolveSassVariable, () => {
 		});
 
 		it('Returns `null` for commas or dividers in value stream', () => {
+			expect(resolveSassVariable(`/`, vars)).toBeNull();
 			expect(resolveSassVariable(`$b, '__x'`, vars)).toBeNull();
 		});
 	});

@@ -69,6 +69,16 @@ describe(parseSelectors, () => {
 		});
 	});
 
+	it('Avoids collisions with private-use placeholder characters', () => {
+		const privateUseCharacter = String.fromCodePoint(0xE000);
+		const selector = `${privateUseCharacter}#{value}:hover`;
+		const result = parseSelectors(selector)[0];
+
+		expect(result.toString()).toBe(selector);
+		expect(result[0].value).toBe(`${privateUseCharacter}#{value}`);
+		expect(result[1].sourceIndex).toBe(selector.indexOf(':hover'));
+	});
+
 	it('Preserves source metadata for multiple interpolations in the same node', () => {
 		const selector = 'foo#{$element}bar#{$modifier}baz:hover';
 		const tagValue = selector.slice(0, selector.indexOf(':hover'));
@@ -93,6 +103,17 @@ describe(parseSelectors, () => {
 
 		expect(result[1].type).toBe('attribute');
 		expect(result[1].sourceIndex).toBe(16);
+		expect(result.toString()).toBe(selector);
+	});
+
+	it('Restores interpolation in a selector namespace', () => {
+		const selector = '#{namespace}|button';
+		const result = parseSelectors(selector)[0];
+		const [tag] = result;
+
+		expect(tag.type).toBe('tag');
+		expect('namespace' in tag && tag.namespace).toBe('#{namespace}');
+		expect(tag.sourceIndex).toBe(selector.indexOf('button'));
 		expect(result.toString()).toBe(selector);
 	});
 
@@ -136,6 +157,16 @@ describe(parseSelectors, () => {
 
 		expect(result[2].toString()).toBe('&');
 		expect(result[2].type).toBe('nesting');
+	});
+
+	it('Preserves class and ID types before embedded `#{&}`', () => {
+		const classNodes = parseSelectors('.foo#{&}bar')[0];
+		const idNodes = parseSelectors('#foo#{&}bar')[0];
+
+		expect(classNodes.map((node) => node.type)).toStrictEqual(['class', 'tag', 'tag']);
+		expect(idNodes.map((node) => node.type)).toStrictEqual(['id', 'tag', 'tag']);
+		expect(classNodes.toString()).toBe('.foo#{&}bar');
+		expect(idNodes.toString()).toBe('#foo#{&}bar');
 	});
 
 	it('Preserves `#{&}` interpolation within nested `pseudo` tags', () => {
