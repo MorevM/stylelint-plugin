@@ -5,6 +5,26 @@ import type { ResolvedSelectorSubstitutions } from '#modules/selectors';
 
 type Variables = Exclude<ResolvedSelectorSubstitutions, null>;
 
+const SIMPLE_INTERPOLATION_REGEXP = /#{\s*(&|\$[\w-]+)\s*}/g;
+
+/**
+ * Removes insignificant whitespace from simple Sass interpolations.
+ *
+ * This keeps `#{ $b }__link` in one parser word.
+ * Resolution still happens after parsing.
+ * Complex expressions remain unchanged and unsupported.
+ *
+ * @param   value   Variable value to normalize.
+ *
+ * @returns         Value with compact simple interpolations.
+ */
+const normalizeSimpleInterpolations = (value: string) => {
+	return value.replaceAll(
+		SIMPLE_INTERPOLATION_REGEXP,
+		(_fullMatch, reference: string) => `#{${reference}}`,
+	);
+};
+
 /**
  * Resolves a word literal that may contain one or more Sass interpolations of the form `#{...}`.
  *
@@ -59,7 +79,11 @@ const resolveOperand = (node: ValueNode, vars: Variables): string | null => {
 	// Any function call => complex
 	if (node.type === 'function') return null;
 	// Quoted string literal
-	if (node.type === 'string') return node.value;
+	if (node.type === 'string') {
+		return node.value.includes('#{')
+			? resolveWordWithInterpolations(node.value, vars)
+			: node.value;
+	}
 	// A "word" can be:
 	// - a bare literal: .block, __link, --active
 	// - a variable: $b
@@ -151,26 +175,26 @@ export const resolveSassVariable = (
 	variables: Variables,
 ): string | null => {
 	// Flat token stream, skip spaces and comments.
-	const tokens = normalizeTokens(
-		parseValue(value).nodes
-			.filter((n) => n.type !== 'space' && n.type !== 'comment'),
-	);
+	const normalizedValue = normalizeSimpleInterpolations(value);
+	const valueNodes = parseValue(normalizedValue).nodes
+		.filter((n) => n.type !== 'space' && n.type !== 'comment');
+	const tokens = normalizeTokens(valueNodes);
 
-	let expectOperand = true;
+	let isExpectingOperand = true;
 	let acc = '';
 
 	for (const token of tokens) {
-		if (expectOperand) {
+		if (isExpectingOperand) {
 			const part = resolveOperand(token, variables);
 			if (part === null) return null;
 			acc += part;
-			expectOperand = false;
+			isExpectingOperand = false;
 			continue;
 		}
 
 		// Expect a `+` between operands
 		if (token.type === 'word' && token.value === '+') {
-			expectOperand = true;
+			isExpectingOperand = true;
 			continue;
 		}
 
@@ -180,7 +204,7 @@ export const resolveSassVariable = (
 
 	// Trailing `+` without an operand
 	// Actually invalid scenario in terms of SASS, but should be handled.
-	if (expectOperand) return null;
+	if (isExpectingOperand) return null;
 
 	return acc;
 };

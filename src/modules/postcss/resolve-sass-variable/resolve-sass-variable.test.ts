@@ -6,6 +6,7 @@ const vars = {
 	'$e': '__label',
 	'$m': '--active',
 	'$empty': '',
+	'$selector': '.block + .link',
 };
 
 describe(resolveSassVariable, () => {
@@ -17,6 +18,7 @@ describe(resolveSassVariable, () => {
 		it('Resolves a quoted string literal', () => {
 			expect(resolveSassVariable(`'foo'`, vars)).toBe('foo');
 			expect(resolveSassVariable(`"bar"`, vars)).toBe('bar');
+			expect(resolveSassVariable(`"#{ $b }__link"`, vars)).toBe('.block__link');
 		});
 
 		it('Resolves a single variable', () => {
@@ -70,6 +72,15 @@ describe(resolveSassVariable, () => {
 			expect(resolveSassVariable(`#{$b}#{$e}#{$m}`, vars)).toBe('.block__label--active');
 		});
 
+		it('Resolves whitespace inside simple interpolations', () => {
+			expect(resolveSassVariable(`#{ $b }__link`, vars)).toBe('.block__link');
+			expect(resolveSassVariable(`#{ & }--active`, vars)).toBe('.block__label--active');
+			expect(resolveSassVariable(`#{ $selector }__item`, vars))
+				.toBe('.block + .link__item');
+			expect(resolveSassVariable(`pre-#{ $b }#{ $e }-post`, vars))
+				.toBe('pre-.block__label-post');
+		});
+
 		it('Resolves `#{&}` inside a word', () => {
 			expect(resolveSassVariable(`#{&}--active`, vars)).toBe('.block__label--active');
 		});
@@ -86,6 +97,7 @@ describe(resolveSassVariable, () => {
 
 		it('Returns `null` for complex content inside `#{...}`', () => {
 			expect(resolveSassVariable(`#{$b + '__x'}`, vars)).toBeNull();
+			expect(resolveSassVariable(`#{ $b + '__x' }`, vars)).toBeNull();
 			expect(resolveSassVariable(`#{str-slice($b, 1)}`, vars)).toBeNull();
 			expect(resolveSassVariable(`#{1 + 2}`, vars)).toBeNull();
 		});
