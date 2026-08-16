@@ -1,5 +1,6 @@
 # Artifacts
 dist
+docs/.vitepress/.temp
 docs/.vitepress/cache
 
 # Editors

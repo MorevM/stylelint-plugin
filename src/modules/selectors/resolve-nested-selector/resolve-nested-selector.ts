@@ -330,6 +330,13 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 		// Every path segment has already been resolved sequentially.
 		// The preceding segment therefore contains the exact parent context.
 		const context = tree.at(-2)?.resolvedContext ?? '';
+		// Bare `@at-root` segments have no selector of their own and may clear the
+		// emitted context. Look through them to retain the nearest selector that
+		// lexically contains the declaration.
+		const lexicalParent = tree
+			.slice(0, -1)
+			.findLast(({ value }) => !!value)
+			?.resolvedContext ?? null;
 		// Variable interpolation has already changed `resolvedValue`, but its ranges are still
 		// expressed in source coordinates. Resolve all ranges together after nesting is handled.
 		const pendingReplacements: PendingSelectorReplacement[] =
@@ -440,6 +447,7 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 		return {
 			source,
 			resolved,
+			lexicalParent,
 			parent,
 			substitutions,
 			replacements,

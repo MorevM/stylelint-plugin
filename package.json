@@ -57,7 +57,7 @@
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"scripts": {
-		"prepare": "pnpm generate-meta && lefthook install",
+		"prepare": "pnpm build && lefthook install",
 		"test": "vitest",
 		"typecheck": "tsc --noEmit",
 		"spellcheck": "cspell --no-progress --show-suggestions --unique",

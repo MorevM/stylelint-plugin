@@ -33,6 +33,16 @@ export const rulesMeta = [
 		vitepressLink: '/rules/bem/no-side-effects.html',
 	},
 	{
+		id: '@morev/bem/no-misplaced-side-effects',
+		scope: 'bem',
+		name: 'no-misplaced-side-effects',
+		description: 'Requires BEM side-effects to be declared within the entity they affect.',
+		fixable: false,
+		docsPath: 'src/rules/bem/no-misplaced-side-effects/no-misplaced-side-effects.docs.md',
+		vitepressPath: '/rules/bem/no-misplaced-side-effects.md',
+		vitepressLink: '/rules/bem/no-misplaced-side-effects.html',
+	},
+	{
 		id: '@morev/bem/no-chained-entities',
 		scope: 'bem',
 		name: 'no-chained-entities',
@@ -146,6 +156,16 @@ export const scopedRulesMeta = [
 				docsPath: 'src/rules/bem/no-chained-entities/no-chained-entities.docs.md',
 				vitepressPath: '/rules/bem/no-chained-entities.md',
 				vitepressLink: '/rules/bem/no-chained-entities.html',
+			},
+			{
+				id: '@morev/bem/no-misplaced-side-effects',
+				scope: 'bem',
+				name: 'no-misplaced-side-effects',
+				description: 'Requires BEM side-effects to be declared within the entity they affect.',
+				fixable: false,
+				docsPath: 'src/rules/bem/no-misplaced-side-effects/no-misplaced-side-effects.docs.md',
+				vitepressPath: '/rules/bem/no-misplaced-side-effects.md',
+				vitepressLink: '/rules/bem/no-misplaced-side-effects.html',
 			},
 			{
 				id: '@morev/bem/no-side-effects',

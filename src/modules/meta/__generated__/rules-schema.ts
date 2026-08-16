@@ -7,6 +7,7 @@ import type * as blockVariable from '#rules/bem/block-variable/block-variable.ty
 import type * as matchFileName from '#rules/bem/match-file-name/match-file-name.types';
 import type * as noBlockProperties from '#rules/bem/no-block-properties/no-block-properties.types';
 import type * as noChainedEntities from '#rules/bem/no-chained-entities/no-chained-entities.types';
+import type * as noMisplacedSideEffects from '#rules/bem/no-misplaced-side-effects/no-misplaced-side-effects.types';
 import type * as noSideEffects from '#rules/bem/no-side-effects/no-side-effects.types';
 import type * as selectorPattern from '#rules/bem/selector-pattern/selector-pattern.types';
 import type * as noUnusedVariables from '#rules/sass/no-unused-variables/no-unused-variables.types';
@@ -33,6 +34,13 @@ export type RulesSchema = {
 	 * @see https://morevm.github.io/stylelint-plugin/rules/bem/no-side-effects.html
 	 */
 	'@morev/bem/no-side-effects': RuleSetting<noSideEffects.PrimaryOption, noSideEffects.SecondaryOption>;
+
+	/**
+	 * Requires BEM side-effects to be declared within the entity they affect.
+	 *
+	 * @see https://morevm.github.io/stylelint-plugin/rules/bem/no-misplaced-side-effects.html
+	 */
+	'@morev/bem/no-misplaced-side-effects': RuleSetting<noMisplacedSideEffects.PrimaryOption, noMisplacedSideEffects.SecondaryOption>;
 
 	/**
 	 * Disallows splitting BEM entities across multiple chained `&` selectors in SCSS.

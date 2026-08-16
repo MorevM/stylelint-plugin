@@ -1,6 +1,6 @@
 import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
-import { resolveBemEntities } from '#modules/bem';
+import { isDirectBemEntity, resolveBemEntities } from '#modules/bem';
 import { getRuleDeclarations, isPseudoElementNode } from '#modules/postcss';
 import { createRule, extractSeparators, mergeMessages, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { parseSelectors, resolveNestedSelector } from '#modules/selectors';
@@ -100,7 +100,7 @@ export default createRule({
 					source: resolvedSelector.resolved,
 				}).filter((bemEntity) => {
 					return bemEntity.bemSelector.startsWith(resolvedSelector.parent ?? '')
-						&& [null, 'modifier', 'entity'].includes(bemEntity.sourceContext);
+						&& isDirectBemEntity(bemEntity);
 				});
 
 				const entitiesToReport = selectorBemEntities

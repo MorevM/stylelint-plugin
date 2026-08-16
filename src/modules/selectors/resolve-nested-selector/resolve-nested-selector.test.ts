@@ -10,7 +10,7 @@ const resolveSelectorInContext = (
 	return resolveNestedSelector({
 		source: customSelector,
 		node: getRuleBySelector(code, selector),
-	}).map((result) => omit(result, 'replacements'));
+	}).map((result) => omit(result, 'lexicalParent', 'replacements'));
 };
 
 const resolveSelectorWithReplacements = (
@@ -21,6 +21,57 @@ const resolveSelectorWithReplacements = (
 };
 
 describe(resolveNestedSelector, () => {
+	describe('Lexical parent', () => {
+		it('Returns `null` for a flat top-level selector', () => {
+			const code = `.block__source:hover .block__target {}`;
+			const [selector] = resolveNestedSelector({
+				node: getRuleBySelector(code, '.block__source:hover .block__target'),
+			});
+
+			expect(selector).toMatchObject({
+				lexicalParent: null,
+				parent: null,
+			});
+		});
+
+		it('Preserves the owner through an explicit `@at-root` selector', () => {
+			const code = `
+				.block__link {
+					@at-root .block__source:hover .block__target {}
+				}
+			`;
+			const selectors = resolveNestedSelector({
+				node: getRuleBySelector(code, '.block__source:hover .block__target'),
+			});
+
+			expect(selectors).toHaveLength(1);
+			expect(selectors[0]).toMatchObject({
+				lexicalParent: '.block__link',
+				parent: null,
+				resolved: '.block__source:hover .block__target',
+			});
+		});
+
+		it('Looks through a bare `@at-root` wrapper for the lexical owner', () => {
+			const code = `
+				.block__link {
+					@at-root {
+						.block__target {}
+					}
+				}
+			`;
+			const [selector] = resolveNestedSelector({
+				node: getRuleBySelector(code, '.block__target'),
+			});
+
+			expect(selector).toMatchObject({
+				lexicalParent: '.block__link',
+				parent: null,
+				resolved: '.block__target',
+			});
+		});
+	});
+
 	// Tests from https://github.com/csstools/postcss-resolve-nested-selector/blob/main/test/api.test.mjs
 	describe('CSS features', () => {
 		it('Resolves top-level declarations', () => {

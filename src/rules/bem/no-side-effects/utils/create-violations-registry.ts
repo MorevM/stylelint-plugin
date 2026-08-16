@@ -1,5 +1,4 @@
-import { isEmpty } from '@morev/utils';
-import { selectorNodesToString } from '#modules/selectors';
+import { getResolvedNodesSourceRange, selectorNodesToString } from '#modules/selectors';
 import type postcss from 'postcss';
 import type { ResolvedNode } from '#modules/selectors';
 
@@ -82,18 +81,10 @@ export const createViolationsRegistry = (ignoredPatterns: RegExp[]) => {
 		// prevents duplicate violations from nested contexts.
 		if (hasAncestorWithSameSelector(node, selector)) return;
 
-		const sourcePresentedNodes = nodes
-			.filter((resolvedNode) => !isEmpty(resolvedNode.meta.sourceMatches));
-		if (isEmpty(sourcePresentedNodes)) return;
+		const sourceRange = getResolvedNodesSourceRange(nodes);
+		if (!sourceRange) return;
 
-		const [firstMatch, lastMatch] = [
-			sourcePresentedNodes[0].meta.sourceMatches.at(-1)!,
-			sourcePresentedNodes.at(-1)!.meta.sourceMatches[0],
-		];
-		const index = firstMatch.sourceRange[0] + firstMatch.offset;
-		const endIndex = lastMatch.sourceRange[1] + firstMatch.offset;
-
-		violations.push({ node, index, endIndex, selector });
+		violations.push({ node, ...sourceRange, selector });
 
 		let seen = seenBySelector.get(selector);
 		if (!seen) {

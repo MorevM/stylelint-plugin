@@ -51,7 +51,7 @@ pnpm install
 ### Основные скрипты
 
 - **`pnpm prepare`** \
-  Запускает `generate-meta` и устанавливает Git-хуки через [lefthook]. \
+  Собирает пакет и устанавливает Git-хуки через [lefthook]. \
   Выполняется автоматически после `pnpm install`.
 
 - **`pnpm test`** \
