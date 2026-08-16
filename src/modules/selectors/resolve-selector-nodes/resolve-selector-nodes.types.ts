@@ -68,8 +68,14 @@ export type ResolvedNode<Base = parser.Node> = Base & {
  */
 export type MappedSelector = {
 	/**
-	 * Parsed resolved parent selector for the current branch. \
-	 * `null` for a top-level selector.
+	 * Parsed nearest selector context that lexically contains the current branch. \
+	 * Preserved when `@at-root` removes that context from the emitted selector.
+	 */
+	lexicalParent: parser.Node[] | null;
+
+	/**
+	 * Parsed resolved parent context used to produce the current branch. \
+	 * `null` when no parent context was substituted or injected.
 	 */
 	parent: parser.Node[] | null;
 

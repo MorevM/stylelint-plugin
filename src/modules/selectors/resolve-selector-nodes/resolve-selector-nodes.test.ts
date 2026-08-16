@@ -84,6 +84,22 @@ describe(resolveSelectorNodes, () => {
 			expect(replacements.map(({ type }) => type)).toStrictEqual(['nesting', 'nesting']);
 		});
 
+		it('Exposes the lexical parent removed from the emitted selector by `@at-root`', () => {
+			const node = getRuleBySelector(`
+				.common-star-control__star {
+					&::before {
+						@at-root .common-star-control__star:hover ~ .common-star-control__star::before {}
+					}
+				}
+			`, `.common-star-control__star:hover ~ .common-star-control__star::before`);
+
+			const [{ lexicalParent, parent }] = resolveSelectorNodes({ node });
+
+			expect(stringifySelectorNodes(lexicalParent ?? []))
+				.toStrictEqual(['.common-star-control__star', '::before']);
+			expect(parent).toBeNull();
+		});
+
 		it('All resolved nodes have `meta.sourceMatches` property', () => {
 			const node = getRuleBySelector(`
 				.foo .block {

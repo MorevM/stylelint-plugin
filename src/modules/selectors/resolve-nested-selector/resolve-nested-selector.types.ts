@@ -170,8 +170,17 @@ export type ResolvedSelector = {
 	replacements: ResolvedSelectorReplacement[];
 
 	/**
-	 * The resolved parent selector for this context.
-	 * `null` in case of a top-level selector.
+	 * The nearest resolved selector context that lexically contains this selector. \
+	 * Unlike `parent`, it is preserved when `@at-root` removes that context
+	 * from the emitted selector.
+	 *
+	 * @example '.block__element'
+	 */
+	lexicalParent: string | null;
+
+	/**
+	 * The resolved parent context substituted or injected into this selector.
+	 * `null` when the emitted selector does not use a parent context.
 	 *
 	 * @example '.block'
 	 */

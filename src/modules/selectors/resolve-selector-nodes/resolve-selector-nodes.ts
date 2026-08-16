@@ -21,6 +21,9 @@ export const resolveSelectorNodes = (options: Options): MappedSelector[] => {
 		// so it's safe to take the first one directly.
 		const sourceSelectorNodes = parseSelectors(selector.source)[0];
 		const resolvedSelectorNodes = parseSelectors(selector.resolved)[0];
+		const lexicalParentSelectorNodes = selector.lexicalParent
+			? parseSelectors(selector.lexicalParent)[0]
+			: null;
 		const parentSelectorNodes = selector.parent
 			? parseSelectors(selector.parent)[0]
 			: null;
@@ -37,6 +40,7 @@ export const resolveSelectorNodes = (options: Options): MappedSelector[] => {
 			.map((node) => linkSourceMeta(node, sourceNodeMeta, offset));
 
 		return {
+			lexicalParent: lexicalParentSelectorNodes,
 			parent: parentSelectorNodes,
 			resolved: resolvedNodes,
 			replacements: selector.replacements,
