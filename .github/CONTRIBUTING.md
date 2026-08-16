@@ -51,7 +51,7 @@ pnpm install
 ### Common scripts
 
 - **`pnpm prepare`** \
-  Runs `generate-meta` and installs Git hooks via [lefthook]. \
+  Builds the package and installs Git hooks via [lefthook]. \
   Runs automatically after `pnpm install`.
 
 - **`pnpm test`** \
