@@ -140,7 +140,7 @@ export default createRule({
 		// Selector lists and parent selector lists expand into separate resolved branches.
 		// Each misplaced target is checked independently, e.g.
 		// `.block__link { &:hover .block__label, &:focus .block__icon {} }`.
-		resolveSelectorNodes({ node }).forEach(({ parent, replacements, resolved, source }) => {
+		resolveSelectorNodes({ node }).forEach(({ lexicalParent, replacements, resolved, source }) => {
 			const resolvedSelector = selectorNodesToString(resolved);
 			// Unknown interpolation such as `#{$unknown}` cannot provide a reliable BEM target.
 			if (resolvedSelector.includes('#{')) return;
@@ -191,13 +191,14 @@ export default createRule({
 				&& isEmpty(sourceEntities)
 			) return;
 
-			// The resolved parent represents the selector that lexically owns this declaration:
+			// The lexical parent represents the selector that owns this declaration:
 			// `.block__label { .block:hover & {} }` is owned by `.block__label`,
 			// while `.block__link { &:hover .block__label {} }` is owned by `.block__link`.
-			// A flat `.block__link:hover .block__label {}` has no owner.
-			const ownerEntities = parent
+			// It remains `.block__label` through `@at-root`, even when no parent context
+			// participates in the emitted selector. A flat relation still has no owner.
+			const ownerEntities = lexicalParent
 				? getMostSpecificEntities(
-					splitCompounds(parent).at(-1) ?? [],
+					splitCompounds(lexicalParent).at(-1) ?? [],
 					bemBlock.blockName,
 					separators,
 				)
@@ -205,7 +206,7 @@ export default createRule({
 
 			// A parent such as `:is(.block__label, .block__icon)` has no unambiguous owner
 			// and is outside this rule's ownership model.
-			if (parent && ownerEntities.length !== 1) return;
+			if (lexicalParent && ownerEntities.length !== 1) return;
 
 			const owner = ownerEntities[0];
 			if (owner === target) return;

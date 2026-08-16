@@ -75,6 +75,18 @@ testRule({
 			`,
 		},
 		{
+			description: 'Preserves lexical ownership when `@at-root` removes the emitted parent',
+			code: `
+				.common-star-control__star {
+					$self: &;
+
+					&::before {
+						@at-root #{$self}:hover ~ #{$self}::before {}
+					}
+				}
+			`,
+		},
+		{
 			description: 'Does not repeat an inherited side-effect for nested states',
 			code: `
 				.block__label {
@@ -202,14 +214,14 @@ testRule({
 			description: 'Reports misplaced ownership through `@at-root`',
 			code: `
 				.block__link {
-					@at-root &:hover .block__label {}
+					@at-root .block__link:hover .block__label {}
 				}
 			`,
 			warnings: [
 				{
 					message: messages.misplaced('.block__label', '.block__link'),
-					line: 2, column: 19,
-					endLine: 2, endColumn: 32,
+					line: 2, column: 30,
+					endLine: 2, endColumn: 43,
 				},
 			],
 		},
