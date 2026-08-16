@@ -198,7 +198,7 @@ export default createRule({
 			// participates in the emitted selector. A flat relation still has no owner.
 			const ownerEntities = lexicalParent
 				? getMostSpecificEntities(
-					splitCompounds(lexicalParent).at(-1) ?? [],
+					splitCompounds(lexicalParent).at(-1)!,
 					bemBlock.blockName,
 					separators,
 				)

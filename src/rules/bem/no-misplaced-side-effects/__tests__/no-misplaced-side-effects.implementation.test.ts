@@ -97,6 +97,25 @@ testRule({
 			`,
 		},
 		{
+			description: 'Ignores keyframe selectors',
+			code: `
+				.block {
+					@keyframes pulse {
+						from { opacity: 0; }
+						to { opacity: 1; }
+					}
+				}
+			`,
+		},
+		{
+			description: 'Ignores side-effects declared within an ambiguous owner',
+			code: `
+				:is(.block__label, .block__icon) {
+					.block__link:hover .block__target {}
+				}
+			`,
+		},
+		{
 			description: 'Ignores non-BEM and ambiguous targets',
 			code: `
 				.block__link {
@@ -263,6 +282,21 @@ testRule({
 				},
 			],
 		},
+		{
+			description: 'Reports converging resolution paths once',
+			code: `
+				.block__link.foo, .block__link.bar {
+					&:hover .block__label {}
+				}
+			`,
+			warnings: [
+				{
+					message: messages.misplaced('.block__label', '.block__link'),
+					line: 2, column: 10,
+					endLine: 2, endColumn: 23,
+				},
+			],
+		},
 	],
 });
 
@@ -345,6 +379,17 @@ testCssRule({
 				@media (width >= 320px) {
 					.block__label {
 						.block__link:hover & {}
+					}
+				}
+			`,
+		},
+		{
+			description: 'Does not repeat inherited side-effects inside functional pseudos',
+			codeFilename: 'block.css',
+			code: `
+				.block__label {
+					.block__link:hover & {
+						:is(.is-active, &:focus)& {}
 					}
 				}
 			`,
