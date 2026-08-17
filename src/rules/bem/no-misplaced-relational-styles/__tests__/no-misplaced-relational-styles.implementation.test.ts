@@ -1,4 +1,4 @@
-import rule from '../no-misplaced-side-effects';
+import rule from '../no-misplaced-relational-styles';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
@@ -9,7 +9,7 @@ testRule({
 	config: [true],
 	accept: [
 		{
-			description: 'Accepts side-effects declared within the target element',
+			description: 'Accepts relational styles declared within the target element',
 			code: `
 				.block {
 					$b: #{&};
@@ -46,7 +46,7 @@ testRule({
 			`,
 		},
 		{
-			description: 'Does not treat a contextual root block declaration as a side-effect',
+			description: 'Accepts a contextual root block declaration',
 			code: `html .block {}`,
 		},
 		{
@@ -87,7 +87,7 @@ testRule({
 			`,
 		},
 		{
-			description: 'Does not repeat an inherited side-effect for nested states',
+			description: 'Does not repeat an inherited relation for nested states',
 			code: `
 				.block__label {
 					.block__link:hover & {
@@ -108,7 +108,7 @@ testRule({
 			`,
 		},
 		{
-			description: 'Ignores side-effects declared within an ambiguous owner',
+			description: 'Ignores relational styles declared within an ambiguous owner',
 			code: `
 				:is(.block__label, .block__icon) {
 					.block__link:hover .block__target {}
@@ -206,7 +206,7 @@ testRule({
 			],
 		},
 		{
-			description: 'Reports detached flat side-effects',
+			description: 'Reports detached flat relational styles',
 			code: `
 				.block__link:hover .block__label {}
 			`,
@@ -266,7 +266,7 @@ testRule({
 			],
 		},
 		{
-			description: 'Reports only the authored nested side-effect',
+			description: 'Reports only the authored nested relation',
 			code: `
 				.block__link {
 					&:hover .block__label {
@@ -350,7 +350,7 @@ testRule({
 			code: `.block {} .block__link:hover .block__label {}`,
 			warnings: [
 				{
-					message: `Move .block__label from root (@morev/bem/no-misplaced-side-effects)`,
+					message: `Move .block__label from root (@morev/bem/no-misplaced-relational-styles)`,
 					line: 1, column: 30,
 					endLine: 1, endColumn: 43,
 				},
@@ -384,7 +384,7 @@ testCssRule({
 			`,
 		},
 		{
-			description: 'Does not repeat inherited side-effects inside functional pseudos',
+			description: 'Does not repeat inherited relations inside functional pseudos',
 			codeFilename: 'block.css',
 			code: `
 				.block__label {

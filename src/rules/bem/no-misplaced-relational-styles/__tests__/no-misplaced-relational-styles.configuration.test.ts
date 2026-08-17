@@ -1,4 +1,4 @@
-import rule from '../no-misplaced-side-effects';
+import rule from '../no-misplaced-relational-styles';
 
 const { ruleName } = rule;
 const testRuleConfig = createTestRuleConfig({ ruleName });

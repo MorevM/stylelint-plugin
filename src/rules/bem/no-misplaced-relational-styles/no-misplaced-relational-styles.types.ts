@@ -21,7 +21,7 @@ export type SecondaryOption = {
 	 */
 	messages?: {
 		/**
-		 * Custom message for styles declared outside their target BEM entity.
+		 * Custom message for relational styles declared outside their target BEM entity.
 		 *
 		 * @param   target   Target BEM entity.
 		 * @param   owner    BEM entity that currently owns the styles, if any.

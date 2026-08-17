@@ -15,7 +15,7 @@ const rulesWithSeparators = [
 	'@morev/bem/match-file-name',
 	'@morev/bem/no-block-properties',
 	'@morev/bem/no-chained-entities',
-	'@morev/bem/no-misplaced-side-effects',
+	'@morev/bem/no-misplaced-relational-styles',
 	'@morev/bem/no-side-effects',
 	'@morev/bem/selector-pattern',
 ] as const satisfies ReadonlyArray<keyof RulesSchema>;

@@ -11,7 +11,7 @@ const config = defineConfig({
 
 const defineLocalRules = createDefineRules();
 const localRuleOverrides = defineLocalRules({
-	'@morev/bem/no-misplaced-side-effects': [true, {}],
+	'@morev/bem/no-misplaced-relational-styles': [true, {}],
 });
 
 const configuredRuleNames = new Set([

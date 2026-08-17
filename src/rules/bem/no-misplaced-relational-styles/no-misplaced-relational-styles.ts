@@ -101,16 +101,16 @@ const hasNesting = (nodes: parser.Node[]): boolean => {
 
 export default createRule({
 	scope: 'bem',
-	name: 'no-misplaced-side-effects',
+	name: 'no-misplaced-relational-styles',
 	meta: {
-		description: 'Requires BEM side-effects to be declared within the entity they affect.',
+		description: 'Requires relational styles for a BEM entity to be declared within that entity.',
 		deprecated: false,
 		fixable: false,
 	},
 	messages: {
 		misplaced: (target: string, owner: string | undefined) => owner
-			? `Expected side-effect on "${target}" to be declared within its own styles, but found within "${owner}"`
-			: `Expected side-effect on "${target}" to be declared within its own styles`,
+			? `Expected relational styles targeting "${target}" to be declared within that entity's styles, but found within "${owner}"`
+			: `Expected relational styles targeting "${target}" to be declared within that entity's styles`,
 	},
 	schema: {
 		primary: v.literal(true),
@@ -183,7 +183,7 @@ export default createRule({
 					bemBlock.blockName,
 					separators,
 				));
-			// `html .block` may define the root block without creating a BEM side-effect.
+			// `html .block` may define the root block without targeting another BEM entity.
 			// `.theme:hover .block__label` is different: the element is still a detached target.
 			if (
 				node === bemBlock.rule
