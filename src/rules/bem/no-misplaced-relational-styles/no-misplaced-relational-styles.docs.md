@@ -1,6 +1,6 @@
-# @morev/bem/no-misplaced-side-effects
+# @morev/bem/no-misplaced-relational-styles
 
-Requires BEM side-effects to be declared within the entity they affect.
+Requires relational styles for a BEM entity to be declared within that entity.
 
 ```scss
 .block {
@@ -104,7 +104,7 @@ removing an entity removes its contextual styles with it instead of leaving stal
 The rule complements [`@morev/bem/no-side-effects`](./no-side-effects):
 
 - `no-side-effects` prevents a component file from styling content outside its BEM block;
-- `no-misplaced-side-effects` verifies ownership of relations inside the block.
+- `no-misplaced-relational-styles` verifies ownership of relations inside the block.
 
 ## Modifiers
 
@@ -178,7 +178,7 @@ All options are optional and come with recommended default values.
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/no-misplaced-side-effects': true,
+    '@morev/bem/no-misplaced-relational-styles': true,
   }
 }
 ```
@@ -189,7 +189,7 @@ export default {
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/no-misplaced-side-effects': [true, {
+    '@morev/bem/no-misplaced-relational-styles': [true, {
       separators: {
         element: '__',
         modifier: '--',
@@ -243,7 +243,7 @@ export type NoMisplacedSideEffectsOptions = {
    */
   messages?: {
     /**
-     * Custom message for styles declared outside their target BEM entity.
+     * Custom message for relational styles declared outside their target BEM entity.
      *
      * @param   target   Target BEM entity.
      * @param   owner    BEM entity that currently owns the styles, or `undefined` for a detached selector.
@@ -280,7 +280,7 @@ For detached top-level selectors, `owner` is `undefined`.
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
-    '@morev/bem/no-misplaced-side-effects': [true, {
+    '@morev/bem/no-misplaced-relational-styles': [true, {
       messages: {
         misplaced: (target, owner) => owner
           ? `⛔ Move "${target}" from "${owner}" into its own styles.`
@@ -296,7 +296,7 @@ export default {
 ```ts
 export type MessagesOption = {
   /**
-   * Custom message for styles declared outside their target BEM entity.
+   * Custom message for relational styles declared outside their target BEM entity.
    *
    * @param   target   Target BEM entity.
    * @param   owner    BEM entity that currently owns the styles, or `undefined` for a detached selector.
