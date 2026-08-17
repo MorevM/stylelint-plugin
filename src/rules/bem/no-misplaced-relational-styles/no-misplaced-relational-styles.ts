@@ -1,53 +1,11 @@
-import { arrayUnique, isEmpty } from '@morev/utils';
+import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
-import { getBemBlock, isDirectBemEntity, resolveBemEntities } from '#modules/bem';
-import { isAtRule, isKeyframesRule, isRule } from '#modules/postcss';
+import { getBemBlock, resolveMostSpecificBemEntities } from '#modules/bem';
+import { isSelectorOwnerNode } from '#modules/postcss';
 import { createRule, extractSeparators, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
-import { getResolvedNodesSourceRange, resolveSelectorNodes, selectorNodesToString } from '#modules/selectors';
+import { getResolvedNodesSourceRange, resolveSelectorNodes, selectorNodesToString, splitSelectorCompounds } from '#modules/selectors';
 import type parser from 'postcss-selector-parser';
-import type { BemEntity } from '#modules/bem';
 import type { Separators } from '#modules/shared';
-
-/**
- * Splits a flat selector branch at top-level combinators.
- * For example, `.block:hover > .block__label` becomes two compounds:
- * `.block:hover` and `.block__label`.
- *
- * Combinators inside functional pseudos remain part of their containing node,
- * so `:has(.foo .bar)` is not split here.
- *
- * @param   nodes   Parsed selector nodes from one branch.
- *
- * @returns         Non-empty compounds in source order.
- */
-const splitCompounds = <Node extends parser.Node>(nodes: Node[]) => {
-	const compounds: Node[][] = [[]];
-
-	for (const node of nodes) {
-		if (node.type === 'combinator') {
-			compounds.push([]);
-			continue;
-		}
-
-		compounds.at(-1)!.push(node);
-	}
-
-	return compounds.filter((compound) => !isEmpty(compound));
-};
-
-/**
- * Ranks a BEM entity by the number of parts after its block.
- * For example, `.block` has rank 0, `.block__item` has rank 1,
- * and `.block__item--active` has rank 2.
- *
- * @param   entity   Resolved BEM entity.
- *
- * @returns          Structural depth of the entity.
- */
-const getEntitySpecificity = (entity: BemEntity) => {
-	return [entity.element, entity.modifierName, entity.modifierValue]
-		.filter(Boolean).length;
-};
 
 /**
  * Resolves the deepest direct BEM entities of the requested block in a compound.
@@ -68,18 +26,8 @@ const getMostSpecificEntities = (
 	blockName: string,
 	separators: Separators,
 ) => {
-	const selector = selectorNodesToString(nodes);
-	const entities = resolveBemEntities({ source: selector, separators })
-		.filter((entity) => entity.block.value === blockName)
-		.filter(isDirectBemEntity);
-	if (isEmpty(entities)) return [];
-
-	const highestSpecificity = Math.max(...entities.map((entity) => getEntitySpecificity(entity)));
-	return arrayUnique(
-		entities
-			.filter((entity) => getEntitySpecificity(entity) === highestSpecificity)
-			.map((entity) => entity.bemSelector),
-	);
+	return resolveMostSpecificBemEntities({ blockName, nodes, separators })
+		.map((entity) => entity.bemSelector);
 };
 
 /**
@@ -132,8 +80,7 @@ export default createRule({
 	root.walk((node) => {
 		// Only constructs that can own selectors participate in the rule.
 		// Keyframe steps such as `from` and `50%` must never be interpreted as selector ownership.
-		if (isKeyframesRule(node)) return;
-		if (!isAtRule(node, ['nest', 'at-root']) && !isRule(node)) return;
+		if (!isSelectorOwnerNode(node)) return;
 
 		const reportedViolations = new Set<string>();
 
@@ -147,7 +94,7 @@ export default createRule({
 
 			// A relation needs at least a source and a target compound.
 			// `.block__label:hover` is local state; `.block:hover .block__label` is a relation.
-			const compounds = splitCompounds(resolved);
+			const compounds = splitSelectorCompounds(resolved);
 			if (compounds.length < 2) return;
 
 			// A nested state may inherit an already-authored relation:
@@ -198,7 +145,7 @@ export default createRule({
 			// participates in the emitted selector. A flat relation still has no owner.
 			const ownerEntities = lexicalParent
 				? getMostSpecificEntities(
-					splitCompounds(lexicalParent).at(-1)!,
+					splitSelectorCompounds(lexicalParent).at(-1)!,
 					bemBlock.blockName,
 					separators,
 				)
