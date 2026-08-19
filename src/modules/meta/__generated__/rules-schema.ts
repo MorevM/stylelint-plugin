@@ -7,6 +7,7 @@ import type * as blockVariable from '#rules/bem/block-variable/block-variable.ty
 import type * as matchFileName from '#rules/bem/match-file-name/match-file-name.types';
 import type * as noBlockProperties from '#rules/bem/no-block-properties/no-block-properties.types';
 import type * as noChainedEntities from '#rules/bem/no-chained-entities/no-chained-entities.types';
+import type * as noGroupedEntities from '#rules/bem/no-grouped-entities/no-grouped-entities.types';
 import type * as noMisplacedRelationalStyles from '#rules/bem/no-misplaced-relational-styles/no-misplaced-relational-styles.types';
 import type * as noSideEffects from '#rules/bem/no-side-effects/no-side-effects.types';
 import type * as selectorPattern from '#rules/bem/selector-pattern/selector-pattern.types';
@@ -41,6 +42,13 @@ export type RulesSchema = {
 	 * @see https://morevm.github.io/stylelint-plugin/rules/bem/no-misplaced-relational-styles.html
 	 */
 	'@morev/bem/no-misplaced-relational-styles': RuleSetting<noMisplacedRelationalStyles.PrimaryOption, noMisplacedRelationalStyles.SecondaryOption>;
+
+	/**
+	 * Prevents BEM entities from having both grouped and separate declarations.
+	 *
+	 * @see https://morevm.github.io/stylelint-plugin/rules/bem/no-grouped-entities.html
+	 */
+	'@morev/bem/no-grouped-entities': RuleSetting<noGroupedEntities.PrimaryOption, noGroupedEntities.SecondaryOption>;
 
 	/**
 	 * Disallows splitting BEM entities across multiple chained `&` selectors in SCSS.

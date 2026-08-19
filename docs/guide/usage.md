@@ -110,6 +110,7 @@ export default {
           presets: ['EXTERNAL_GEOMETRY', 'CONTEXT_DEPENDENT'], // [!code ++]
         }], // [!code ++]
         '@morev/bem/no-chained-entities': true, // [!code ++]
+        '@morev/bem/no-grouped-entities': true, // [!code ++]
         '@morev/bem/no-misplaced-relational-styles': true, // [!code ++]
         '@morev/bem/no-side-effects': true, // [!code ++]
         '@morev/bem/selector-pattern': true, // [!code ++]
@@ -203,6 +204,7 @@ export default {
           ignoreBlocks: ['*swiper*'],
         }],
         '@morev/bem/no-chained-entities': [true, {}],
+        '@morev/bem/no-grouped-entities': [true, {}],
         '@morev/bem/no-misplaced-relational-styles': [true, {}],
         '@morev/bem/no-side-effects': [true, {
           ignore: [

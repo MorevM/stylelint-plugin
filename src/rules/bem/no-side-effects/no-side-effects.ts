@@ -1,7 +1,7 @@
 import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
-import { isAtRule, isKeyframesRule, isRule } from '#modules/postcss';
+import { isSelectorOwnerNode } from '#modules/postcss';
 import { createRule, extractSeparators, mergeMessages, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { resolveSelectorNodes } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
@@ -48,9 +48,8 @@ export default createRule({
 	root.walk((node) => {
 		// Do not check the block itself
 		if (node === bemBlock.rule) return;
-		if (isKeyframesRule(node)) return;
 		// All other constructs are irrelevant to selector analysis.
-		if (!isAtRule(node, ['nest', 'at-root']) && !isRule(node)) return;
+		if (!isSelectorOwnerNode(node)) return;
 
 		resolveSelectorNodes({ node }).forEach(({ resolved }) => {
 			// Incomplete input
