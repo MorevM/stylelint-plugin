@@ -217,6 +217,13 @@ testRule({
 			`,
 		},
 		{
+			description: 'Ignores nested selector lists inside functional pseudo-classes',
+			code: `
+				.block:nth-child(2n of :is(.block__title, .block__label)),
+				.block__item {}
+			`,
+		},
+		{
 			description: 'Ignores unresolved interpolation and ambiguous targets',
 			code: `
 				.block {
