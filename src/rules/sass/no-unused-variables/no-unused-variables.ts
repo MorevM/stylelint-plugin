@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { isDeclaration, isRule } from '#modules/postcss';
+import { isComment, isDeclaration, isRule } from '#modules/postcss';
 import { createRule, isCssFile, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { getSassVariableReferences, isSimpleSassVariableName, normalizeSassMemberName } from '#modules/sass';
 import { toRegExp } from '#modules/shared';
@@ -99,7 +99,7 @@ export default createRule({
 	// Next, we collect all used variables
 	// and register their usage in each corresponding scope.
 	root.walk((node) => {
-		if (node.type === 'comment') return;
+		if (isComment(node)) return;
 
 		const references = (() => {
 			if (node.type === 'rule') {

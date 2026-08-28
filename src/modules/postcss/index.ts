@@ -5,6 +5,7 @@ export * from './get-rule-content-meta/get-rule-content-meta';
 export * from './get-rule-declarations/get-rule-declarations';
 export * from './has-ancestor-rule/has-ancestor-rule';
 export * from './is-at-rule/is-at-rule';
+export * from './is-comment/is-comment';
 export * from './is-declaration/is-declaration';
 export * from './is-keyframes-rule/is-keyframes-rule';
 export * from './is-node-within/is-node-within';
