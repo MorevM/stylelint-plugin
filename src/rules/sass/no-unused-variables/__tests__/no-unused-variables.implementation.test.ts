@@ -41,6 +41,16 @@ testRule({
 			`,
 		},
 		{
+			description: 'Variable used in a spaced interpolation',
+			code: `
+				.the-component {
+					$b: #{&};
+
+					#{ $b }__element {}
+				}
+			`,
+		},
+		{
 			description: 'Variable used in a nested selector',
 			code: `
 				.the-component {
@@ -96,6 +106,26 @@ testRule({
 						width: $width;
 						height: calc($height * 2);
 					}
+				}
+			`,
+		},
+		{
+			description: 'Variable interpolated in a quoted value',
+			code: `
+				.the-component {
+					$value: value;
+
+					content: "#{$value}";
+				}
+			`,
+		},
+		{
+			description: 'Variable interpolated in a custom property',
+			code: `
+				.the-component {
+					$color: red;
+
+					--color: #{$color};
 				}
 			`,
 		},
@@ -223,6 +253,38 @@ testRule({
 					message: messages.unused('$b'),
 					line: 2, column: 2,
 					endLine: 2, endColumn: 11,
+				},
+			],
+		},
+		{
+			description: 'Module-qualified reference does not use a local variable',
+			code: `
+				.the-component {
+					$color: red;
+					color: theme.$color;
+				}
+			`,
+			warnings: [
+				{
+					message: messages.unused('$color'),
+					line: 2, column: 2,
+					endLine: 2, endColumn: 14,
+				},
+			],
+		},
+		{
+			description: 'Plain custom-property value does not use a local variable',
+			code: `
+				.the-component {
+					$color: red;
+					--color: $color;
+				}
+			`,
+			warnings: [
+				{
+					message: messages.unused('$color'),
+					line: 2, column: 2,
+					endLine: 2, endColumn: 14,
 				},
 			],
 		},
