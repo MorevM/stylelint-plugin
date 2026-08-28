@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { isRule } from '#modules/postcss';
+import { isDeclaration, isRule } from '#modules/postcss';
 import { createRule, isCssFile, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { getSassVariableReferences, isSimpleSassVariableName, normalizeSassMemberName } from '#modules/sass';
 import { toRegExp } from '#modules/shared';
@@ -60,7 +60,7 @@ export default createRule({
 		}
 
 		// Skip nodes that aren't SASS variable declarations.
-		if (node.type !== 'decl' || !isSimpleSassVariableName(node.prop)) return;
+		if (!isDeclaration(node) || !isSimpleSassVariableName(node.prop)) return;
 
 		// Top-level variables can be imported by other files,
 		// so they are not checked by default.

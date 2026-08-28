@@ -1,3 +1,4 @@
+import { isDeclaration } from '#modules/postcss/is-declaration/is-declaration';
 import type { AtRule, ChildNode } from 'postcss';
 import type { DeclarationWithAtRulePath } from '../../get-rule-declarations.types';
 
@@ -41,7 +42,7 @@ export const collectDeclarationsWithPath = (
 	while (stack.length) {
 		const { node, path } = stack.pop()!;
 
-		if (node.type === 'decl') {
+		if (isDeclaration(node)) {
 			result.push({ declaration: node, atRulePath: path });
 			continue;
 		}

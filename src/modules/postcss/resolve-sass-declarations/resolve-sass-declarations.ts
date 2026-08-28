@@ -1,3 +1,4 @@
+import { isDeclaration } from '#modules/postcss/is-declaration/is-declaration';
 import {
 	isSimpleSassVariableName,
 	normalizeSassMemberName,
@@ -56,7 +57,7 @@ export const resolveSassDeclarations = (
 
 	for (const child of node.nodes ?? []) {
 		if (child === options.stopBefore) break;
-		if (child.type !== 'decl' || !isSimpleSassVariableName(child.prop)) continue;
+		if (!isDeclaration(child) || !isSimpleSassVariableName(child.prop)) continue;
 
 		const resolved = resolveSassValueWithMeta(child.value, {
 			...variables,
