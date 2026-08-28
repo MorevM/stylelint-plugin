@@ -1,6 +1,7 @@
 import * as v from 'valibot';
 import { isRule } from '#modules/postcss';
 import { createRule, isCssFile, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { isSimpleSassVariableName, normalizeSassMemberName } from '#modules/sass';
 import { toRegExp } from '#modules/shared';
 import type { Declaration, Node } from 'postcss';
 import type { Scope } from './no-unused-variables.types';
@@ -89,7 +90,7 @@ export default createRule({
 		}
 
 		// Skip nodes that aren't SASS variable declarations.
-		if (node.type !== 'decl' || !/^\$[\w-]+$/.test(node.prop)) return;
+		if (node.type !== 'decl' || !isSimpleSassVariableName(node.prop)) return;
 
 		// Top-level variables can be imported by other files,
 		// so they are not checked by default.
@@ -97,7 +98,7 @@ export default createRule({
 
 		// If multiple variables share the same name,
 		// only the most recent one should be taken into account.
-		ensureScope(node.parent).variables.set(node.prop, node);
+		ensureScope(node.parent).variables.set(normalizeSassMemberName(node.prop), node);
 		seenVariables.add(node);
 	});
 
@@ -168,7 +169,9 @@ export default createRule({
 		// it is treated as used for all its parent scopes.
 		const parentScopeNodes = getParentScopeWithNodes(node);
 		parentScopeNodes.forEach(([parentScope]) => {
-			variables.forEach((variable) => parentScope?.usages.add(variable));
+			variables.forEach((variable) => {
+				parentScope?.usages.add(normalizeSassMemberName(variable));
+			});
 		});
 	});
 
@@ -188,14 +191,15 @@ export default createRule({
 				([parentScope, scopeNode]) => !isRule(scopeNode) && parentScope?.usages.has(name),
 			)) { return; }
 
+			const authoredName = declaration.prop;
 			const isIgnored = normalizedIgnorePatterns
-				.some((pattern) => pattern.test(name.slice(1)));
+				.some((pattern) => pattern.test(authoredName.slice(1)));
 
 			if (isIgnored) return;
 
 			report({
-				message: messages.unused(name),
-				messageArgs: ['unused', name],
+				message: messages.unused(authoredName),
+				messageArgs: ['unused', authoredName],
 				node: declaration,
 			});
 		});

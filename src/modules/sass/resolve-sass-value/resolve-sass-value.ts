@@ -1,9 +1,8 @@
 import { isNullish } from '@morev/utils';
 import parseValue from 'postcss-value-parser';
+import { normalizeSassMemberName } from '../normalize-sass-member-name/normalize-sass-member-name';
 import type { Node as ValueNode } from 'postcss-value-parser';
-import type { ResolvedSelectorSubstitutions } from '#modules/selectors';
-
-type Variables = Exclude<ResolvedSelectorSubstitutions, null>;
+import type { ResolvedSassValue, SassVariableBindings } from '../types';
 
 const SIMPLE_INTERPOLATION_REGEXP = /#{\s*(&|\$[\w-]+)\s*}/g;
 
@@ -14,7 +13,7 @@ const SIMPLE_INTERPOLATION_REGEXP = /#{\s*(&|\$[\w-]+)\s*}/g;
  * Resolution still happens after parsing.
  * Complex expressions remain unchanged and unsupported.
  *
- * @param   value   Variable value to normalize.
+ * @param   value   Sass value to normalize.
  *
  * @returns         Value with compact simple interpolations.
  */
@@ -34,55 +33,68 @@ const normalizeSimpleInterpolations = (value: string) => {
  * @example
  * resolveWordWithInterpolations('#{$b}__link', { '$b': '.block' }) // '.block__link'
  *
- * @param   word   A single word token value that may contain `#{...}` segments.
- * @param   vars   Map of known variables (including '&') to their concrete string values.
+ * @param   word        A single word token value that may contain `#{...}` segments.
+ * @param   variables   Map of known variables (including '&') to their concrete string values.
  *
- * @returns        The word with all simple interpolations substituted, or null if any interpolation is unsupported.
+ * @returns             The word with all simple interpolations substituted, or null if any interpolation is unsupported.
  */
-const resolveWordWithInterpolations = (word: string, vars: Variables): string | null => {
+const resolveWordWithInterpolations = (
+	word: string,
+	variables: SassVariableBindings,
+): ResolvedSassValue | null => {
 	// Very narrow parser: allow only #{<single-token>} where token is `$var` or `&`
 	// e.g. "#{$b}", "#{&}"
 	const re = /#{([^}]+)}/g;
 
 	let out = '';
+	const literalRanges: ResolvedSassValue['literalRanges'] = [];
 	let lastIndex = 0;
 	for (let m = re.exec(word); m; m = re.exec(word)) {
-		out += word.slice(lastIndex, m.index);
+		const literal = word.slice(lastIndex, m.index);
+		if (literal) {
+			literalRanges.push([out.length, out.length + literal.length]);
+			out += literal;
+		}
 		const inner = m[1].trim();
 
 		// Disallow anything complex inside interpolation
 		if (!(inner === '&' || inner.startsWith('$'))) return null;
 
-		const replacement = vars[inner];
+		const replacement = variables[normalizeSassMemberName(inner)];
 		if (isNullish(replacement)) return null;
 
 		out += replacement;
 		lastIndex = m.index + m[0].length;
 	}
-	out += word.slice(lastIndex);
+
+	const trailingLiteral = word.slice(lastIndex);
+	if (trailingLiteral) {
+		literalRanges.push([out.length, out.length + trailingLiteral.length]);
+		out += trailingLiteral;
+	}
 
 	// If after substitution we still have an unmatched "#{", bail out
 	if (out.includes('#{')) return null;
 
-	return out;
+	return { value: out, literalRanges };
 };
 
 /**
  * Resolves a single operand token into a plain string or returns null if it is not a simple string operand.
  *
- * @param   node   A single normalized token that is expected to represent an operand.
- * @param   vars   Map of known variables (including '&') to their concrete string values.
+ * @param   node        A single normalized token that is expected to represent an operand.
+ * @param   variables   Map of known variables (including '&') to their concrete string values.
  *
- * @returns        Resolved string for the operand, or `null` if the operand is not statically resolvable.
+ * @returns             Resolved string for the operand, or `null` if the operand is not statically resolvable.
  */
-const resolveOperand = (node: ValueNode, vars: Variables): string | null => {
+const resolveOperand = (node: ValueNode, variables: SassVariableBindings): ResolvedSassValue | null => {
 	// Any function call => complex
 	if (node.type === 'function') return null;
 	// Quoted string literal
 	if (node.type === 'string') {
 		return node.value.includes('#{')
-			? resolveWordWithInterpolations(node.value, vars)
-			: node.value;
+			? resolveWordWithInterpolations(node.value, variables)
+			: { value: node.value, literalRanges: [[0, node.value.length]] };
 	}
 	// A "word" can be:
 	// - a bare literal: .block, __link, --active
@@ -95,16 +107,17 @@ const resolveOperand = (node: ValueNode, vars: Variables): string | null => {
 
 		// Pure variable or ampersand
 		if (node.value.startsWith('$') || node.value === '&') {
-			return vars[node.value] ?? null;
+			const value = variables[normalizeSassMemberName(node.value)];
+			return isNullish(value) ? null : { value, literalRanges: [] };
 		}
 
 		// Word with possible interpolations like "#{$b}__link" or "#{&}--mod"
 		if (node.value.includes('#{')) {
-			return resolveWordWithInterpolations(node.value, vars);
+			return resolveWordWithInterpolations(node.value, variables);
 		}
 
 		// Bare word literal (treat as string chunk)
-		return node.value;
+		return { value: node.value, literalRanges: [[0, node.value.length]] };
 	}
 
 	// `div` (e.g. `/`, `,`) and other node types
@@ -120,7 +133,7 @@ const resolveOperand = (node: ValueNode, vars: Variables): string | null => {
  * e.g. `$b+'__x'` becomes [{ type: 'word', value: '$b+' }, { type: 'string', value: '__x' }].
  * Our resolver expects a `word` with `+` value regardless of whitespace.
  *
- * @param   nodes   Value nodes with spaces/comments already removed.
+ * @param   nodes   Value nodes to normalize.
  *
  * @returns         A list of tokens where each `+` between words becomes a `{ type: 'word', value: '+' }`.
  */
@@ -150,12 +163,12 @@ const normalizeTokens = (nodes: ValueNode[]): ValueNode[] => {
 };
 
 /**
- * Resolve a SCSS variable value to a plain string when it's composed only of
- * concatenations of known strings/variables and simple interpolations.
+ * Resolves a Sass value to a plain string when it consists only of
+ * known strings, variables, and simple interpolations.
  *
  * Supported:
  * - String literals: 'foo', "bar", bare words like `.block` or `__link`
- * - Variables (including '&'): `$b`, `&` — must be present in variablesMap
+ * - Variables (including '&'): `$b`, `&` — must have a known binding
  * - Concatenation with `+`: `$b + '__link' + '--active'`
  * - Interpolations inside a word: `#{$b}__link`, `#{&}--active`
  *
@@ -165,29 +178,75 @@ const normalizeTokens = (nodes: ValueNode[]): ValueNode[] => {
  * - Interpolation containing anything other than a single variable or `&`
  * - Unknown variables (missing or mapped to `null`)
  *
- * @param   value       A variable value to resolve.
- * @param   variables
+ * @param   value       Sass value to resolve.
+ * @param   variables   Statically known variable bindings.
  *
- * @returns
+ * @returns             Resolved value with literal provenance, or `null` when resolution is unsafe.
  */
-export const resolveSassVariable = (
+export const resolveSassValueWithMeta = (
 	value: string,
-	variables: Variables,
-): string | null => {
-	// Flat token stream, skip spaces and comments.
+	variables: SassVariableBindings,
+): ResolvedSassValue | null => {
+	const normalizedVariables = Object.fromEntries(
+		Object.entries(variables).map(([name, variableValue]) => {
+			return [normalizeSassMemberName(name), variableValue];
+		}),
+	);
+	// Flat token stream, skip comments.
 	const normalizedValue = normalizeSimpleInterpolations(value);
 	const valueNodes = parseValue(normalizedValue).nodes
-		.filter((n) => n.type !== 'space' && n.type !== 'comment');
+		.filter((n) => n.type !== 'comment');
 	const tokens = normalizeTokens(valueNodes);
+	const hasExplicitConcatenation = tokens
+		.some((token) => token.type === 'word' && token.value === '+');
+
+	if (!hasExplicitConcatenation) {
+		let hasOperand = false;
+		let pendingSpace = '';
+		const result: ResolvedSassValue = { value: '', literalRanges: [] };
+
+		for (const token of tokens) {
+			if (token.type === 'space') {
+				if (hasOperand) pendingSpace += token.value;
+				continue;
+			}
+			if (token.type === 'word' && ['-', '*', '%'].includes(token.value)) return null;
+
+			const part = resolveOperand(token, normalizedVariables);
+			if (part === null) return null;
+			if (pendingSpace) {
+				result.literalRanges.push([
+					result.value.length,
+					result.value.length + pendingSpace.length,
+				]);
+				result.value += pendingSpace;
+				pendingSpace = '';
+			}
+			const offset = result.value.length;
+			result.value += part.value;
+			result.literalRanges.push(
+				...part.literalRanges.map(([start, end]) => [start + offset, end + offset] as [number, number]),
+			);
+			hasOperand = true;
+		}
+
+		return hasOperand ? result : null;
+	}
+
+	const tokensWithoutSpaces = tokens.filter((token) => token.type !== 'space');
 
 	let isExpectingOperand = true;
-	let acc = '';
+	const acc: ResolvedSassValue = { value: '', literalRanges: [] };
 
-	for (const token of tokens) {
+	for (const token of tokensWithoutSpaces) {
 		if (isExpectingOperand) {
-			const part = resolveOperand(token, variables);
+			const part = resolveOperand(token, normalizedVariables);
 			if (part === null) return null;
-			acc += part;
+			const offset = acc.value.length;
+			acc.value += part.value;
+			acc.literalRanges.push(
+				...part.literalRanges.map(([start, end]) => [start + offset, end + offset] as [number, number]),
+			);
 			isExpectingOperand = false;
 			continue;
 		}
@@ -208,3 +267,8 @@ export const resolveSassVariable = (
 
 	return acc;
 };
+
+export const resolveSassValue = (
+	value: string,
+	variables: SassVariableBindings,
+): string | null => resolveSassValueWithMeta(value, variables)?.value ?? null;

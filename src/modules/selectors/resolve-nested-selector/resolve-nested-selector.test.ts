@@ -709,6 +709,23 @@ describe(resolveNestedSelector, () => {
 				]);
 			});
 
+			it('Resolves Sass-equivalent variable names in both directions', () => {
+				const code = `
+					$menu-item: .menu-item;
+					$card_item: .card-item;
+
+					.block {
+						#{$menu_item} {}
+						#{$card-item} {}
+					}
+				`;
+
+				expect(resolveSelectorInContext(code, '#{$menu_item}')[0]?.resolved)
+					.toBe('.block .menu-item');
+				expect(resolveSelectorInContext(code, '#{$card-item}')[0]?.resolved)
+					.toBe('.block .card-item');
+			});
+
 			it('Resolves `&` and `#{&}` in nested selector', () => {
 				const code = `
 					.block {

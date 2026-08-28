@@ -64,6 +64,18 @@ testRule({
 			`,
 		},
 		{
+			description: 'Variables used through Sass-equivalent names',
+			code: `
+				.the-component {
+					$menu-item: #{&}__menu-item;
+					$card_item: #{&}__card-item;
+
+					#{$menu_item} {}
+					#{$card-item} {}
+				}
+			`,
+		},
+		{
 			description: 'Variable used in property name',
 			code: `
 				.the-component {
@@ -258,6 +270,22 @@ testRule({
 					message: messages.unused('$foo'),
 					line: 8, column: 2,
 					endLine: 8, endColumn: 13,
+				},
+			],
+		},
+		{
+			description: 'Reports only the last Sass-equivalent declaration',
+			code: `
+				.the-component {
+					$foo-bar: #{&};
+					$foo_bar: #{&};
+				}
+			`,
+			warnings: [
+				{
+					message: messages.unused('$foo_bar'),
+					line: 3, column: 2,
+					endLine: 3, endColumn: 17,
 				},
 			],
 		},

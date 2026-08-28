@@ -8,4 +8,4 @@ export * from './is-pseudo-element-node/is-pseudo-element-node';
 export * from './is-rule/is-rule';
 export * from './is-same-node/is-same-node';
 export * from './is-selector-owner-node/is-selector-owner-node';
-export * from './resolve-sass-variable/resolve-sass-variable';
+export * from './resolve-sass-declarations/resolve-sass-declarations';
