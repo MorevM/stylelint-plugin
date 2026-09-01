@@ -25,11 +25,11 @@ describe(resolveSassDeclarations, () => {
 		}))).toStrictEqual([
 			{
 				name: '$b',
-				resolved: { value: '.block', literalRanges: [] },
+				resolved: { value: '.block', literalRanges: [], reference: 'self' },
 			},
 			{
 				name: '$item',
-				resolved: { value: '.block__item', literalRanges: [[6, 12]] },
+				resolved: { value: '.block__item', literalRanges: [[6, 12]], reference: null },
 			},
 		]);
 		expect(result.variables).not.toHaveProperty('$late');
@@ -49,12 +49,14 @@ describe(resolveSassDeclarations, () => {
 		expect(result.declarations[1].resolved).toStrictEqual({
 			value: '.block__menu-item',
 			literalRanges: [],
+			reference: 'variable',
 		});
 		expect(result.variables.$menu_item).toBe('.block__menu-item');
 		expect(result.variables['$menu-item']).toBe('.block__menu-item');
 		expect(result.declarations[3].resolved).toStrictEqual({
 			value: '.block__link',
 			literalRanges: [],
+			reference: 'variable',
 		});
 	});
 

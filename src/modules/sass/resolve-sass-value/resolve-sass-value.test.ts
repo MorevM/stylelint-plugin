@@ -165,6 +165,7 @@ describe(resolveSassValueWithMeta, () => {
 		expect(resolveSassValueWithMeta(`#{$b}__it + 'em'`, vars)).toStrictEqual({
 			value: '.block__item',
 			literalRanges: [[6, 10], [10, 12]],
+			reference: null,
 		});
 	});
 
@@ -172,6 +173,7 @@ describe(resolveSassValueWithMeta, () => {
 		expect(resolveSassValueWithMeta('$selector', vars)).toStrictEqual({
 			value: '.block + .link',
 			literalRanges: [],
+			reference: 'variable',
 		});
 	});
 
@@ -179,6 +181,15 @@ describe(resolveSassValueWithMeta, () => {
 		expect(resolveSassValueWithMeta('.theme #{$b}__item', vars)).toStrictEqual({
 			value: '.theme .block__item',
 			literalRanges: [[0, 6], [6, 7], [13, 19]],
+			reference: null,
 		});
+	});
+
+	it('Distinguishes variable and self references', () => {
+		expect(resolveSassValueWithMeta('#{$selector}', vars)?.reference).toBe('variable');
+		expect(resolveSassValueWithMeta("'#{$selector}'", vars)?.reference).toBe('variable');
+		expect(resolveSassValueWithMeta('#{&}', vars)?.reference).toBe('self');
+		expect(resolveSassValueWithMeta('&', vars)?.reference).toBe('self');
+		expect(resolveSassValueWithMeta('#{&}__item', vars)?.reference).toBeNull();
 	});
 });

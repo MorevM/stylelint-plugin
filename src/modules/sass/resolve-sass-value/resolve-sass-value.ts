@@ -48,6 +48,7 @@ const resolveWordWithInterpolations = (
 
 	let out = '';
 	const literalRanges: ResolvedSassValue['literalRanges'] = [];
+	let reference: ResolvedSassValue['reference'] = null;
 	let lastIndex = 0;
 	for (let m = re.exec(word); m; m = re.exec(word)) {
 		const literal = word.slice(lastIndex, m.index);
@@ -59,6 +60,9 @@ const resolveWordWithInterpolations = (
 
 		// Disallow anything complex inside interpolation
 		if (!(inner === '&' || inner.startsWith('$'))) return null;
+		if (m.index === 0 && m[0].length === word.length) {
+			reference = inner === '&' ? 'self' : 'variable';
+		}
 
 		const replacement = variables[normalizeSassMemberName(inner)];
 		if (isNullish(replacement)) return null;
@@ -76,7 +80,7 @@ const resolveWordWithInterpolations = (
 	// If after substitution we still have an unmatched "#{", bail out
 	if (out.includes('#{')) return null;
 
-	return { value: out, literalRanges };
+	return { value: out, literalRanges, reference };
 };
 
 /**
@@ -94,7 +98,7 @@ const resolveOperand = (node: ValueNode, variables: SassVariableBindings): Resol
 	if (node.type === 'string') {
 		return node.value.includes('#{')
 			? resolveWordWithInterpolations(node.value, variables)
-			: { value: node.value, literalRanges: [[0, node.value.length]] };
+			: { value: node.value, literalRanges: [[0, node.value.length]], reference: null };
 	}
 	// A "word" can be:
 	// - a bare literal: .block, __link, --active
@@ -108,7 +112,13 @@ const resolveOperand = (node: ValueNode, variables: SassVariableBindings): Resol
 		// Pure variable or ampersand
 		if (node.value.startsWith('$') || node.value === '&') {
 			const value = variables[normalizeSassMemberName(node.value)];
-			return isNullish(value) ? null : { value, literalRanges: [] };
+			return isNullish(value)
+				? null
+				: {
+					value,
+					literalRanges: [],
+					reference: node.value === '&' ? 'self' : 'variable',
+				};
 		}
 
 		// Word with possible interpolations like "#{$b}__link" or "#{&}--mod"
@@ -117,7 +127,7 @@ const resolveOperand = (node: ValueNode, variables: SassVariableBindings): Resol
 		}
 
 		// Bare word literal (treat as string chunk)
-		return { value: node.value, literalRanges: [[0, node.value.length]] };
+		return { value: node.value, literalRanges: [[0, node.value.length]], reference: null };
 	}
 
 	// `div` (e.g. `/`, `,`) and other node types
@@ -203,7 +213,7 @@ export const resolveSassValueWithMeta = (
 	if (!hasExplicitConcatenation) {
 		let hasOperand = false;
 		let pendingSpace = '';
-		const result: ResolvedSassValue = { value: '', literalRanges: [] };
+		const result: ResolvedSassValue = { value: '', literalRanges: [], reference: null };
 
 		for (const token of tokens) {
 			if (token.type === 'space') {
@@ -224,6 +234,7 @@ export const resolveSassValueWithMeta = (
 			}
 			const offset = result.value.length;
 			result.value += part.value;
+			result.reference = hasOperand ? null : part.reference;
 			result.literalRanges.push(
 				...part.literalRanges.map(([start, end]) => [start + offset, end + offset] as [number, number]),
 			);
@@ -236,7 +247,7 @@ export const resolveSassValueWithMeta = (
 	const tokensWithoutSpaces = tokens.filter((token) => token.type !== 'space');
 
 	let isExpectingOperand = true;
-	const acc: ResolvedSassValue = { value: '', literalRanges: [] };
+	const acc: ResolvedSassValue = { value: '', literalRanges: [], reference: null };
 
 	for (const token of tokensWithoutSpaces) {
 		if (isExpectingOperand) {
