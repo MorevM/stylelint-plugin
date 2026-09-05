@@ -83,7 +83,7 @@
 		"postcss": "^8.5.16",
 		"postcss-selector-parser": "^7.1.4",
 		"postcss-value-parser": "^4.2.0",
-		"type-fest": "^5.8.0",
+		"type-fest": "^5.9.0",
 		"valibot": "^1.4.2"
 	},
 	"devDependencies": {
