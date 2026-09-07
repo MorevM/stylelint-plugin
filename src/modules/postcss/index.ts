@@ -10,6 +10,7 @@ export * from './is-declaration/is-declaration';
 export * from './is-keyframes-rule/is-keyframes-rule';
 export * from './is-node-within/is-node-within';
 export * from './is-pseudo-element-node/is-pseudo-element-node';
+export * from './is-root/is-root';
 export * from './is-rule/is-rule';
 export * from './is-same-node/is-same-node';
 export * from './is-selector-owner-node/is-selector-owner-node';

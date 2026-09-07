@@ -1,5 +1,5 @@
 import { assert, isEmpty, isNullish, tsObject } from '@morev/utils';
-import { getRoot, isAtRule, isRule, resolveSassDeclarations } from '#modules/postcss';
+import { getRoot, isAtRule, isRoot, isRule, resolveSassDeclarations } from '#modules/postcss';
 import { normalizeSassMemberName } from '#modules/sass';
 import { split } from './utils';
 import type { AtRule, ChildNode, Node, Root, Rule } from 'postcss';
@@ -206,7 +206,7 @@ const getTrees = (
 	const walk = (current: Node, path: PathItem[]) => {
 		const { parent } = current;
 
-		if (!parent || parent.type === 'root') {
+		if (!parent || isRoot(parent)) {
 			results.push(path);
 			return;
 		}
