@@ -1,10 +1,10 @@
 import { isEmpty } from '@morev/utils';
 import * as v from 'valibot';
 import { resolveMostSpecificBemEntities } from '#modules/bem';
-import { isSelectorOwnerNode } from '#modules/postcss';
+import { isNodeWithin, isSelectorOwnerNode } from '#modules/postcss';
 import { createRule, extractSeparators, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
 import { getResolvedNodesSourceRange, resolveSelectorNodes, selectorNodesToString, splitSelectorCompounds } from '#modules/selectors';
-import type { AtRule, Node, Rule } from 'postcss';
+import type { AtRule, Rule } from 'postcss';
 import type parser from 'postcss-selector-parser';
 import type { ResolvedNode } from '#modules/selectors';
 import type { Separators } from '#modules/shared';
@@ -166,25 +166,6 @@ const analyzeSelectorList = (
 	return { node, targets };
 };
 
-/**
- * Checks whether a selector-owning node belongs to the lexical subtree of a group.
- *
- * @param   node    Candidate node.
- * @param   group   Selector-list group that may own the candidate.
- *
- * @returns         Whether the candidate is the group itself or one of its descendants.
- */
-const isWithinGroup = (node: Node, group: Node) => {
-	let current: Node | undefined = node;
-
-	while (current) {
-		if (current === group) return true;
-		current = current.parent;
-	}
-
-	return false;
-};
-
 export default createRule({
 	scope: 'bem',
 	name: 'no-grouped-entities',
@@ -258,7 +239,7 @@ export default createRule({
 			// Descendants remain owned by the original group
 			// and do not count as separate declarations.
 			const redeclaration = analyses.find((candidate) => {
-				return !isWithinGroup(candidate.node, analysis.node)
+				return !isNodeWithin(candidate.node, analysis.node, { inclusive: true })
 					&& candidate.targets.has(entity);
 			});
 			const redeclarationRange = redeclaration?.targets.get(entity);

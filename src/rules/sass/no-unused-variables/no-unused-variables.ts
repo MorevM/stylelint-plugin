@@ -1,39 +1,10 @@
 import * as v from 'valibot';
-import { isRule } from '#modules/postcss';
+import { isComment, isDeclaration, isRule } from '#modules/postcss';
 import { createRule, isCssFile, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { getSassVariableReferences, isSimpleSassVariableName, normalizeSassMemberName } from '#modules/sass';
 import { toRegExp } from '#modules/shared';
 import type { Declaration, Node } from 'postcss';
 import type { Scope } from './no-unused-variables.types';
-
-/**
- * Extracts SASS variable references from the given string.
- *
- * Supports both plain (`$var`) and interpolated (`#{$var}`) usages.
- * Optionally filters only interpolated variables when `onlyInterpolated` is `true`.
- *
- * Variables inside strings (e.g. `"$var"` or `'\\$var'`) are excluded in plain mode.
- *
- * @example
- * extractSassVariables('#{$b}__element', true); // ['$b']
- * extractSassVariables('width: $width;', false); // ['$width']
- * extractSassVariables('content: "$foo"', false); // []
- *
- * @param   input              The input string (e.g. a selector, property, or value) to search within.
- * @param   onlyInterpolated   Whether to extract only interpolated variables (i.e. `#{$var}`).
- *
- * @returns                    A list of matched variable names, including the leading `$` symbol.
- */
-const extractSassVariables = (input: string, onlyInterpolated: boolean) => {
-	const regExp = onlyInterpolated
-		? /#{(\$[\w-]+)}/g
-		: /(?<!["'\\])(\$[\w-]+)/g;
-
-	return [...input.matchAll(regExp)].reduce<string[]>((acc, current) => {
-		const [_, variableName] = current;
-		if (variableName) acc.push(variableName);
-		return acc;
-	}, []);
-};
 
 export default createRule({
 	scope: 'sass',
@@ -89,7 +60,7 @@ export default createRule({
 		}
 
 		// Skip nodes that aren't SASS variable declarations.
-		if (node.type !== 'decl' || !/^\$[\w-]+$/.test(node.prop)) return;
+		if (!isDeclaration(node) || !isSimpleSassVariableName(node.prop)) return;
 
 		// Top-level variables can be imported by other files,
 		// so they are not checked by default.
@@ -97,7 +68,7 @@ export default createRule({
 
 		// If multiple variables share the same name,
 		// only the most recent one should be taken into account.
-		ensureScope(node.parent).variables.set(node.prop, node);
+		ensureScope(node.parent).variables.set(normalizeSassMemberName(node.prop), node);
 		seenVariables.add(node);
 	});
 
@@ -128,36 +99,38 @@ export default createRule({
 	// Next, we collect all used variables
 	// and register their usage in each corresponding scope.
 	root.walk((node) => {
-		if (node.type === 'comment') return;
+		if (isComment(node)) return;
 
-		const variables = (() => {
+		const references = (() => {
 			if (node.type === 'rule') {
 				// #{$b}__element
-				return extractSassVariables(node.selector, true);
+				return getSassVariableReferences(node.selector, 'interpolation');
 			}
 
 			if (node.type === 'decl') {
+				const valueMode = node.prop.startsWith('--') ? 'interpolation' : 'expression';
+
 				// Do not count the variable's own declaration as its usage;
 				// only the value should be checked
 				// for scenarios like `$foo: #{$bar}__baz`.
 				if (seenVariables.has(node)) {
-					return extractSassVariables(node.value, false);
+					return getSassVariableReferences(node.value, valueMode);
 				}
 
 				return [
 					// #{$property}: 100px;
-					...extractSassVariables(node.prop, false),
+					...getSassVariableReferences(node.prop, 'interpolation'),
 					// width: $width;
-					...extractSassVariables(node.value, false),
+					...getSassVariableReferences(node.value, valueMode),
 				];
 			}
 
 			if (node.type === 'atrule') {
 				return [
 					// @#{$at-rule-name}
-					...extractSassVariables(node.name, true),
+					...getSassVariableReferences(node.name, 'interpolation'),
 					// @media ($breakpoint-tablet-small)
-					...extractSassVariables(node.params, false),
+					...getSassVariableReferences(node.params, 'expression'),
 				];
 			}
 
@@ -168,7 +141,10 @@ export default createRule({
 		// it is treated as used for all its parent scopes.
 		const parentScopeNodes = getParentScopeWithNodes(node);
 		parentScopeNodes.forEach(([parentScope]) => {
-			variables.forEach((variable) => parentScope?.usages.add(variable));
+			references.forEach((reference) => {
+				if (reference.isModuleQualified) return;
+				parentScope?.usages.add(normalizeSassMemberName(reference.name));
+			});
 		});
 	});
 
@@ -188,14 +164,15 @@ export default createRule({
 				([parentScope, scopeNode]) => !isRule(scopeNode) && parentScope?.usages.has(name),
 			)) { return; }
 
+			const authoredName = declaration.prop;
 			const isIgnored = normalizedIgnorePatterns
-				.some((pattern) => pattern.test(name.slice(1)));
+				.some((pattern) => pattern.test(authoredName.slice(1)));
 
 			if (isIgnored) return;
 
 			report({
-				message: messages.unused(name),
-				messageArgs: ['unused', name],
+				message: messages.unused(authoredName),
+				messageArgs: ['unused', authoredName],
 				node: declaration,
 			});
 		});

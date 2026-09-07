@@ -3,6 +3,7 @@ import {
 	typeScriptCompletionMarker,
 } from '#modules/test-utils';
 import { createDefineRules } from './create-define-rules';
+import type { SelectorVariablePatternContext } from '#rules/bem/selector-variable-pattern/selector-variable-pattern.types';
 
 const autocompleteTestTimeoutMs = 10_000;
 
@@ -144,6 +145,37 @@ describe(createDefineRules, () => {
 				readonly firstChild: true;
 				readonly separators: undefined;
 			},
+		]>();
+	});
+
+	it('Preserves contextual typing for callback options', () => {
+		const defineRules = createDefineRules();
+
+		defineRules({
+			'@morev/bem/selector-variable-pattern': [true, {
+				resolve: (context) => {
+					expectTypeOf(context).toEqualTypeOf<SelectorVariablePatternContext>();
+
+					return null;
+				},
+			}],
+		});
+	});
+
+	it('Allows omitted selector variable pattern options', () => {
+		const defineRules = createDefineRules();
+
+		const rules = defineRules({
+			'@morev/bem/selector-variable-pattern': true,
+		});
+
+		expect(rules).toStrictEqual({
+			'@morev/bem/selector-variable-pattern': [true, { separators: undefined }],
+		});
+
+		expectTypeOf(rules['@morev/bem/selector-variable-pattern']).toEqualTypeOf<[
+			true,
+			{ readonly separators: undefined },
 		]>();
 	});
 

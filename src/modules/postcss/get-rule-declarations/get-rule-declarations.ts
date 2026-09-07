@@ -1,4 +1,5 @@
 import { isAtRule } from '#modules/postcss/is-at-rule/is-at-rule';
+import { isDeclaration } from '#modules/postcss/is-declaration/is-declaration';
 import { collectDeclarationsWithPath, isPureAtRule } from './utils';
 import type { AtRule, Declaration, Root, Rule } from 'postcss';
 import type { DeclarationWithAtRulePath, Options } from './get-rule-declarations.types';
@@ -40,11 +41,11 @@ export const getRuleDeclarations = <T extends Options>(
 	}
 
 	if (mode === 'direct') {
-		return (rule.nodes ?? []).filter((node) => node.type === 'decl') as ToReturn<T>;
+		return (rule.nodes ?? []).filter(isDeclaration) as ToReturn<T>;
 	}
 
 	const result: DeclarationWithAtRulePath[] = (rule.nodes ?? [])
-		.filter((node) => node.type === 'decl')
+		.filter(isDeclaration)
 		.map((node) => ({ declaration: node, atRulePath: [] }));
 
 	for (const node of rule.nodes ?? []) {

@@ -1,7 +1,9 @@
 import { assert, isEmpty, isNullish, tsObject } from '@morev/utils';
-import { getRoot, getRuleDeclarations, isAtRule, isRule, resolveSassVariable } from '#modules/postcss';
+import { getRoot, isAtRule, isRoot, isRule, resolveSassDeclarations } from '#modules/postcss';
+import { normalizeSassMemberName } from '#modules/sass';
 import { split } from './utils';
 import type { AtRule, ChildNode, Node, Root, Rule } from 'postcss';
+import type { SassVariableBindings } from '#modules/sass';
 import type {
 	Options,
 	PathItem,
@@ -14,7 +16,6 @@ import type {
 // The global form finds every selector occurrence, while the anchored form distinguishes
 // a standalone parent reference in a variable value from a larger expression.
 const SASS_NESTING_INTERPOLATION_REGEXP = /#{\s*&\s*}/g;
-const SASS_NESTING_INTERPOLATION_VALUE_REGEXP = /^#{\s*&\s*}$/;
 
 /**
  * Calculates exact resolved ranges for ordered selector replacements.
@@ -205,7 +206,7 @@ const getTrees = (
 	const walk = (current: Node, path: PathItem[]) => {
 		const { parent } = current;
 
-		if (!parent || parent.type === 'root') {
+		if (!parent || isRoot(parent)) {
 			results.push(path);
 			return;
 		}
@@ -487,38 +488,10 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 const resolveNodeVariables = (
 	node: ChildNode | Root | null,
 	context?: string,
-	inheritedVariables: Record<string, string | null> = {},
-): Record<string, string | null> => {
-	if (!node) return {};
-
-	const variables = { ...inheritedVariables };
-	const directVariables: Record<string, string | null> = {};
-
-	if ('nodes' in node) {
-		const nodeVariables = getRuleDeclarations(node, { mode: 'direct' })
-			.filter((declaration) => !!declaration.prop.match(/^\$[\w-]+$/));
-
-		nodeVariables.forEach((declaration) => {
-			// A standalone parent reference resolves to the whole current context.
-			// Handle it before generic value parsing, which splits whitespace inside `#{ & }`.
-			if (
-				declaration.value === '&'
-				|| SASS_NESTING_INTERPOLATION_VALUE_REGEXP.test(declaration.value)
-			) {
-				directVariables[declaration.prop] = context ?? null;
-			} else {
-				directVariables[declaration.prop] = resolveSassVariable(declaration.value, {
-					...variables,
-					...directVariables,
-					'&': context ?? null,
-				});
-			}
-
-			variables[declaration.prop] = directVariables[declaration.prop];
-		});
-	}
-
-	return directVariables;
+	inheritedVariables: SassVariableBindings = {},
+): SassVariableBindings => {
+	if (!node || !('nodes' in node)) return {};
+	return resolveSassDeclarations(node, { context, inheritedVariables }).variables;
 };
 
 /**
@@ -556,7 +529,9 @@ const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 				(fullMatch, variableName: string, sourceIndex: number) => {
 					// SASS ignores surrounding whitespace in a simple interpolation expression.
 					// Normalize lookup while preserving `fullMatch` for exact source metadata.
-					const variableValue = nodeVariables[variableName.trim()];
+					const variableValue = nodeVariables[
+						normalizeSassMemberName(variableName.trim())
+					];
 					if (!isNullish(variableValue)) {
 						usedVariables[fullMatch] = variableValue;
 						interpolationReplacements.push({

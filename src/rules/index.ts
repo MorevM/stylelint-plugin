@@ -8,5 +8,6 @@ export { default as noGroupedEntities } from './bem/no-grouped-entities/no-group
 export { default as noMisplacedRelationalStyles } from './bem/no-misplaced-relational-styles/no-misplaced-relational-styles';
 export { default as noSideEffects } from './bem/no-side-effects/no-side-effects';
 export { default as selectorPattern } from './bem/selector-pattern/selector-pattern';
+export { default as selectorVariablePattern } from './bem/selector-variable-pattern/selector-variable-pattern';
 
 export { default as noUnusedVariables } from './sass/no-unused-variables/no-unused-variables';

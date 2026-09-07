@@ -20,6 +20,8 @@
 			"#modules/bem/*": ["./src/modules/bem/*"],
 			"#modules/postcss": ["./src/modules/postcss/index.ts"],
 			"#modules/postcss/*": ["./src/modules/postcss/*"],
+			"#modules/sass": ["./src/modules/sass/index.ts"],
+			"#modules/sass/*": ["./src/modules/sass/*"],
 			"#modules/selectors": ["./src/modules/selectors/index.ts"],
 			"#modules/selectors/*": ["./src/modules/selectors/*"],
 			"#modules/rule-utils": ["./src/modules/rule-utils/index.ts"],

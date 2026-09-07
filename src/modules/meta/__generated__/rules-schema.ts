@@ -11,6 +11,7 @@ import type * as noGroupedEntities from '#rules/bem/no-grouped-entities/no-group
 import type * as noMisplacedRelationalStyles from '#rules/bem/no-misplaced-relational-styles/no-misplaced-relational-styles.types';
 import type * as noSideEffects from '#rules/bem/no-side-effects/no-side-effects.types';
 import type * as selectorPattern from '#rules/bem/selector-pattern/selector-pattern.types';
+import type * as selectorVariablePattern from '#rules/bem/selector-variable-pattern/selector-variable-pattern.types';
 import type * as noUnusedVariables from '#rules/sass/no-unused-variables/no-unused-variables.types';
 
 
@@ -21,6 +22,13 @@ export type RulesSchema = {
 	 * @see https://morevm.github.io/stylelint-plugin/rules/sass/no-unused-variables.html
 	 */
 	'@morev/sass/no-unused-variables': RuleSetting<noUnusedVariables.PrimaryOption, noUnusedVariables.SecondaryOption>;
+
+	/**
+	 * Enforces naming patterns for SASS variables containing BEM selectors.
+	 *
+	 * @see https://morevm.github.io/stylelint-plugin/rules/bem/selector-variable-pattern.html
+	 */
+	'@morev/bem/selector-variable-pattern': RuleSetting<selectorVariablePattern.PrimaryOption, selectorVariablePattern.SecondaryOption>;
 
 	/**
 	 * Enforces naming patterns for BEM entities.

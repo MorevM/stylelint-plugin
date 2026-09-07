@@ -41,6 +41,16 @@ testRule({
 			`,
 		},
 		{
+			description: 'Variable used in a spaced interpolation',
+			code: `
+				.the-component {
+					$b: #{&};
+
+					#{ $b }__element {}
+				}
+			`,
+		},
+		{
 			description: 'Variable used in a nested selector',
 			code: `
 				.the-component {
@@ -60,6 +70,18 @@ testRule({
 					$b: #{&};
 
 					@at-root a.#{$b} {}
+				}
+			`,
+		},
+		{
+			description: 'Variables used through Sass-equivalent names',
+			code: `
+				.the-component {
+					$menu-item: #{&}__menu-item;
+					$card_item: #{&}__card-item;
+
+					#{$menu_item} {}
+					#{$card-item} {}
 				}
 			`,
 		},
@@ -84,6 +106,26 @@ testRule({
 						width: $width;
 						height: calc($height * 2);
 					}
+				}
+			`,
+		},
+		{
+			description: 'Variable interpolated in a quoted value',
+			code: `
+				.the-component {
+					$value: value;
+
+					content: "#{$value}";
+				}
+			`,
+		},
+		{
+			description: 'Variable interpolated in a custom property',
+			code: `
+				.the-component {
+					$color: red;
+
+					--color: #{$color};
 				}
 			`,
 		},
@@ -215,6 +257,38 @@ testRule({
 			],
 		},
 		{
+			description: 'Module-qualified reference does not use a local variable',
+			code: `
+				.the-component {
+					$color: red;
+					color: theme.$color;
+				}
+			`,
+			warnings: [
+				{
+					message: messages.unused('$color'),
+					line: 2, column: 2,
+					endLine: 2, endColumn: 14,
+				},
+			],
+		},
+		{
+			description: 'Plain custom-property value does not use a local variable',
+			code: `
+				.the-component {
+					$color: red;
+					--color: $color;
+				}
+			`,
+			warnings: [
+				{
+					message: messages.unused('$color'),
+					line: 2, column: 2,
+					endLine: 2, endColumn: 14,
+				},
+			],
+		},
+		{
 			description: 'Multiple unused variables',
 			code: `
 				.the-component {
@@ -258,6 +332,22 @@ testRule({
 					message: messages.unused('$foo'),
 					line: 8, column: 2,
 					endLine: 8, endColumn: 13,
+				},
+			],
+		},
+		{
+			description: 'Reports only the last Sass-equivalent declaration',
+			code: `
+				.the-component {
+					$foo-bar: #{&};
+					$foo_bar: #{&};
+				}
+			`,
+			warnings: [
+				{
+					message: messages.unused('$foo_bar'),
+					line: 3, column: 2,
+					endLine: 3, endColumn: 17,
 				},
 			],
 		},
