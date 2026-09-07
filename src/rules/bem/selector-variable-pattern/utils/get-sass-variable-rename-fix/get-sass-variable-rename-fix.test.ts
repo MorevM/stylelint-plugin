@@ -31,6 +31,69 @@ describe(getSassVariableRenameFix, () => {
 		`);
 	});
 
+	it('Renames references in at-rule names and repeated interpolations', () => {
+		const root = postcssScss.parse(`
+			.block {
+				$rule: supports;
+				@#{$rule} (display: grid) {
+					content: '#{$rule}: #{$rule}';
+				}
+			}
+		`);
+		const declaration = (root.first as Rule).first as Declaration;
+		const fix = getSassVariableRenameFix(root, declaration, '$at-rule');
+
+		expect(fix).toBeTypeOf('function');
+
+		fix?.();
+
+		expect(root.toString()).toBe(`
+			.block {
+				$at-rule: supports;
+				@#{$at-rule} (display: grid) {
+					content: '#{$at-rule}: #{$at-rule}';
+				}
+			}
+		`);
+	});
+
+	it.each(['$target', 'selectors.$source'])(
+		'Refuses a rename that could change the binding of `%s`',
+		(reference) => {
+			const root = postcssScss.parse(`
+				.block {
+					$source: #{&}__item;
+					content: ${reference};
+					&--active { content: $source; }
+				}
+			`);
+			const declaration = (root.first as Rule).first as Declaration;
+			const original = root.toString();
+
+			expect(getSassVariableRenameFix(root, declaration, '$target')).toBeUndefined();
+			expect(root.toString()).toBe(original);
+		},
+	);
+
+	it.each(['variable-exists(source)', "meta.variable-exists('source')"])(
+		'Refuses a rename when `%s` looks up a variable by name',
+		(expression) => {
+			const root = postcssScss.parse(`
+				.block {
+					$source: #{&}__item;
+					@if ${expression} {
+						#{$source} { color: red; }
+					}
+				}
+			`);
+			const declaration = (root.first as Rule).first as Declaration;
+			const original = root.toString();
+
+			expect(getSassVariableRenameFix(root, declaration, '$target')).toBeUndefined();
+			expect(root.toString()).toBe(original);
+		},
+	);
+
 	it('Refuses a rename when the target name already has a binding', () => {
 		const root = postcssScss.parse(`
 			.block {

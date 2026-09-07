@@ -113,6 +113,18 @@ describe(resolveVariableDeclarations, () => {
 		});
 	});
 
+	it('Returns `null` for a detached rule with variable declarations', () => {
+		const root = postcssScss.parse(`
+			.block {
+				$item: #{&}__item;
+			}
+		`);
+		const rule = root.first as Rule;
+		rule.remove();
+
+		expect(resolveVariableDeclarations(rule)).toBeNull();
+	});
+
 	it('Returns `null` for an ambiguous selector chain', () => {
 		const root = postcssScss.parse(`
 			.block,
