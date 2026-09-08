@@ -1,9 +1,9 @@
 import { isEmpty } from '@morev/utils';
-import * as v from 'valibot';
 import { getBemBlock, resolveMostSpecificBemEntities } from '#modules/bem';
 import { isSelectorOwnerNode } from '#modules/postcss';
-import { createRule, extractSeparators, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
+import { createRule, extractSeparators, mergeMessages } from '#modules/rule-utils';
 import { getResolvedNodesSourceRange, resolveSelectorNodes, selectorNodesToString, splitSelectorCompounds } from '#modules/selectors';
+import { schema } from './no-misplaced-relational-styles.schema';
 import type parser from 'postcss-selector-parser';
 import type { Separators } from '#modules/shared';
 
@@ -60,17 +60,7 @@ export default createRule({
 			? `Expected relational styles targeting "${target}" to be declared within that entity's styles, but found within "${owner}"`
 			: `Expected relational styles targeting "${target}" to be declared within that entity's styles`,
 	},
-	schema: {
-		primary: v.literal(true),
-		secondary: v.optional(
-			v.object({
-				separators: vSeparatorsSchema,
-				messages: vMessagesSchema({
-					misplaced: [v.string(), v.union([v.string(), v.undefined()])],
-				}),
-			}),
-		),
-	},
+	schema,
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	const messages = mergeMessages(ruleMessages, secondary.messages);
 	const separators = extractSeparators(secondary.separators);

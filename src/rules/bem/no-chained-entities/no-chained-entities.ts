@@ -1,7 +1,7 @@
-import * as v from 'valibot';
 import { resolveBemChain } from '#modules/bem';
 import { getRuleContentMeta, isAtRule, isRule } from '#modules/postcss';
-import { createRule, extractSeparators, isCssFile, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
+import { createRule, extractSeparators, isCssFile, mergeMessages } from '#modules/rule-utils';
+import { schema } from './no-chained-entities.schema';
 import type { Root } from 'postcss';
 import type { Separators } from '#modules/shared';
 import type { RepeatingGroup, RepeatingGroupItem, SecondaryOption, Violation } from './no-chained-entities.types';
@@ -185,22 +185,7 @@ export default createRule({
 		nestedModifierValue: (actual: string, expected: string) =>
 			`Unexpected nested modifier value "${actual}". Use a flat selector "${expected}" instead`,
 	},
-	schema: {
-		primary: v.literal(true),
-		secondary: v.optional(
-			v.object({
-				disallowNestedModifierValues: v.optional(v.boolean(), false),
-				separators: vSeparatorsSchema,
-				messages: vMessagesSchema({
-					block: [v.string(), v.string()],
-					element: [v.string(), v.string()],
-					modifierName: [v.string(), v.string()],
-					modifierValue: [v.string(), v.string()],
-					nestedModifierValue: [v.string(), v.string()],
-				}),
-			}),
-		),
-	},
+	schema,
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	// The rule only applicable to SCSS files.
 	if (isCssFile(root)) return;

@@ -24,6 +24,7 @@ words:
   - aditayvm
   - yalc
   - oxlint
+  - ValiError
 
 useGitignore: true
 allowCompoundWords: true

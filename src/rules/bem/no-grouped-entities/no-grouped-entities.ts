@@ -1,9 +1,9 @@
 import { isEmpty } from '@morev/utils';
-import * as v from 'valibot';
 import { resolveMostSpecificBemEntities } from '#modules/bem';
 import { isNodeWithin, isSelectorOwnerNode } from '#modules/postcss';
-import { createRule, extractSeparators, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
+import { createRule, extractSeparators, mergeMessages } from '#modules/rule-utils';
 import { getResolvedNodesSourceRange, resolveSelectorNodes, selectorNodesToString, splitSelectorCompounds } from '#modules/selectors';
+import { schema } from './no-grouped-entities.schema';
 import type { AtRule, Rule } from 'postcss';
 import type parser from 'postcss-selector-parser';
 import type { ResolvedNode } from '#modules/selectors';
@@ -180,19 +180,7 @@ export default createRule({
 		redeclared: (entity: string, line: number) =>
 			`Unexpected BEM entity "${entity}" grouped here; another declaration occurs at line ${line}. Extract it into its own rule.`,
 	},
-	schema: {
-		primary: v.literal(true),
-		secondary: v.optional(
-			v.object({
-				strict: v.optional(v.boolean(), false),
-				separators: vSeparatorsSchema,
-				messages: vMessagesSchema({
-					grouped: [v.string(), v.string()],
-					redeclared: [v.string(), v.number()],
-				}),
-			}),
-		),
-	},
+	schema,
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	const messages = mergeMessages(ruleMessages, secondary.messages);
 	const separators = extractSeparators(secondary.separators);

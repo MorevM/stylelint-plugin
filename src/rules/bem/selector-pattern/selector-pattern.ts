@@ -1,8 +1,8 @@
 import { isEmpty, toArray } from '@morev/utils';
-import * as v from 'valibot';
 import { BEM_ENTITIES, resolveBemEntities } from '#modules/bem';
-import { createRule, extractSeparators, mergeMessages, vArrayable, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
-import { KEBAB_CASE_NUMERIC_REGEXP, KEBAB_CASE_REGEXP, toRegExp } from '#modules/shared';
+import { createRule, extractSeparators, mergeMessages } from '#modules/rule-utils';
+import { toRegExp } from '#modules/shared';
+import { schema } from './selector-pattern.schema';
 import { createMessage, createViolationsRegistry, normalizePattern } from './utils';
 import type { ProcessedPattern } from './selector-pattern.types';
 
@@ -29,50 +29,7 @@ export default createRule({
 			return createMessage('modifier value', entityValue, fullSelector, patterns);
 		},
 	},
-	schema: {
-		primary: v.literal(true),
-		secondary: v.optional(
-			v.object({
-				patterns: v.optional(
-					v.strictObject({
-						block: v.optional(
-							vArrayable(vStringOrRegExpSchema),
-							KEBAB_CASE_REGEXP,
-						),
-						element: v.optional(
-							vArrayable(vStringOrRegExpSchema),
-							KEBAB_CASE_NUMERIC_REGEXP,
-						),
-						modifierName: v.optional(
-							vArrayable(vStringOrRegExpSchema),
-							KEBAB_CASE_REGEXP,
-						),
-						modifierValue: v.optional(
-							v.union([v.literal(false), vArrayable(vStringOrRegExpSchema)]),
-							KEBAB_CASE_NUMERIC_REGEXP,
-						),
-					}),
-					{
-						block: KEBAB_CASE_REGEXP,
-						element: KEBAB_CASE_NUMERIC_REGEXP,
-						modifierName: KEBAB_CASE_REGEXP,
-						modifierValue: KEBAB_CASE_NUMERIC_REGEXP,
-					},
-				),
-				ignoreBlocks: v.optional(
-					v.array(vStringOrRegExpSchema),
-					[],
-				),
-				separators: vSeparatorsSchema,
-				messages: vMessagesSchema({
-					block: [v.string(), v.string(), v.any()],
-					element: [v.string(), v.string(), v.any()],
-					modifierName: [v.string(), v.string(), v.any()],
-					modifierValue: [v.string(), v.string(), v.any()],
-				}),
-			}),
-		),
-	},
+	schema,
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	// Normalize all configured patterns to internal RegExp format,
 	// resolve string wildcards and keywords like 'KEBAB_CASE'.

@@ -1,10 +1,10 @@
 import { quote } from '@morev/utils';
 import { Declaration } from 'postcss';
-import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { getRuleDeclarations } from '#modules/postcss';
-import { createRule, extractSeparators, isCssFile, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
+import { createRule, extractSeparators, isCssFile, mergeMessages } from '#modules/rule-utils';
 import { parseSelectors } from '#modules/selectors';
+import { schema } from './block-variable.schema';
 import type { Rule } from 'postcss';
 import type parser from 'postcss-selector-parser';
 
@@ -16,26 +16,7 @@ export default createRule({
 		deprecated: false,
 		fixable: true,
 	},
-	schema: {
-		primary: v.literal(true),
-		secondary: v.optional(
-			v.object({
-				name: v.optional(v.string(), 'b'),
-				interpolation: v.optional(v.picklist(['always', 'never', 'ignore']), 'always'),
-				firstChild: v.optional(v.boolean(), true),
-				replaceBlockName: v.optional(v.boolean(), true),
-				separators: vSeparatorsSchema,
-				messages: vMessagesSchema({
-					missingVariable: [v.string()],
-					variableNotFirst: [v.string(), v.string()],
-					invalidVariableName: [v.string(), v.string()],
-					invalidVariableValue: [v.string(), v.array(v.string())],
-					duplicatedVariable: [v.string(), v.string()],
-					hardcodedBlockName: [v.string(), v.string(), v.string(), v.boolean()],
-				}),
-			}),
-		),
-	},
+	schema,
 	messages: {
 		missingVariable: (validName: string) => {
 			return `
