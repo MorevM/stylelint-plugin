@@ -1,53 +1,12 @@
-import { escapeRegExp, isNullish, isString } from '@morev/utils';
-import * as v from 'valibot';
+import { isNullish, isString } from '@morev/utils';
 import { resolveBemEntities } from '#modules/bem';
-import { createRule, extractSeparators, isCssFile, mergeMessages, vFunction, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { createRule, extractSeparators, isCssFile, mergeMessages } from '#modules/rule-utils';
 import { isSimpleSassVariableName } from '#modules/sass';
 import { parseSelectors } from '#modules/selectors';
+import { schema } from './selector-variable-pattern.schema';
 import { getSassVariableRenameFix, resolveVariableDeclarations } from './utils';
 import type { ResolvedSassDeclaration } from '#modules/postcss';
-import type { SelectorVariablePatternContext, SelectorVariablePatternOwner, SelectorVariablePatternResolver } from './selector-variable-pattern.types';
-
-const vNullableString = v.nullable(v.string());
-const vSelectorVariablePatternContext = v.strictObject({
-	selector: v.strictObject({
-		value: v.string(),
-		bemSelector: v.string(),
-		block: v.string(),
-		element: vNullableString,
-		modifierName: vNullableString,
-		modifierValue: vNullableString,
-	}),
-	variable: v.strictObject({
-		name: v.string(),
-		value: v.string(),
-		reference: v.nullable(v.picklist(['self', 'variable'])),
-	}),
-	owner: v.nullable(v.strictObject({
-		selector: v.string(),
-		block: vNullableString,
-		depth: v.number(),
-		path: v.array(v.string()),
-	})),
-});
-const vResolverResult = v.union([v.string(), v.instance(RegExp), v.null(), v.undefined()]);
-
-const defaultResolver: SelectorVariablePatternResolver = ({ selector, variable, owner }) => {
-	// Check only variables in top-level selectors.
-	if (!owner || owner.depth > 1) return;
-	// Ignore selectors from another block.
-	if (selector.block !== owner.block) return;
-	// Ignore aliases.
-	if (variable.reference === 'variable') return;
-	// Blocks have no element name.
-	if (!selector.element) return;
-
-	// Modifiers may use any name containing the element name.
-	// Element variables must use the exact element name.
-	return selector.modifierName
-		? new RegExp(escapeRegExp(selector.element))
-		: selector.element;
-};
+import type { SelectorVariablePatternContext, SelectorVariablePatternOwner } from './selector-variable-pattern.types';
 
 export default createRule({
 	scope: 'bem',
@@ -76,19 +35,7 @@ export default createRule({
 			].join(' ');
 		},
 	},
-	schema: {
-		primary: v.literal(true),
-		secondary: v.optional(v.strictObject({
-			resolve: v.optional(
-				vFunction([vSelectorVariablePatternContext], vResolverResult),
-				() => defaultResolver,
-			),
-			separators: vSeparatorsSchema,
-			messages: vMessagesSchema({
-				invalidName: [v.string(), vStringOrRegExpSchema, vSelectorVariablePatternContext],
-			}),
-		})),
-	},
+	schema,
 }, (primary, secondary, { root, report, messages: ruleMessages }) => {
 	if (isCssFile(root)) return;
 

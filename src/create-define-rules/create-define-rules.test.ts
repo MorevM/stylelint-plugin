@@ -1,11 +1,23 @@
+import ts from 'typescript';
 import {
+	getTypeScriptCompletionDetails,
 	getTypeScriptCompletionNames,
+	getTypeScriptQuickInfo,
 	typeScriptCompletionMarker,
 } from '#modules/test-utils';
 import { createDefineRules } from './create-define-rules';
+import type { ProcessedPattern } from '#rules/bem/selector-pattern/selector-pattern.types';
 import type { SelectorVariablePatternContext } from '#rules/bem/selector-variable-pattern/selector-variable-pattern.types';
 
 const autocompleteTestTimeoutMs = 10_000;
+
+const createSideEffectsSource = (options: string) => `
+	import { createDefineRules } from './src/create-define-rules';
+
+	const defineRules = createDefineRules();
+	defineRules({ '@morev/bem/no-side-effects': [true, { ${options} }] });
+`;
+
 
 describe(createDefineRules, () => {
 	it('Allows omitted globals and rules arguments', () => {
@@ -179,6 +191,71 @@ describe(createDefineRules, () => {
 		]>();
 	});
 
+	it('Preserves readonly resolver context and nullable results', () => {
+		const defineRules = createDefineRules();
+
+		expect(defineRules({
+			'@morev/bem/selector-variable-pattern': [true, {
+				resolve: (context) => {
+					// @ts-expect-error Resolver contexts remain readonly.
+					context.selector.block = 'another';
+					// @ts-expect-error Resolver paths remain readonly arrays.
+					context.owner?.path.push('.another');
+					return context.owner ? /element/ : undefined;
+				},
+				messages: {
+					invalidName: (actualName, expected, context) => {
+						expectTypeOf(actualName).toEqualTypeOf<string>();
+						expectTypeOf(expected).toEqualTypeOf<string | RegExp>();
+						expectTypeOf(context).toEqualTypeOf<SelectorVariablePatternContext>();
+
+						return actualName;
+					},
+				},
+			}],
+		})).toHaveProperty('@morev/bem/selector-variable-pattern');
+	});
+
+	it('Infers complete selector-pattern message arguments', () => {
+		const defineRules = createDefineRules();
+
+		expect(defineRules({
+			'@morev/bem/selector-pattern': [true, {
+				messages: {
+					block: (name, fullSelector, patterns) => {
+						expectTypeOf(name).toEqualTypeOf<string>();
+						expectTypeOf(fullSelector).toEqualTypeOf<string>();
+						expectTypeOf(patterns).toEqualTypeOf<ProcessedPattern[]>();
+
+						return fullSelector;
+					},
+					modifierValue: (name, fullSelector, patterns) => {
+						expectTypeOf(patterns).toEqualTypeOf<ProcessedPattern[] | false>();
+
+						return fullSelector;
+					},
+				},
+			}],
+		})).toHaveProperty('@morev/bem/selector-pattern');
+	});
+
+	it('Preserves narrow property violation contexts', () => {
+		const defineRules = createDefineRules();
+
+		expect(defineRules({
+			'@morev/bem/no-block-properties': [true, {
+				messages: {
+					unexpected: (propertyName, selector, context, presetName) => {
+						expectTypeOf(context).toEqualTypeOf<'block' | 'modifier'>();
+						expectTypeOf(presetName).toEqualTypeOf<string | undefined>();
+
+						return propertyName;
+					},
+				},
+			}],
+		})).toHaveProperty('@morev/bem/no-block-properties');
+	});
+
 	describe('Diagnostics', () => {
 		it('Rejects unknown rule names', () => {
 			const defineRules = createDefineRules({});
@@ -199,6 +276,21 @@ describe(createDefineRules, () => {
 			defineRules({
 				// @ts-expect-error `firstChild` accepts a boolean value.
 				'@morev/bem/block-variable': [true, { firstChild: 'true' }],
+			});
+		});
+
+		it('Rejects incompatible callback arguments and return values', () => {
+			const defineRules = createDefineRules();
+
+			expect(defineRules).toBeTypeOf('function');
+
+			defineRules({
+				// @ts-expect-error The rejected selector is a string.
+				'@morev/bem/no-side-effects': [true, { messages: { rejected: (selector: number) => selector.toFixed(0) } }],
+			});
+			defineRules({
+				// @ts-expect-error Message callbacks must return a string.
+				'@morev/bem/no-side-effects': [true, { messages: { rejected: () => 123 } }],
 			});
 		});
 
@@ -234,6 +326,120 @@ describe(createDefineRules, () => {
 	});
 
 	describe('Autocompletion', () => {
+		it('Suggests schema-derived secondary options', () => {
+			const completions = getTypeScriptCompletionNames(createSideEffectsSource(typeScriptCompletionMarker));
+
+			expect(completions).toStrictEqual(expect.arrayContaining(['ignore', 'separators', 'messages']));
+		}, autocompleteTestTimeoutMs);
+
+		it('Suggests schema-derived separator options', () => {
+			const completions = getTypeScriptCompletionNames(createSideEffectsSource(`separators: { ${typeScriptCompletionMarker} }`));
+
+			expect(completions).toStrictEqual(expect.arrayContaining(['element', 'modifier', 'modifierValue']));
+		}, autocompleteTestTimeoutMs);
+
+		it('Suggests schema-derived message options', () => {
+			const completions = getTypeScriptCompletionNames(createSideEffectsSource(`messages: { ${typeScriptCompletionMarker} }`));
+
+			expect(completions).toStrictEqual(expect.arrayContaining(['rejected']));
+		}, autocompleteTestTimeoutMs);
+
+		it('Preserves ignore documentation and default', () => {
+			const details = getTypeScriptCompletionDetails(createSideEffectsSource(typeScriptCompletionMarker), 'ignore');
+
+			expect(ts.displayPartsToString(details?.documentation)).toContain('Selectors to ignore');
+			expect(details?.tags).toStrictEqual(expect.arrayContaining([
+				expect.objectContaining({
+					name: 'default',
+					text: expect.arrayContaining([expect.objectContaining({ text: expect.stringContaining('[]') })]),
+				}),
+			]));
+		}, autocompleteTestTimeoutMs);
+
+		it('Preserves separators documentation and default', () => {
+			const details = getTypeScriptCompletionDetails(createSideEffectsSource(typeScriptCompletionMarker), 'separators');
+
+			expect(ts.displayPartsToString(details?.documentation)).toContain('BEM separators');
+			expect(details?.tags).toStrictEqual(expect.arrayContaining([
+				expect.objectContaining({
+					name: 'default',
+					text: expect.arrayContaining([expect.objectContaining({ text: expect.stringContaining("element: '__'") })]),
+				}),
+			]));
+		}, autocompleteTestTimeoutMs);
+
+		it('Preserves element separator documentation and default', () => {
+			const details = getTypeScriptCompletionDetails(
+				createSideEffectsSource(`separators: { ${typeScriptCompletionMarker} }`), 'element',
+			);
+
+			expect(ts.displayPartsToString(details?.documentation)).toContain('Separator between block and element');
+			expect(details?.tags).toStrictEqual(expect.arrayContaining([
+				expect.objectContaining({
+					name: 'default',
+					text: expect.arrayContaining([expect.objectContaining({ text: expect.stringContaining("'__'") })]),
+				}),
+			]));
+		}, autocompleteTestTimeoutMs);
+
+		it('Preserves modifier separator documentation and default', () => {
+			const details = getTypeScriptCompletionDetails(
+				createSideEffectsSource(`separators: { ${typeScriptCompletionMarker} }`), 'modifier',
+			);
+
+			expect(ts.displayPartsToString(details?.documentation)).toContain('Separator between block/element and modifier name');
+			expect(details?.tags).toStrictEqual(expect.arrayContaining([
+				expect.objectContaining({
+					name: 'default',
+					text: expect.arrayContaining([expect.objectContaining({ text: expect.stringContaining("'--'") })]),
+				}),
+			]));
+		}, autocompleteTestTimeoutMs);
+
+		it('Preserves modifier value separator documentation and default', () => {
+			const details = getTypeScriptCompletionDetails(
+				createSideEffectsSource(`separators: { ${typeScriptCompletionMarker} }`), 'modifierValue',
+			);
+
+			expect(ts.displayPartsToString(details?.documentation)).toContain('Separator between modifier name and modifier value');
+			expect(details?.tags).toStrictEqual(expect.arrayContaining([
+				expect.objectContaining({
+					name: 'default',
+					text: expect.arrayContaining([expect.objectContaining({ text: expect.stringContaining("'--'") })]),
+				}),
+			]));
+		}, autocompleteTestTimeoutMs);
+
+		it('Preserves rejected message documentation and parameter description', () => {
+			const details = getTypeScriptCompletionDetails(
+				createSideEffectsSource(`messages: { ${typeScriptCompletionMarker} }`), 'rejected',
+			);
+
+			expect(ts.displayPartsToString(details?.documentation)).toContain('Custom message for a rejected selector');
+			expect(details?.tags).toStrictEqual(expect.arrayContaining([
+				expect.objectContaining({
+					name: 'param',
+					text: expect.arrayContaining([expect.objectContaining({ text: expect.stringContaining('selector') })]),
+				}),
+			]));
+		}, autocompleteTestTimeoutMs);
+
+		it('Preserves the displayed callback parameter name', () => {
+			const details = getTypeScriptCompletionDetails(createSideEffectsSource(`
+				messages: { ${typeScriptCompletionMarker} }
+			`), 'rejected');
+
+			expect(ts.displayPartsToString(details?.displayParts)).toContain('(selector: string) => string');
+		}, autocompleteTestTimeoutMs);
+
+		it('Infers the consumer callback parameter from the schema', () => {
+			const info = getTypeScriptQuickInfo(createSideEffectsSource(`
+				messages: { rejected: (selector) => ${typeScriptCompletionMarker}selector }
+			`));
+
+			expect(ts.displayPartsToString(info?.displayParts)).toBe('(parameter) selector: string');
+		}, autocompleteTestTimeoutMs);
+
 		it('Suggests global options', () => {
 			const completions = getTypeScriptCompletionNames(`
 				import { createDefineRules } from './src/create-define-rules';

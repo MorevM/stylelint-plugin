@@ -1,8 +1,8 @@
 import { toArray, tsObject } from '@morev/utils';
-import * as v from 'valibot';
 import { isRule } from '#modules/postcss';
-import { createRule, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { createRule, mergeMessages } from '#modules/rule-utils';
 import { toRegExp } from '#modules/shared';
+import { schema } from './no-selectors-in-at-rules.schema';
 
 const SASS_CONTROL_STRUCTURES = ['if', 'else', 'else if', 'for', 'while', 'mixin', 'function'];
 
@@ -18,25 +18,7 @@ export default createRule({
 		unexpected: (ruleName: string, atRuleName: string) =>
 			`Unexpected rule "${ruleName}" inside at-rule "${atRuleName}".`,
 	},
-	schema: {
-		primary: v.literal(true),
-		secondary: v.optional(
-			v.object({
-				ignore: v.optional(
-					v.objectWithRest(
-						{},
-						v.union([
-							vStringOrRegExpSchema,
-							v.array(vStringOrRegExpSchema),
-						]),
-					), {},
-				),
-				messages: vMessagesSchema({
-					unexpected: [v.string(), v.string()],
-				}),
-			}),
-		),
-	},
+	schema,
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	const messages = mergeMessages(ruleMessages, secondary.messages);
 

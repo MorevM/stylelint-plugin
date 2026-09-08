@@ -1,8 +1,8 @@
-import * as v from 'valibot';
 import { isComment, isDeclaration, isRule } from '#modules/postcss';
-import { createRule, isCssFile, mergeMessages, vMessagesSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { createRule, isCssFile, mergeMessages } from '#modules/rule-utils';
 import { getSassVariableReferences, isSimpleSassVariableName, normalizeSassMemberName } from '#modules/sass';
 import { toRegExp } from '#modules/shared';
+import { schema } from './no-unused-variables.schema';
 import type { Declaration, Node } from 'postcss';
 import type { Scope } from './no-unused-variables.types';
 
@@ -17,18 +17,7 @@ export default createRule({
 	messages: {
 		unused: (name: string) => `Unexpected unused variable: "${name}"`,
 	},
-	schema: {
-		primary: v.literal(true),
-		secondary: v.optional(
-			v.object({
-				checkRoot: v.optional(v.boolean(), false),
-				ignore: v.optional(v.array(vStringOrRegExpSchema), []),
-				messages: vMessagesSchema({
-					unused: [v.string()],
-				}),
-			}),
-		),
-	},
+	schema,
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	// The rule only applicable to SCSS files.
 	if (isCssFile(root)) return;

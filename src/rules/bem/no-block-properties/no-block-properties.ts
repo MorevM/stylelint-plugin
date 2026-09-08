@@ -1,10 +1,10 @@
 import { isEmpty } from '@morev/utils';
-import * as v from 'valibot';
 import { isDirectBemEntity, resolveBemEntities } from '#modules/bem';
 import { getRuleDeclarations, isPseudoElementNode } from '#modules/postcss';
-import { createRule, extractSeparators, mergeMessages, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { createRule, extractSeparators, mergeMessages } from '#modules/rule-utils';
 import { parseSelectors, resolveNestedSelector } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
+import { schema } from './no-block-properties.schema';
 import { createPropertiesRegistry } from './utils';
 
 export default createRule({
@@ -36,42 +36,7 @@ export default createRule({
 			].filter(Boolean).join(' ');
 		},
 	},
-	schema: {
-		primary: v.literal(true),
-		secondary: v.optional(
-			v.object({
-				presets: v.optional(
-					v.array(v.string()),
-					['EXTERNAL_GEOMETRY'],
-				),
-				customPresets: v.optional(
-					v.objectWithRest({}, v.array(v.string())),
-					{},
-				),
-				allowProperties: v.optional(v.array(v.string()), []),
-				disallowProperties: v.optional(v.array(v.string()), []),
-				perEntity: v.optional(
-					v.strictObject({
-						block: v.optional(v.object({
-							presets: v.optional(v.array(v.string())),
-							allowProperties: v.optional(v.array(v.string())),
-							disallowProperties: v.optional(v.array(v.string())),
-						})),
-						modifier: v.optional(v.object({
-							presets: v.optional(v.array(v.string())),
-							allowProperties: v.optional(v.array(v.string())),
-							disallowProperties: v.optional(v.array(v.string())),
-						})),
-					}),
-				),
-				ignoreBlocks: v.optional(v.array(vStringOrRegExpSchema), []),
-				separators: vSeparatorsSchema,
-				messages: vMessagesSchema({
-					unexpected: [v.string(), v.string(), v.string(), v.union([v.string(), v.undefined()])],
-				}),
-			}),
-		),
-	},
+	schema,
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	const messages = mergeMessages(ruleMessages, secondary.messages);
 	const separators = extractSeparators(secondary.separators);

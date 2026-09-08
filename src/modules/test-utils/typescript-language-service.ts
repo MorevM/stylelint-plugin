@@ -63,7 +63,7 @@ const host: ts.LanguageServiceHost = {
 
 const service = ts.createLanguageService(host, ts.createDocumentRegistry());
 
-const getTypeScriptCompletionNames = (source: string) => {
+const setTypeScriptSource = (source: string) => {
 	const position = source.indexOf(typeScriptCompletionMarker);
 
 	if (position === -1) {
@@ -73,6 +73,12 @@ const getTypeScriptCompletionNames = (source: string) => {
 	virtualSource = source;
 	virtualSourceVersion++;
 
+	return position;
+};
+
+const getTypeScriptCompletionNames = (source: string) => {
+	const position = setTypeScriptSource(source);
+
 	const completions = service.getCompletionsAtPosition(virtualCompletionFileName, position, {
 		includeCompletionsForModuleExports: false,
 		includeCompletionsWithInsertText: true,
@@ -81,7 +87,23 @@ const getTypeScriptCompletionNames = (source: string) => {
 	return completions?.entries.map((entry) => entry.name) ?? [];
 };
 
+const getTypeScriptCompletionDetails = (source: string, name: string) => {
+	const position = setTypeScriptSource(source);
+
+	return service.getCompletionEntryDetails(
+		virtualCompletionFileName, position, name, undefined, undefined, undefined, undefined,
+	);
+};
+
+const getTypeScriptQuickInfo = (source: string) => {
+	const position = setTypeScriptSource(source) + typeScriptCompletionMarker.length;
+
+	return service.getQuickInfoAtPosition(virtualCompletionFileName, position);
+};
+
 export {
+	getTypeScriptCompletionDetails,
 	getTypeScriptCompletionNames,
+	getTypeScriptQuickInfo,
 	typeScriptCompletionMarker,
 };

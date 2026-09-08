@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { kebabCase } from '@morev/utils';
-import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
-import { createRule, extractSeparators, mergeMessages, vMessagesSchema, vSeparatorsSchema } from '#modules/rule-utils';
+import { createRule, extractSeparators, mergeMessages } from '#modules/rule-utils';
+import { schema } from './match-file-name.schema';
 
 export default createRule({
 	scope: 'bem',
@@ -18,20 +18,7 @@ export default createRule({
 		matchCase: (entity: 'directory' | 'file', blockName: string) =>
 			`The ${entity} name must start with its block name: "${blockName}", including correct case.`,
 	},
-	schema: {
-		primary: v.literal(true),
-		secondary: v.optional(
-			v.object({
-				caseSensitive: v.optional(v.boolean(), true),
-				matchDirectory: v.optional(v.boolean(), false),
-				separators: vSeparatorsSchema,
-				messages: vMessagesSchema({
-					match: [v.picklist(['file', 'directory']), v.string()],
-					matchCase: [v.picklist(['file', 'directory']), v.string()],
-				}),
-			}),
-		),
-	},
+	schema,
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	const filePath = root.source?.input.file ?? '';
 	const sourceName = secondary.matchDirectory

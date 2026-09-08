@@ -1,10 +1,10 @@
 import { isEmpty } from '@morev/utils';
-import * as v from 'valibot';
 import { getBemBlock } from '#modules/bem';
 import { isSelectorOwnerNode } from '#modules/postcss';
-import { createRule, extractSeparators, mergeMessages, vMessagesSchema, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { createRule, extractSeparators, mergeMessages } from '#modules/rule-utils';
 import { resolveSelectorNodes } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
+import { schema } from './no-side-effects.schema';
 import { createViolationsRegistry, trimBoundaryNodes } from './utils';
 
 export default createRule({
@@ -19,18 +19,7 @@ export default createRule({
 		rejected: (selector: string) =>
 			`Unexpected side-effect to another element: "${selector}"`,
 	},
-	schema: {
-		primary: v.literal(true),
-		secondary: v.optional(
-			v.object({
-				ignore: v.optional(v.array(vStringOrRegExpSchema), []),
-				separators: vSeparatorsSchema,
-				messages: vMessagesSchema({
-					rejected: [v.string()],
-				}),
-			}),
-		),
-	},
+	schema,
 }, (primary, secondary, { report, messages: ruleMessages, root }) => {
 	// Identify the root BEM block for the current file.
 	// If not found, this file is not considered a component — skip the rule.

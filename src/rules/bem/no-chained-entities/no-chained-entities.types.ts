@@ -1,6 +1,7 @@
 import type { AtRule, Rule } from 'postcss';
+import type * as v from 'valibot';
 import type { BemEntityPart, EntityType } from '#modules/bem';
-import type { Separators } from '#modules/shared';
+import type { schema } from './no-chained-entities.schema';
 
 /**
  * Represents a single BEM entity within a repeating group that violates the rule.
@@ -92,96 +93,9 @@ export type RepeatingGroup = {
 /**
  * Primary option of the rule.
  */
-export type PrimaryOption = true;
+export type PrimaryOption = v.InferInput<typeof schema.primary>;
 
 /**
  * Secondary options for the rule.
  */
-export type SecondaryOption = {
-	/**
-	 * Whether to disallow nesting for modifier values:
-	 *
-	 * @example
-	 * ```scss
-	 * .block {
-	 *   &--theme {
-	 *     &--dark {} // ⛔ disallowed if true
-	 *   }
-	 * }
-	 * ```
-	 * Instead, enforce writing as:
-	 *
-	 * ```scss
-	 * .block {
-	 *   &--theme--dark {} // ✅ flat
-	 * }
-	 * ```
-	 *
-	 * @default false
-	 */
-	disallowNestedModifierValues?: boolean;
-
-	/**
-	 * Custom message functions for each violation type.
-	 * If provided, overrides the default error messages.
-	 */
-	messages?: {
-		/**
-		 * Custom message for chained BEM block violations.
-		 *
-		 * @param   actual     Actual BEM selector found in the source code.
-		 * @param   expected   Expected BEM selector.
-		 *
-		 * @returns            Error message.
-		 */
-		block?: (actual: string, expected: string) => string;
-
-		/**
-		 * Custom message for chained BEM element violations.
-		 *
-		 * @param   actual     Actual BEM selector found in the source code.
-		 * @param   expected   Expected BEM selector.
-		 *
-		 * @returns            Error message.
-		 */
-		element?: (actual: string, expected: string) => string;
-
-		/**
-		 * Custom message for chained BEM modifier violations.
-		 *
-		 * @param   actual     Actual BEM selector found in the source code.
-		 * @param   expected   Expected BEM selector.
-		 *
-		 * @returns            Error message.
-		 */
-		modifierName?: (actual: string, expected: string) => string;
-
-		/**
-		 * Custom message for chained BEM modifier value violations.
-		 *
-		 * @param   actual     Actual BEM selector found in the source code.
-		 * @param   expected   Expected BEM selector.
-		 *
-		 * @returns            Error message.
-		 */
-		modifierValue?: (actual: string, expected: string) => string;
-
-		/**
-		 * Custom message for nested BEM modifier values.
-		 *
-		 * @param   actual     Actual BEM selector found in the source code.
-		 * @param   expected   Expected BEM selector.
-		 *
-		 * @returns            Error message.
-		 */
-		nestedModifierValue?: (actual: string, expected: string) => string;
-	};
-
-	/**
-	 * Object that defines BEM separators used to distinguish blocks, elements, modifiers, and modifier values. \
-	 * This allows the rule to work correctly with non-standard BEM naming conventions.
-	 *
-	 * @default { element: '__', modifier: '--', modifierValue: '--' }
-	 */
-	separators?: Partial<Separators>;
-};
+export type SecondaryOption = Exclude<v.InferInput<typeof schema.secondary>, undefined>;

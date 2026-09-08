@@ -699,42 +699,46 @@ export type MessagesOption = {
   /**
    * Custom message for BEM block violations.
    *
-   * @param   name       Detected block name.
-   * @param   patterns   Allowed patterns in object form.
+   * @param   name           Detected block name.
+   * @param   fullSelector   Full resolved BEM selector for the violation.
+   * @param   patterns       Allowed patterns in object form.
    *
-   * @returns            Error message.
+   * @returns                Error message.
    */
-  block?: (name: string, patterns: ProcessedPattern[]) => string;
+  block?: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
 
   /**
    * Custom message for BEM element violations.
    *
-   * @param   name       Detected element name.
-   * @param   patterns   Allowed patterns in object form.
+   * @param   name           Detected element name.
+   * @param   fullSelector   Full resolved BEM selector for the violation.
+   * @param   patterns       Allowed patterns in object form.
    *
-   * @returns            Error message.
+   * @returns                Error message.
    */
-  element?: (name: string, patterns: ProcessedPattern[]) => string;
+  element?: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
 
   /**
    * Custom message for BEM modifier name violations.
    *
-   * @param   name       Detected modifier name.
-   * @param   patterns   Allowed patterns in object form.
+   * @param   name           Detected modifier name.
+   * @param   fullSelector   Full resolved BEM selector for the violation.
+   * @param   patterns       Allowed patterns in object form.
    *
-   * @returns            Error message.
+   * @returns                Error message.
    */
-  modifierName?: (name: string, patterns: ProcessedPattern[]) => string;
+  modifierName?: (name: string, fullSelector: string, patterns: ProcessedPattern[]) => string;
 
   /**
    * Custom message for BEM modifier value violations.
    *
-   * @param   name       Detected modifier value.
-   * @param   patterns   Allowed patterns in object form.
+   * @param   name           Detected modifier value.
+   * @param   fullSelector   Full resolved BEM selector for the violation.
+   * @param   patterns       Allowed patterns in object form.
    *
-   * @returns            Error message.
+   * @returns                Error message.
    */
-  modifierValue?: (name: string, patterns: ProcessedPattern[]) => string;
+  modifierValue?: (name: string, fullSelector: string, patterns: ProcessedPattern[] | false) => string;
 }
 ```
 
