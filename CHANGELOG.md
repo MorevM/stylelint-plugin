@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7.0](https://github.com/MorevM/stylelint-plugin/compare/v0.6.1...v0.7.0) (2026-09-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **@morev/bem/no-block-properties:** Rename the `CONTEXT` preset to `CONTEXT_DEPENDENT`; update preset references in your configuration. The preset now also disallows `vertical-align`, `justify-self`, and `counter-set`, and no longer disallows `grid` (#63).
+
+### Features
+
+* Add `@morev/bem/selector-variable-pattern` rule ([#79](https://github.com/MorevM/stylelint-plugin/issues/79)) ([15d630d](https://github.com/MorevM/stylelint-plugin/commit/15d630d203c3267f5398b44f15bda8597d990e8f))
+* **bem:** Add `@morev/bem/no-detached-entity-extensions` rule ([#83](https://github.com/MorevM/stylelint-plugin/issues/83)) ([1c79e9e](https://github.com/MorevM/stylelint-plugin/commit/1c79e9e314a3dda9b8c4b2724242e9d140d1f5e6))
+* **bem:** Add `@morev/bem/no-grouped-entities` rule ([#74](https://github.com/MorevM/stylelint-plugin/issues/74)) ([959c82b](https://github.com/MorevM/stylelint-plugin/commit/959c82bc3d66812f84dd368175ce71020e428253))
+* **bem:** Add `@morev/bem/no-misplaced-side-effects` rule ([#68](https://github.com/MorevM/stylelint-plugin/issues/68)) ([c07c659](https://github.com/MorevM/stylelint-plugin/commit/c07c659359b94e94f88bc140c9a2fbf5193b00aa))
+* Resolve Sass variables in nested selectors ([#65](https://github.com/MorevM/stylelint-plugin/issues/65)) ([22a884c](https://github.com/MorevM/stylelint-plugin/commit/22a884c7e84beffdd9fd216e4d741cde34012841))
+
+
 ## [0.6.1](https://github.com/MorevM/stylelint-plugin/compare/v0.6.0...v0.6.1) (2026-07-07)
 
 
