@@ -72,7 +72,7 @@
 		"docs:build": "pnpm generate-meta && vitepress build docs",
 		"docs:preview": "vitepress preview docs --base /stylelint-plugin/",
 		"build": "pnpm generate-meta && rm -rf dist && tsdown",
-		"release": "release-it --disable-metrics",
+		"release": "release-it",
 		"generate-meta": "tsx src/modules/meta/generate.ts"
 	},
 	"peerDependencies": {
