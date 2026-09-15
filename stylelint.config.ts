@@ -12,6 +12,7 @@ const config = defineConfig({
 const defineLocalRules = createDefineRules();
 const localRuleOverrides = defineLocalRules({
 	'@morev/bem/no-misplaced-relational-styles': [true, {}],
+	'@morev/sass/no-unused-variables': [true, { ignore: ['b'] }],
 });
 
 const configuredRuleNames = new Set([

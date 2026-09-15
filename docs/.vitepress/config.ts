@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import Components from 'unplugin-vue-components/vite';
 import { defineConfig } from 'vitepress';
@@ -10,6 +11,9 @@ export default defineConfig({
 	base: '/stylelint-plugin/',
 	vite: {
 		publicDir: fileURLToPath(new URL('../public', import.meta.url)),
+		server: {
+			port: randomInt(49152, 65536),
+		},
 		plugins: [
 			Components({
 				dirs: [

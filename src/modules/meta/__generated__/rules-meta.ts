@@ -63,6 +63,16 @@ export const rulesMeta = [
 		vitepressLink: '/rules/bem/no-grouped-entities.html',
 	},
 	{
+		id: '@morev/bem/no-detached-entity-extensions',
+		scope: 'bem',
+		name: 'no-detached-entity-extensions',
+		description: 'Requires extensions of a BEM entity selector to be declared within that entity.',
+		fixable: false,
+		docsPath: 'src/rules/bem/no-detached-entity-extensions/no-detached-entity-extensions.docs.md',
+		vitepressPath: '/rules/bem/no-detached-entity-extensions.md',
+		vitepressLink: '/rules/bem/no-detached-entity-extensions.html',
+	},
+	{
 		id: '@morev/bem/no-chained-entities',
 		scope: 'bem',
 		name: 'no-chained-entities',
@@ -176,6 +186,16 @@ export const scopedRulesMeta = [
 				docsPath: 'src/rules/bem/no-chained-entities/no-chained-entities.docs.md',
 				vitepressPath: '/rules/bem/no-chained-entities.md',
 				vitepressLink: '/rules/bem/no-chained-entities.html',
+			},
+			{
+				id: '@morev/bem/no-detached-entity-extensions',
+				scope: 'bem',
+				name: 'no-detached-entity-extensions',
+				description: 'Requires extensions of a BEM entity selector to be declared within that entity.',
+				fixable: false,
+				docsPath: 'src/rules/bem/no-detached-entity-extensions/no-detached-entity-extensions.docs.md',
+				vitepressPath: '/rules/bem/no-detached-entity-extensions.md',
+				vitepressLink: '/rules/bem/no-detached-entity-extensions.html',
 			},
 			{
 				id: '@morev/bem/no-grouped-entities',
