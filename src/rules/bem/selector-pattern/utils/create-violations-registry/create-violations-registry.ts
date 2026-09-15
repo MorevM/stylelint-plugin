@@ -20,7 +20,7 @@ export const createViolationsRegistry = () => {
 	) => {
 		let current: Document | Node | undefined = bemEntity.rule;
 		while (current) {
-			// eslint-disable-next-line @typescript-eslint/no-loop-func -- Trust me it's safe here
+			// eslint-disable-next-line no-loop-func -- Trust me it's safe here
 			if (violations.some((violation) => {
 				return violation.rule === current
 					&& entityType === violation.entityPart.type
