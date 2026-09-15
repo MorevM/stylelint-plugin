@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - docs/**
+      - src/rules/**/*.docs.md
   workflow_dispatch: {}
 
 concurrency:

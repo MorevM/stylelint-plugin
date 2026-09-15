@@ -137,10 +137,6 @@ export default createRule({
 					new Declaration({
 						prop: VARIABLE_NAME,
 						value: VALID_VALUES[0],
-						// @ts-expect-error -- Not described in types,
-						// but for compatibility with other rules it should be here,
-						// since Declaration is just a superset of Node.
-						// Blocker: https://github.com/stylelint-scss/stylelint-scss/pull/1159
 						source: bemBlock.rule.source,
 						raws: {
 							before: '\n\t',
@@ -249,12 +245,13 @@ export default createRule({
 					node: rule,
 					index: node.sourceIndex,
 					endIndex: node.sourceIndex + bemBlock.selector.length,
-					fix: () => {
-						if (!fixable) return;
-						const replacement = isTopLevelRule ? '&' : `#{${VARIABLE_NAME}}`;
+					fix: !fixable
+						? undefined
+						: () => {
+							const replacement = isTopLevelRule ? '&' : `#{${VARIABLE_NAME}}`;
 
-						rule.selector = rule.selector.replaceAll(bemBlock.selector, () => replacement);
-					},
+							rule.selector = rule.selector.replaceAll(bemBlock.selector, () => replacement);
+						},
 				});
 			});
 		});
