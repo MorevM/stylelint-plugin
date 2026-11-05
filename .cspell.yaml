@@ -18,6 +18,8 @@ import:
   - '@cspell/dict-ru_ru/cspell-ext.json'
 words:
   - morev
+  - morevm
+  - rossjrw
   - unplugin
   - infile
   - atrule

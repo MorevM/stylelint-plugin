@@ -4,20 +4,21 @@ on:
   push:
     branches: [master]
     paths:
+      - .github/workflows/docs.yaml
       - docs/**
       - src/rules/**/*.docs.md
   workflow_dispatch: {}
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
   publish-docs:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    concurrency:
+      group: docs-deployment
+      queue: max
     steps:
       - name: Checkout the repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -33,3 +34,4 @@ jobs:
         with:
           branch: gh-pages
           folder: docs/.vitepress/dist
+          clean-exclude: pr-preview

@@ -1,0 +1,40 @@
+name: Docs preview
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, reopened, synchronize, closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  preview-docs:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency:
+      group: docs-deployment
+      queue: max
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ github.event.action == 'closed' && 'master' || github.ref }}
+
+      - name: Setup environment
+        if: github.event.action != 'closed'
+        uses: ./.github/actions/setup
+
+      - name: Build docs
+        if: github.event.action != 'closed'
+        run: pnpm docs:build --base /stylelint-plugin/pr-preview/pr-${{ github.event.number }}/
+
+      - name: Publish or remove preview
+        uses: rossjrw/pr-preview-action@873417d2df72380da1f3978378fb58560bcde976 # v1.8.2
+        with:
+          source-dir: docs/.vitepress/dist
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+          pages-base-url: morevm.github.io/stylelint-plugin
+          qr-code: false
