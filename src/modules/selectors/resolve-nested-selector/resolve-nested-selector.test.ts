@@ -1517,4 +1517,118 @@ describe(resolveNestedSelector, () => {
 			]);
 		});
 	});
+
+	describe('Parent interpolation in `@at-root` selectors', () => {
+		it.each(['#{&}', '#{ & }'])('Resolves explicit %s without injecting the parent', (reference) => {
+			const source = `${reference}__title`;
+			const code = `.block { @at-root ${source} { color: red; } }`;
+			const [selector] = resolveNestedSelector({ node: getRuleBySelector(code, source) });
+
+			expect(selector).toStrictEqual({
+				source,
+				resolved: '.block__title',
+				lexicalParent: '.block',
+				parent: '.block',
+				substitutions: { [reference]: '.block' },
+				offset: 0,
+				replacements: [{
+					type: 'interpolation',
+					sourceRange: [0, reference.length],
+					resolvedRange: [0, 6],
+				}],
+			});
+			expect(resolveSelectorSourceIndex(selector, source.length)).toBe('.block__title'.length);
+		});
+
+		it('Resolves the equivalent block form without injecting the parent', () => {
+			const code = `.block { @at-root { #{&}__title { color: red; } } }`;
+			const [selector] = resolveNestedSelector({ node: getRuleBySelector(code, '#{&}__title') });
+
+			expect(selector).toMatchObject({
+				resolved: '.block__title',
+				lexicalParent: '.block',
+				replacements: [{
+					type: 'interpolation',
+					sourceRange: [0, 4],
+					resolvedRange: [0, 6],
+				}],
+			});
+		});
+
+		it('Preserves the block variable form', () => {
+			const code = `.block { $b: #{&}; @at-root #{$b}__title { color: red; } }`;
+			const [selector] = resolveNestedSelector({ node: getRuleBySelector(code, '#{$b}__title') });
+
+			expect(selector).toMatchObject({
+				resolved: '.block__title',
+				lexicalParent: '.block',
+				parent: null,
+				replacements: [{
+					type: 'interpolation',
+					sourceRange: [0, 5],
+					resolvedRange: [0, 6],
+				}],
+			});
+		});
+
+		it.each([
+			['.block { @at-root #{&}__title { &--active {} } }', '&--active', '.block__title--active'],
+			['.block { @at-root { #{&}__title { &--active {} } } }', '&--active', '.block__title--active'],
+			['.block { @at-root { @at-root { #{&}__title {} } } }', '#{&}__title', '.block__title'],
+			['.block { @at-root { .wrapper { #{&}__title {} } } }', '#{&}__title', '.wrapper .wrapper__title'],
+			['.block { @at-root .wrapper { #{&}__title {} } }', '#{&}__title', '.wrapper .wrapper__title'],
+			['.block { @at-root (without: media) { #{&}__title {} } }', '#{&}__title', '.block .block__title'],
+		])('Preserves descendant and wrapper context in %s', (code, source, resolved) => {
+			const [selector] = resolveNestedSelector({ node: getRuleBySelector(code, source) });
+
+			expect(selector.resolved).toBe(resolved);
+		});
+
+		it('Keeps interpolation ranges local to each explicit selector-list branch', () => {
+			const source = '#{&}__title, #{&}__label';
+			const code = `.block { @at-root ${source} {} }`;
+			const selectors = resolveNestedSelector({ node: getRuleBySelector(code, source) });
+
+			expect(selectors.map(({ resolved, offset, replacements }) => ({
+				resolved, offset, replacements,
+			}))).toStrictEqual([
+				{
+					resolved: '.block__title',
+					offset: 0,
+					replacements: [{ type: 'interpolation', sourceRange: [0, 4], resolvedRange: [0, 6] }],
+				},
+				{
+					resolved: '.block__label',
+					offset: 13,
+					replacements: [{ type: 'interpolation', sourceRange: [0, 4], resolvedRange: [0, 6] }],
+				},
+			]);
+		});
+
+		it('Preserves raw nesting substitution', () => {
+			const code = `.block { @at-root &__title { color: red; } }`;
+			const [selector] = resolveNestedSelector({ node: getRuleBySelector(code, '&__title') });
+
+			expect(selector).toMatchObject({
+				resolved: '.block__title',
+				lexicalParent: '.block',
+				substitutions: { '&': '.block' },
+				replacements: [{ type: 'nesting', sourceRange: [0, 1], resolvedRange: [0, 6] }],
+			});
+		});
+
+		it('Keeps implicit nesting outside `@at-root`', () => {
+			const code = `.block { #{&}__title { color: red; } }`;
+			const [selector] = resolveNestedSelector({ node: getRuleBySelector(code, '#{&}__title') });
+
+			expect(selector).toMatchObject({
+				resolved: '.block .block__title',
+				lexicalParent: '.block',
+				replacements: [
+					{ type: 'parent-injection', sourceRange: [0, 0], resolvedRange: [0, 7] },
+					{ type: 'interpolation', sourceRange: [0, 4], resolvedRange: [7, 13] },
+				],
+			});
+		});
+	});
 });
