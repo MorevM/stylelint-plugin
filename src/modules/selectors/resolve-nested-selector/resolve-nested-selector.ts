@@ -102,6 +102,7 @@ const hasParentReference = (value: string) => {
  * @param   context          Fully resolved parent selector.
  * @param   item             Current resolved path segment.
  * @param   remainingItems   Descendants checked for bare `@at-root`.
+ * @param   previousItem     Preceding selector or bare `@at-root` wrapper.
  *
  * @returns                  Resolved context after this segment.
  */
@@ -109,6 +110,7 @@ const resolvePathItemContext = (
 	context: string,
 	item: Pick<ResolvedPathItem, 'node' | 'resolvedValue'>,
 	remainingItems: PathItem[],
+	previousItem: PathItem | undefined,
 ) => {
 	const value = item.resolvedValue
 		.replaceAll(SASS_NESTING_INTERPOLATION_REGEXP, () => context);
@@ -122,13 +124,15 @@ const resolvePathItemContext = (
 		// An explicit `@at-root` selector replaces the accumulated ancestry.
 		if (value) return value;
 
-		// Bare `@at-root` drops context only when no descendant needs it.
-		return remainingItems.some(({ value: remainingValue }) => hasParentReference(remainingValue))
+		// Keep context only to expand parent references in the first hoisted selector.
+		const nextSelector = remainingItems.find(({ value: remainingValue }) => !!remainingValue);
+		return hasParentReference(nextSelector?.value ?? '')
 			? context
 			: '';
 	}
 
-	return context ? `${context} ${value}` : value;
+	const isBareAtRootChild = previousItem?.type === 'at-root' && !previousItem.value;
+	return context && !isBareAtRootChild ? `${context} ${value}` : value;
 };
 
 /**
@@ -370,22 +374,28 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 		let parent: string | null;
 		let resolved: string;
 		let substitutions: ResolvedSelector['substitutions'];
+		const previousItem = tree.at(-2);
+		const isBareAtRootChild = previousItem?.type === 'at-root' && !previousItem.value;
+		const inject = context && !isAtRule(node, ['at-root']) && !isBareAtRootChild
+			? `${context} `
+			: '';
 
 		if (source.includes('&')) {
 			const nonContextParts = split(resolvedValue, '&', true);
 			const nestingSourceRanges = getNestingSourceRanges(source);
 
 			// If syntax-aware splitting finds no raw nesting token, `&` occurred only inside
-			// an interpolation or another preserved construct. The resulting selector is still
-			// a descendant, so its implicit parent is represented as a zero-width injection.
+			// an interpolation or another preserved construct. Only descendants outside
+			// `@at-root` need an implicit parent represented as a zero-width injection.
 			if (nonContextParts.length === 1) {
-				const inject = `${context} `;
 				resolved = inject + nonContextParts.join(context);
-				pendingReplacements.push({
-					type: 'parent-injection',
-					sourceRange: [0, 0],
-					resolvedValue: inject,
-				});
+				if (inject) {
+					pendingReplacements.push({
+						type: 'parent-injection',
+						sourceRange: [0, 0],
+						resolvedValue: inject,
+					});
+				}
 			} else {
 				// Raw nesting tokens are replaced in place. Recording each source occurrence
 				// lets downstream consumers map resolved nodes back without reconstructing shifts.
@@ -410,10 +420,6 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 			parent = context || null;
 		} else {
 			// If there is no `&`, treat the source selector as an additional descendant.
-			const inject = context && !isAtRule(node, ['at-root'])
-				? `${context} `
-				: '';
-
 			resolved = inject + resolvedValue;
 			parent = inject || null;
 			substitutions = isEmpty(usedVariables) ? null : usedVariables;
@@ -555,6 +561,7 @@ const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 				context,
 				resolvedPathItem,
 				pathItems.slice(index + 1),
+				pathItems[index - 1],
 			);
 
 			// Declarations inside a rule belong to its descendants.

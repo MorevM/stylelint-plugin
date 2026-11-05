@@ -9,6 +9,18 @@ testRule({
 	config: [true],
 	accept: [
 		{
+			description: 'Accepts non-relational selectors in both `@at-root` forms',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root #{&}__title { color: red; }
+					@at-root &__title { color: red; }
+					@at-root #{$b}__title { color: red; }
+					@at-root { #{&}__title { color: red; } }
+				}
+			`,
+		},
+		{
 			description: 'Accepts relational styles declared within the target element',
 			code: `
 				.block {
