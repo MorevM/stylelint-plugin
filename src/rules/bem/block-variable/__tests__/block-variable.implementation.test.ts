@@ -63,6 +63,28 @@ testRule({
 				}
 			`,
 		},
+		{
+			description: 'Accepts the block reference variable and raw nesting selector',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root #{$b}__title { color: red; }
+					@at-root &__title { color: red; }
+				}
+			`,
+		},
+		{
+			description: 'Preserves block scoping and ignores other at-rule parameters',
+			code: `
+				.block {
+					$b: #{&};
+					@supports selector(.block__title) {}
+					@at-root .block-other__title {}
+				}
+				@at-root .block__title {}
+				.other { @at-root .block__title {} }
+			`,
+		},
 	],
 	reject: [
 		{
@@ -291,6 +313,123 @@ testRule({
 				},
 			],
 		},
+		{
+			description: 'Reports and fixes a hardcoded block in an explicit `@at-root` selector',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root .block__title { color: red; }
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@at-root #{$b}__title { color: red; }
+				}
+			`,
+			warnings: [{
+				line: 3, column: 11,
+				endLine: 3, endColumn: 17,
+				message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+			}],
+		},
+		{
+			description: 'Keeps reporting the equivalent block form',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root {
+						.block__title { color: red; }
+					}
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@at-root {
+						#{$b}__title { color: red; }
+					}
+				}
+			`,
+			warnings: [{
+				line: 4, column: 3,
+				endLine: 4, endColumn: 9,
+				message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+			}],
+		},
+		{
+			description: 'Preserves attribute strings and unrelated classes in the equivalent block form',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root {
+						.block__title[data-label=".block__title"].block-other { color: red; }
+					}
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@at-root {
+						#{$b}__title[data-label=".block__title"].block-other { color: red; }
+					}
+				}
+			`,
+			warnings: [{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) }],
+		},
+		{
+			description: 'Uses the block variable inside a nested entity',
+			code: `
+				.block {
+					$b: #{&};
+					&__item {
+						@at-root .block__title & { color: red; }
+					}
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					&__item {
+						@at-root #{$b}__title & { color: red; }
+					}
+				}
+			`,
+			warnings: [{
+				line: 4, column: 12,
+				endLine: 4, endColumn: 18,
+				message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+			}],
+		},
+		{
+			description: 'Preserves spacing, comments, unrelated classes, and attribute strings when fixing a selector list',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root /* comment */   .block__title[data-label=".block__title"],
+						.block--active.block-other { color: red; }
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@at-root /* comment */   #{$b}__title[data-label=".block__title"],
+						#{$b}--active.block-other { color: red; }
+				}
+			`,
+			warnings: [
+				{
+					line: 3, column: 27,
+					endLine: 3, endColumn: 33,
+					message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+				},
+				{
+					line: 4, column: 3,
+					endLine: 4, endColumn: 9,
+					message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+				},
+			],
+		},
 	],
 });
 
@@ -352,6 +491,22 @@ testRule({
 					message: messages.duplicatedVariable('$b', '$block'),
 				},
 			],
+		},
+		{
+			description: 'Uses the configured variable name',
+			code: `
+				.block {
+					$block: #{&};
+					@at-root .block__title {}
+				}
+			`,
+			fixed: `
+				.block {
+					$block: #{&};
+					@at-root #{$block}__title {}
+				}
+			`,
+			warnings: [{ message: messages.hardcodedBlockName('.block', '#{$block}', 'nested', true) }],
 		},
 	],
 });
@@ -454,6 +609,16 @@ testRule({
 							color: red;
 						}
 					}
+				}
+			`,
+		},
+		{
+			description: 'Allows hardcoded block names in both forms',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root .block__title { color: red; }
+					@at-root { .block__title { color: red; } }
 				}
 			`,
 		},

@@ -1,11 +1,10 @@
 import { quote } from '@morev/utils';
 import { Declaration } from 'postcss';
 import { getBemBlock } from '#modules/bem';
-import { getRuleDeclarations } from '#modules/postcss';
+import { getRuleContentMeta, getRuleDeclarations, isNodeWithin, isRule, isSelectorOwnerNode } from '#modules/postcss';
 import { createRule, extractSeparators, isCssFile, mergeMessages } from '#modules/rule-utils';
 import { parseSelectors } from '#modules/selectors';
 import { schema } from './block-variable.schema';
-import type { Rule } from 'postcss';
 import type parser from 'postcss-selector-parser';
 
 export default createRule({
@@ -198,29 +197,18 @@ export default createRule({
 		});
 	}
 
-	const isNestedWithinBlock = (rule: Rule) => {
-		let parentRule = rule.parent;
-
-		while (parentRule !== root) {
-			if (parentRule === bemBlock.rule) return true;
-			parentRule = parentRule?.parent as any;
-		}
-
-		return false;
-	};
-
 	if (!secondary.replaceBlockName) return;
 
 	const variableRef = `#{${VARIABLE_NAME}}`;
-	root.walkRules((rule) => {
-		if (!isNestedWithinBlock(rule)) return;
+	root.walk((rule) => {
+		if (!isSelectorOwnerNode(rule) || !isNodeWithin(rule, bemBlock.rule)) return;
 
-		const isTopLevelRule = rule.parent === bemBlock.rule;
+		const { source, offset } = getRuleContentMeta(rule);
+		const isTopLevelRule = isRule(rule) && rule.parent === bemBlock.rule;
 		const context = isTopLevelRule ? 'root' : 'nested';
-
-		parseSelectors(rule.selector).forEach((selectorNodes) => {
-			const hasNesting = selectorNodes.some((node) => node.type === 'nesting');
-			const nodesToReport = selectorNodes
+		const selectors = parseSelectors(source).map((selectorNodes) => ({
+			hasNesting: selectorNodes.some((node) => node.type === 'nesting'),
+			nodesToReport: selectorNodes
 				.filter((node) => node.type === 'class')
 				.filter((node) => node.toString().trim().startsWith(bemBlock.selector))
 				.filter((node: parser.ClassName) => {
@@ -228,11 +216,16 @@ export default createRule({
 					return nonBlockValue.startsWith(separators.element)
 						|| nonBlockValue.startsWith(separators.modifier)
 						|| nonBlockValue.startsWith(separators.modifierValue);
-				});
+				}),
+		}));
+		const fixableIndices = new Set(selectors
+			.filter(({ hasNesting }) => !isTopLevelRule || hasNesting)
+			.flatMap(({ nodesToReport }) => nodesToReport.map((node) => node.sourceIndex)));
 
+		selectors.forEach(({ hasNesting, nodesToReport }) => {
 			if (!nodesToReport.length) return;
 
-			const fixable = !isTopLevelRule || (isTopLevelRule && hasNesting);
+			const fixable = !isTopLevelRule || hasNesting;
 			nodesToReport.forEach((node) => {
 				report({
 					message: messages.hardcodedBlockName(
@@ -243,14 +236,21 @@ export default createRule({
 					),
 					messageArgs: ['hardcodedBlockName', bemBlock.selector, variableRef, context, fixable],
 					node: rule,
-					index: node.sourceIndex,
-					endIndex: node.sourceIndex + bemBlock.selector.length,
+					index: offset + node.sourceIndex,
+					endIndex: offset + node.sourceIndex + bemBlock.selector.length,
 					fix: !fixable
 						? undefined
 						: () => {
 							const replacement = isTopLevelRule ? '&' : `#{${VARIABLE_NAME}}`;
+							const fixedSource = source.replaceAll(bemBlock.selector, (match, index: number) => {
+								return fixableIndices.has(index) ? replacement : match;
+							});
 
-							rule.selector = rule.selector.replaceAll(bemBlock.selector, () => replacement);
+							if (isRule(rule)) {
+								rule.selector = fixedSource;
+							} else {
+								rule.params = fixedSource;
+							}
 						},
 				});
 			});
