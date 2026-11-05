@@ -30,8 +30,8 @@ export const schema = {
 			firstChild: v.optional(v.boolean(), true),
 
 			/**
-			 * Whether to automatically replace hardcoded block names with the block variable
-			 * in descendant selectors, or with `&` when safely possible in root selectors.
+			 * Whether to replace hardcoded block names in selectors, selector queries, and extension targets.
+			 * Uses the block variable, or `&` when safely possible in root selectors.
 			 *
 			 * @default true
 			 */
