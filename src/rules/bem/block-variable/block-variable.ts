@@ -1,12 +1,77 @@
 import { quote } from '@morev/utils';
 import { Declaration } from 'postcss';
+import parseValue from 'postcss-value-parser';
 import { getBemBlock } from '#modules/bem';
-import { getRuleDeclarations } from '#modules/postcss';
+import {
+	getRuleContentMeta, getRuleDeclarations, isAtRule, isNodeWithin, isRule, isSelectorOwnerNode,
+} from '#modules/postcss';
 import { createRule, extractSeparators, isCssFile, mergeMessages } from '#modules/rule-utils';
 import { parseSelectors } from '#modules/selectors';
 import { schema } from './block-variable.schema';
-import type { Rule } from 'postcss';
+import type { AtRule } from 'postcss';
 import type parser from 'postcss-selector-parser';
+import type { Node as ValueNode } from 'postcss-value-parser';
+
+/**
+ * Selector text and its position within an at-rule's parameters.
+ */
+type SelectorFragment = {
+	/**
+	 * Selector argument without query wrappers or extension flags.
+	 */
+	source: string;
+
+	/**
+	 * Zero-based start of the selector argument in `AtRule.params`.
+	 */
+	offset: number;
+};
+
+/**
+ * Extracts selector tests, scope boundaries, and extension targets.
+ *
+ * @param   rule   A `@supports`, `@scope`, or `@extend` at-rule.
+ *
+ * @returns        Selector fragments with their original parameter offsets.
+ */
+const getAtRuleSelectors = (rule: AtRule): SelectorFragment[] => {
+	const { params } = rule;
+	const isSupports = isAtRule(rule, ['supports']);
+
+	if (isAtRule(rule, ['extend'])) {
+		const lastToken = parseValue(params).nodes
+			.findLast((node) => node.type !== 'space' && node.type !== 'comment');
+		const source = lastToken?.type === 'word' && lastToken.value.toLowerCase() === '!optional'
+			? params.slice(0, lastToken.sourceIndex)
+			: params;
+
+		return [{ source, offset: 0 }];
+	}
+
+	const fragments: SelectorFragment[] = [];
+
+	const walk = (nodes: ValueNode[]) => {
+		for (const node of nodes) {
+			if (node.type !== 'function' || node.unclosed) continue;
+
+			if (isSupports && node.value === '') {
+				// Declaration conditions can contain arbitrary functions as property values.
+				if (!node.nodes.some((child) => child.type === 'div' && child.value === ':')) {
+					walk(node.nodes);
+				}
+				continue;
+			}
+
+			if (isSupports ? node.value.toLowerCase() !== 'selector' : node.value !== '') continue;
+
+			const offset = node.sourceIndex + node.value.length + 1;
+			fragments.push({ source: params.slice(offset, node.sourceEndIndex - 1), offset });
+		}
+	};
+
+	walk(parseValue(params).nodes);
+	return fragments;
+};
 
 export default createRule({
 	scope: 'bem',
@@ -198,41 +263,51 @@ export default createRule({
 		});
 	}
 
-	const isNestedWithinBlock = (rule: Rule) => {
-		let parentRule = rule.parent;
-
-		while (parentRule !== root) {
-			if (parentRule === bemBlock.rule) return true;
-			parentRule = parentRule?.parent as any;
-		}
-
-		return false;
-	};
-
 	if (!secondary.replaceBlockName) return;
 
 	const variableRef = `#{${VARIABLE_NAME}}`;
-	root.walkRules((rule) => {
-		if (!isNestedWithinBlock(rule)) return;
+	root.walk((rule) => {
+		if (!isNodeWithin(rule, bemBlock.rule)) return;
+		const isSelectorAtRule = isAtRule(rule, ['supports', 'scope', 'extend']);
+		if (!isSelectorAtRule && !isSelectorOwnerNode(rule)) return;
 
-		const isTopLevelRule = rule.parent === bemBlock.rule;
+		const { source, offset } = getRuleContentMeta(rule);
+		const isTopLevelRule = isRule(rule) && rule.parent === bemBlock.rule;
 		const context = isTopLevelRule ? 'root' : 'nested';
-
-		parseSelectors(rule.selector).forEach((selectorNodes) => {
-			const hasNesting = selectorNodes.some((node) => node.type === 'nesting');
-			const nodesToReport = selectorNodes
-				.filter((node) => node.type === 'class')
-				.filter((node) => node.toString().trim().startsWith(bemBlock.selector))
-				.filter((node: parser.ClassName) => {
-					const nonBlockValue = node.value.slice(bemBlock.blockName.length);
-					return nonBlockValue.startsWith(separators.element)
-						|| nonBlockValue.startsWith(separators.modifier)
-						|| nonBlockValue.startsWith(separators.modifierValue);
+		const fragments = isSelectorAtRule ? getAtRuleSelectors(rule) : [{ source, offset: 0 }];
+		const selectors = fragments.flatMap((fragment) => {
+			return parseSelectors(fragment.source).map((selectorNodes) => {
+				const nodes = selectorNodes.flatMap((node) => {
+					const descendants = [node];
+					if ('nodes' in node) {
+						node.walk((child) => { descendants.push(child); });
+					}
+					return descendants;
 				});
 
+				return {
+					offset: fragment.offset,
+					hasNesting: selectorNodes.some((node) => node.type === 'nesting'),
+					nodesToReport: nodes
+						.filter((node) => node.type === 'class')
+						.filter((node) => node.toString().trim().startsWith(bemBlock.selector))
+						.filter((node: parser.ClassName) => {
+							const nonBlockValue = node.value.slice(bemBlock.blockName.length);
+							return nonBlockValue.startsWith(separators.element)
+								|| nonBlockValue.startsWith(separators.modifier)
+								|| nonBlockValue.startsWith(separators.modifierValue);
+						}),
+				};
+			});
+		});
+		const fixableIndices = new Set(selectors
+			.filter(({ hasNesting }) => !isTopLevelRule || hasNesting)
+			.flatMap((selector) => selector.nodesToReport.map((node) => selector.offset + node.sourceIndex)));
+
+		selectors.forEach(({ hasNesting, nodesToReport, offset: selectorOffset }) => {
 			if (!nodesToReport.length) return;
 
-			const fixable = !isTopLevelRule || (isTopLevelRule && hasNesting);
+			const fixable = !isTopLevelRule || hasNesting;
 			nodesToReport.forEach((node) => {
 				report({
 					message: messages.hardcodedBlockName(
@@ -243,14 +318,21 @@ export default createRule({
 					),
 					messageArgs: ['hardcodedBlockName', bemBlock.selector, variableRef, context, fixable],
 					node: rule,
-					index: node.sourceIndex,
-					endIndex: node.sourceIndex + bemBlock.selector.length,
+					index: offset + selectorOffset + node.sourceIndex,
+					endIndex: offset + selectorOffset + node.sourceIndex + bemBlock.selector.length,
 					fix: !fixable
 						? undefined
 						: () => {
 							const replacement = isTopLevelRule ? '&' : `#{${VARIABLE_NAME}}`;
+							const fixedSource = source.replaceAll(bemBlock.selector, (match, index: number) => {
+								return fixableIndices.has(index) ? replacement : match;
+							});
 
-							rule.selector = rule.selector.replaceAll(bemBlock.selector, () => replacement);
+							if (isRule(rule)) {
+								rule.selector = fixedSource;
+							} else {
+								rule.params = fixedSource;
+							}
 						},
 				});
 			});

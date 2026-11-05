@@ -63,6 +63,27 @@ testRule({
 				}
 			`,
 		},
+		{
+			description: 'Accepts the block reference variable and raw nesting selector',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root #{$b}__title { color: red; }
+					@at-root &__title { color: red; }
+				}
+			`,
+		},
+		{
+			description: 'Preserves block scoping',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root .block-other__title {}
+				}
+				@at-root .block__title {}
+				.other { @at-root .block__title {} }
+			`,
+		},
 	],
 	reject: [
 		{
@@ -291,6 +312,123 @@ testRule({
 				},
 			],
 		},
+		{
+			description: 'Reports and fixes a hardcoded block in an explicit `@at-root` selector',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root .block__title { color: red; }
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@at-root #{$b}__title { color: red; }
+				}
+			`,
+			warnings: [{
+				line: 3, column: 11,
+				endLine: 3, endColumn: 17,
+				message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+			}],
+		},
+		{
+			description: 'Keeps reporting the equivalent block form',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root {
+						.block__title { color: red; }
+					}
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@at-root {
+						#{$b}__title { color: red; }
+					}
+				}
+			`,
+			warnings: [{
+				line: 4, column: 3,
+				endLine: 4, endColumn: 9,
+				message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+			}],
+		},
+		{
+			description: 'Preserves attribute strings and unrelated classes in the equivalent block form',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root {
+						.block__title[data-label=".block__title"].block-other { color: red; }
+					}
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@at-root {
+						#{$b}__title[data-label=".block__title"].block-other { color: red; }
+					}
+				}
+			`,
+			warnings: [{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) }],
+		},
+		{
+			description: 'Uses the block variable inside a nested entity',
+			code: `
+				.block {
+					$b: #{&};
+					&__item {
+						@at-root .block__title & { color: red; }
+					}
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					&__item {
+						@at-root #{$b}__title & { color: red; }
+					}
+				}
+			`,
+			warnings: [{
+				line: 4, column: 12,
+				endLine: 4, endColumn: 18,
+				message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+			}],
+		},
+		{
+			description: 'Preserves spacing, comments, unrelated classes, and attribute strings when fixing a selector list',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root /* comment */   .block__title[data-label=".block__title"],
+						.block--active.block-other { color: red; }
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@at-root /* comment */   #{$b}__title[data-label=".block__title"],
+						#{$b}--active.block-other { color: red; }
+				}
+			`,
+			warnings: [
+				{
+					line: 3, column: 27,
+					endLine: 3, endColumn: 33,
+					message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+				},
+				{
+					line: 4, column: 3,
+					endLine: 4, endColumn: 9,
+					message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+				},
+			],
+		},
 	],
 });
 
@@ -352,6 +490,59 @@ testRule({
 					message: messages.duplicatedVariable('$b', '$block'),
 				},
 			],
+		},
+		{
+			description: 'Uses the configured variable name',
+			code: `
+				.block {
+					$block: #{&};
+					@at-root .block__title {}
+				}
+			`,
+			fixed: `
+				.block {
+					$block: #{&};
+					@at-root #{$block}__title {}
+				}
+			`,
+			warnings: [{ message: messages.hardcodedBlockName('.block', '#{$block}', 'nested', true) }],
+		},
+		{
+			description: 'Uses the configured variable name in selector queries',
+			code: `
+				.block {
+					$block: #{&};
+					@supports selector(.block__title) {}
+					@scope (.block__title) {}
+				}
+			`,
+			fixed: `
+				.block {
+					$block: #{&};
+					@supports selector(#{$block}__title) {}
+					@scope (#{$block}__title) {}
+				}
+			`,
+			warnings: [
+				{ message: messages.hardcodedBlockName('.block', '#{$block}', 'nested', true) },
+				{ message: messages.hardcodedBlockName('.block', '#{$block}', 'nested', true) },
+			],
+		},
+		{
+			description: 'Uses the configured variable name in extension targets',
+			code: `
+				.block {
+					$block: #{&};
+					&__title { @extend .block__base !optional; }
+				}
+			`,
+			fixed: `
+				.block {
+					$block: #{&};
+					&__title { @extend #{$block}__base !optional; }
+				}
+			`,
+			warnings: [{ message: messages.hardcodedBlockName('.block', '#{$block}', 'nested', true) }],
 		},
 	],
 });
@@ -454,6 +645,19 @@ testRule({
 							color: red;
 						}
 					}
+				}
+			`,
+		},
+		{
+			description: 'Allows hardcoded block names in selector owners and queries',
+			code: `
+				.block {
+					$b: #{&};
+					@at-root .block__title { color: red; }
+					@at-root { .block__title { color: red; } }
+					@supports selector(.block__title) {}
+					@scope (.block__title) {}
+					&__title { @extend .block__base !optional; }
 				}
 			`,
 		},
@@ -644,6 +848,283 @@ testRule({
 				{ message: `Hardcoded .the-component #{$b} root true (@morev/bem/block-variable)` },
 				{ message: `Hardcoded .the-component #{$b} root false (@morev/bem/block-variable)` },
 			],
+		},
+	],
+});
+
+
+testRule({
+	description: 'Extension targets',
+	config: [true],
+	accept: [
+		{
+			description: 'Accepts block variables, placeholders, and targets from other blocks',
+			code: `
+				.block {
+					$b: #{&};
+					&__title {
+						@extend #{$b}__base !optional;
+						@extend %block__base !optional;
+						@extend .block-other__base !optional;
+					}
+				}
+			`,
+		},
+		{
+			description: 'Preserves the component variable scope for extension targets',
+			code: `
+				.block { $b: #{&}; }
+				.other { @extend .block__base !optional; }
+			`,
+		},
+	],
+	reject: [
+		{
+			description: 'Reports and fixes an extension target inside a nested entity',
+			code: `
+				.block {
+					$b: #{&};
+					&__base { color: red; }
+					&__title {
+						@extend .block__base;
+					}
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					&__base { color: red; }
+					&__title {
+						@extend #{$b}__base;
+					}
+				}
+			`,
+			warnings: [{
+				line: 5, column: 11,
+				endLine: 5, endColumn: 17,
+				message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+			}],
+		},
+		{
+			description: 'Preserves optional flag casing and comments when fixing a target list',
+			code: `
+				.block {
+					$b: #{&};
+					&__title {
+						@extend /* comment */ .block__base, .block__label !OPTIONAL /* keep */;
+						color: red;
+					}
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					&__title {
+						@extend /* comment */ #{$b}__base, #{$b}__label !OPTIONAL /* keep */;
+						color: red;
+					}
+				}
+			`,
+			warnings: [
+				{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) },
+				{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) },
+			],
+		},
+		{
+			description: 'Uses the block variable for direct extension targets',
+			code: `
+				.block {
+					$b: #{&};
+					@extend .block__base !optional;
+					color: red;
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@extend #{$b}__base !optional;
+					color: red;
+				}
+			`,
+			warnings: [{
+				line: 3, column: 10,
+				endLine: 3, endColumn: 16,
+				message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+			}],
+		},
+	],
+});
+
+testRule({
+	description: 'Selector queries and scope boundaries',
+	config: [true],
+	accept: [
+		{
+			description: 'Accepts block variables in selector tests and both scope boundaries',
+			code: `
+				.block {
+					$b: #{&};
+					@supports selector(#{$b}__title) {}
+					@scope (#{$b}__title) to (#{$b}__content) {}
+					@scope {}
+				}
+			`,
+		},
+		{
+			description: 'Ignores declaration queries, opaque functions, and unrelated at-rules',
+			code: `
+				.block {
+					$b: #{&};
+					@supports (font-family: ".block__title") {}
+					@supports (--custom: selector(.block__title)) {}
+					@supports unknown(selector(.block__title)) {}
+					@media (--custom: selector(.block__title)) {}
+					--selector: ".block__title";
+				}
+			`,
+		},
+		{
+			description: 'Ignores attribute strings, comments, and other blocks in selector arguments',
+			code: `
+				.block {
+					$b: #{&};
+					@supports selector([data-label=".block__title"]) {}
+					@supports selector(.block-other__title /* .block__title */) {}
+					@scope ([data-label=".block__title"]) to (.other__title) {}
+				}
+			`,
+		},
+		{
+			description: 'Preserves the component variable scope for selector queries',
+			code: `
+				.block { $b: #{&}; }
+				@supports selector(.block__title) {}
+				.other { @scope (.block__title) {} }
+			`,
+		},
+	],
+	reject: [
+		{
+			description: 'Reports and fixes a selector support test',
+			code: `
+				.block {
+					$b: #{&};
+					@supports selector(.block__title) { color: red; }
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@supports selector(#{$b}__title) { color: red; }
+				}
+			`,
+			warnings: [{
+				line: 3, column: 21,
+				endLine: 3, endColumn: 27,
+				message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+			}],
+		},
+		{
+			description: 'Checks selector functions inside nested boolean support conditions',
+			code: `
+				.block {
+					$b: #{&};
+					@supports not (selector(.block__title) or selector(.block--active)) { color: red; }
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@supports not (selector(#{$b}__title) or selector(#{$b}--active)) { color: red; }
+				}
+			`,
+			warnings: [
+				{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) },
+				{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) },
+			],
+		},
+		{
+			description: 'Checks nested selector pseudos without replacing attribute strings or declaration values',
+			code: `
+				.block {
+					$b: #{&};
+					@supports selector(:is(.block__title, .other):has(.block__label[data-ref=".block__label"]))
+						and (--custom: selector(.block__title)) { color: red; }
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@supports selector(:is(#{$b}__title, .other):has(#{$b}__label[data-ref=".block__label"]))
+						and (--custom: selector(.block__title)) { color: red; }
+				}
+			`,
+			warnings: [
+				{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) },
+				{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) },
+			],
+		},
+		{
+			description: 'Preserves comments and reports the actual position in a multiline header',
+			code: `
+				.block {
+					$b: #{&};
+					@supports /* comment */
+						selector(.block__title) { color: red; }
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@supports /* comment */
+						selector(#{$b}__title) { color: red; }
+				}
+			`,
+			warnings: [{
+				line: 4, column: 12,
+				endLine: 4, endColumn: 18,
+				message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
+			}],
+		},
+		{
+			description: 'Checks both scope boundaries, including selector lists',
+			code: `
+				.block {
+					$b: #{&};
+					@scope (.block__title, .other) to (:is(.block__body, .block__footer)) { color: red; }
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					@scope (#{$b}__title, .other) to (:is(#{$b}__body, #{$b}__footer)) { color: red; }
+				}
+			`,
+			warnings: [
+				{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) },
+				{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) },
+				{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) },
+			],
+		},
+		{
+			description: 'Checks uppercase selector functions inside nested entities',
+			code: `
+				.block {
+					$b: #{&};
+					&__item {
+						@supports SELECTOR(.block__title) { color: red; }
+					}
+				}
+			`,
+			fixed: `
+				.block {
+					$b: #{&};
+					&__item {
+						@supports SELECTOR(#{$b}__title) { color: red; }
+					}
+				}
+			`,
+			warnings: [{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) }],
 		},
 	],
 });

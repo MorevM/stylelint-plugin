@@ -119,8 +119,8 @@ type BlockVariableOptions = {
   firstChild?: boolean;
 
   /**
-   * Whether to automatically replace hardcoded occurrences of the block name
-   * inside nested selectors with the corresponding block variable.
+   * Whether to replace hardcoded block names in selectors, selector queries, and extension targets.
+   * Uses the block variable, or `&` when safely possible in root selectors.
    *
    * @default true
    */
