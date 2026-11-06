@@ -9,7 +9,7 @@ pre-commit:
   commands:
     cspell:
       skip: [merge, rebase]
-      run: pnpm run -s spellcheck -- {staged_files}
+      run: pnpm run -s spellcheck --no-must-find-files -- {staged_files}
     eslint:
       glob: '*.{js,ts,json,json5,jsonc,yml,yaml,md}'
       skip: [merge, rebase]
