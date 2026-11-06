@@ -95,7 +95,7 @@
 		"@release-it/conventional-changelog": "8",
 		"@total-typescript/ts-reset": "^0.6.1",
 		"@types/node": "^26.6.6",
-		"@vitest/coverage-v8": "^5.0.0",
+		"@vitest/coverage-v8": "^5.1.0",
 		"cspell": "^10.4.0",
 		"eslint": "^10.14.0",
 		"lefthook": "^2.2.2",
