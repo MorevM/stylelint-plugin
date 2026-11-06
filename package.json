@@ -109,6 +109,6 @@
 		"unplugin-vue-components": "^32.1.0",
 		"vite-tsconfig-paths": "^6.1.1",
 		"vitepress": "^1.6.3",
-		"vitest": "5.0.0"
+		"vitest": "5.1.0"
 	}
 }
