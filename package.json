@@ -108,7 +108,7 @@
 		"typescript": "^6.0.3",
 		"unplugin-vue-components": "^32.1.0",
 		"vite-tsconfig-paths": "^6.1.1",
-		"vitepress": "^1.6.3",
+		"vitepress": "^1.6.4",
 		"vitest": "5.1.0"
 	}
 }
