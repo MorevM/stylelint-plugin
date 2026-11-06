@@ -97,7 +97,7 @@
 		"@types/node": "^26.6.6",
 		"@vitest/coverage-v8": "^5.0.0",
 		"cspell": "^10.4.0",
-		"eslint": "^10.10.0",
+		"eslint": "^10.14.0",
 		"lefthook": "^2.2.2",
 		"postcss-scss": "^4.0.9",
 		"release-it": "^21.0.3",
