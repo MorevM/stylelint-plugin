@@ -92,7 +92,7 @@
 		"@morev/eslint-config": "^43.0.0",
 		"@morev/stylelint-config": "^9.0.2",
 		"@morev/stylelint-testing-library": "^1.1.1",
-		"@release-it/conventional-changelog": "8",
+		"@release-it/conventional-changelog": "^12.0.2",
 		"@total-typescript/ts-reset": "^0.6.1",
 		"@types/node": "^26.6.6",
 		"@vitest/coverage-v8": "^5.1.0",
