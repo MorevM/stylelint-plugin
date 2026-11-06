@@ -4,6 +4,8 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+packageExtensionsChecksum: sha256-E2hyvDtLR8Jbn93XhXBtdlM6MJmoSjFapL+qewNnfy4=
+
 importers:
 
   .:
@@ -8664,7 +8666,9 @@ snapshots:
       lodash: 4.17.21
       q: 1.5.1
 
-  conventional-changelog-preset-loader@6.0.1: {}
+  conventional-changelog-preset-loader@6.0.1:
+    dependencies:
+      conventional-changelog-conventionalcommits: 10.4.1
 
   conventional-changelog-writer@9.3.0:
     dependencies:

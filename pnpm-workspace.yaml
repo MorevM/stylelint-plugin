@@ -26,3 +26,7 @@ minimumReleaseAgeExclude:
   - sass-embedded-unknown-all@1.108.0
   - sass-embedded-win32-arm64@1.108.0
   - sass-embedded-win32-x64@1.108.0
+packageExtensions:
+  conventional-changelog-preset-loader@6.0.1:
+    dependencies:
+      conventional-changelog-conventionalcommits: ^10.4.1
