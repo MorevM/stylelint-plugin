@@ -8,15 +8,15 @@ This plugin takes a different, much simpler approach:
 
 ---
 
-> **The first class selector in the file is considered the BEM block.**
+> **The first base block declaration in the file determines the component's block.**
+> **If none exists, the block name is derived from the first element or modifier.**
 
 ---
 
 ✅ **Why this is enough** \
 In a component-oriented architecture, there is rarely a reason to define more than one block per file.
-Assuming that the first top-level class represents the component's block is usually both practical and predictable —
-without requiring additional annotations or configuration. \
-It also avoids coupling the rule to naming conventions or file structure.
+This convention keeps block detection consistent across rules
+without additional annotations or configuration.
 
 ---
 

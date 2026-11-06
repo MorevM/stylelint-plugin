@@ -148,6 +148,15 @@ testRule({
 	],
 	reject: [
 		{
+			description: 'Checks relational styles of the first base block after an unrelated element',
+			code: `
+				.early__item {}
+				.component {}
+				.component__link:hover .component__label {}
+			`,
+			warnings: [{ line: 3, message: messages.misplaced('.component__label', undefined) }],
+		},
+		{
 			description: 'Reports the issue example with styles owned by the source element',
 			code: `
 				.block {
@@ -297,6 +306,7 @@ testRule({
 		{
 			description: 'Reports converging resolution paths once',
 			code: `
+				.block {}
 				.block__link.foo, .block__link.bar {
 					&:hover .block__label {}
 				}
@@ -304,8 +314,8 @@ testRule({
 			warnings: [
 				{
 					message: messages.misplaced('.block__label', '.block__link'),
-					line: 2, column: 10,
-					endLine: 2, endColumn: 23,
+					line: 3, column: 10,
+					endLine: 3, endColumn: 23,
 				},
 			],
 		},
