@@ -87,7 +87,7 @@
 		"valibot": "^1.5.0"
 	},
 	"devDependencies": {
-		"@cspell/dict-ru_ru": "^2.3.2",
+		"@cspell/dict-ru_ru": "^2.3.4",
 		"@morev/commitlint-config": "^0.2.2",
 		"@morev/eslint-config": "^43.0.0",
 		"@morev/stylelint-config": "^9.0.2",
