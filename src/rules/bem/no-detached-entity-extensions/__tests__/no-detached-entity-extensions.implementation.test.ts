@@ -133,6 +133,15 @@ testRule({
 	],
 	reject: [
 		{
+			description: 'Checks extensions of the first base block after an unrelated element',
+			code: `
+				.early__item {}
+				.component {}
+				.component__label:hover {}
+			`,
+			warnings: [{ line: 3, message: messages.detached('.component__label:hover', '.component__label') }],
+		},
+		{
 			description: 'Reports detached extensions and modifiers from the issue example',
 			code: `
 				.block {

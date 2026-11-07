@@ -151,7 +151,7 @@ export default createRule({
 
 	const separators = extractSeparators(secondary.separators);
 	const bemBlock = getBemBlock(root, separators);
-	if (!bemBlock) return;
+	if (!bemBlock?.isBaseDeclaration) return;
 
 	const messages = mergeMessages(ruleMessages, secondary.messages);
 

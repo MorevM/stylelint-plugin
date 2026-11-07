@@ -10,6 +10,13 @@ testRule({
 	codeFilename: '/the-component/the-component.scss',
 	accept: [
 		{
+			description: 'Matches the first base block instead of an earlier element from another block',
+			code: `
+				.early__item {}
+				.the-component {}
+			`,
+		},
+		{
 			description: 'Does not report if there is no BEM block',
 			code: `
 				#block {}
@@ -51,6 +58,11 @@ testRule({
 		},
 	],
 	reject: [
+		{
+			description: 'Checks the fallback block name in an element-only file',
+			code: '.foo-component__title {}',
+			message: messages.match('file', 'foo-component'),
+		},
 		{
 			description: 'The block name does not match the file name',
 			code: `

@@ -123,6 +123,14 @@ testRule({
 	],
 	reject: [
 		{
+			description: 'Uses the first base block as the shared component scope',
+			code: `
+				.early__item {}
+				.component {}
+			`,
+			warnings: [{ line: 1, column: 1, message: messages.rejected('.early__item') }],
+		},
+		{
 			description: 'Reports side-effects after resolved SASS variables',
 			code: `
 				.the-component {
