@@ -13,7 +13,9 @@ const createErrorMessage = (
 		: `Invalid secondary option {path} for rule ${quote(ruleName)}`;
 
 	const messages = issues.map((issue) => {
-		const message = `expected ${quote(issue.expected, '`')} but got ${quote(issue.received, '`')}`;
+		const message = issue.expected === null
+			? issue.message
+			: `expected ${quote(issue.expected, '`')} but got ${quote(issue.received, '`')}`;
 		const path = issue.path?.map((pathPart: any) => pathPart.key).join('.');
 		const formattedBase = base.replace('{path}', () => path ? quote(path, "'") : ' ');
 
