@@ -32,6 +32,8 @@ testRule({
 				owner: {
 					selector: '.block',
 					block: 'block',
+					element: null,
+					modifierName: null,
 					depth: 1,
 					path: ['.block'],
 				},
@@ -67,6 +69,8 @@ testRule({
 						owner: {
 							selector: '.block',
 							block: 'block',
+							element: null,
+							modifierName: null,
 							depth: 1,
 							path: ['.block'],
 						},
@@ -131,6 +135,18 @@ testRule({
 			`,
 		},
 		{
+			description: 'Skips variables owned by elements or modifiers',
+			code: `
+				.block__item { $b: #{&}; $self: &; $wrong: '.block__icon'; }
+				.block--active { $wrong: '.block__item'; }
+				.block--size--large { $wrong: '.block__item'; }
+				@media (width > 1px) {
+					.block__item--active { $b: #{&}; }
+					.block__item--size--large { $b: &; }
+				}
+			`,
+		},
+		{
 			description: 'Skips aliases to another variable',
 			code: `
 				.block {
@@ -178,6 +194,63 @@ testRule({
 			}],
 		},
 	],
+});
+
+testRule({
+	description: 'Default resolver with custom separators',
+	config: [true, {
+		separators: { element: '--', modifier: '_', modifierValue: '_' },
+	}],
+	accept: [
+		{
+			description: 'Skips element and modifier owners with custom separators',
+			code: `
+				.block--item { $b: #{&}; $wrong: '.block--icon'; }
+				.block_active { $wrong: '.block--item'; }
+				.block_size_large { $wrong: '.block--item'; }
+				.block--item_active { $b: #{&}; }
+				.block--item_size_large { $b: &; }
+			`,
+		},
+	],
+	reject: [
+		{
+			description: 'Keeps checking element references owned by a block with custom separators',
+			code: '.block { $wrong: #{&}--item; }',
+			fixed: '.block { $item: #{&}--item; }',
+			warnings: [{
+				message: `Expected variable "$wrong" to be named "$item" for BEM selector ".block--item". (${ruleName})`,
+			}],
+		},
+	],
+});
+
+testRule({
+	description: 'Custom resolver for top-level element and modifier owners',
+	config: [true, {
+		resolve: ({ owner, selector }: SelectorVariablePatternContext) => {
+			expect(owner).toMatchObject({
+				block: 'block',
+				element: selector.element,
+				modifierName: selector.modifierName,
+				depth: 1,
+			});
+
+			return 'self';
+		},
+	}],
+	reject: [
+		['.block__item', '#{&}'],
+		['.block__item--active', '&'],
+		['.block--active', '#{&}'],
+	].map(([selector, reference]) => ({
+		description: `Lets a custom resolver rename a self reference inside ${selector}`,
+		code: `${selector} { $b: ${reference}; }`,
+		fixed: `${selector} { $self: ${reference}; }`,
+		warnings: [{
+			message: `Expected variable "$b" to be named "$self" for BEM selector "${selector}". (${ruleName})`,
+		}],
+	})),
 });
 
 testRule({
@@ -586,6 +659,8 @@ testRule({
 				expect(owner).toStrictEqual({
 					selector: '.block__wrapper',
 					block: 'block',
+					element: 'wrapper',
+					modifierName: null,
 					depth: 2,
 					path: ['.block', '&__wrapper'],
 				});
@@ -596,6 +671,8 @@ testRule({
 			expect(owner).toStrictEqual({
 				selector: '.block',
 				block: 'block',
+				element: null,
+				modifierName: null,
 				depth: 1,
 				path: ['.block'],
 			});
