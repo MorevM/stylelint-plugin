@@ -113,13 +113,15 @@ export default createRule({
 
 		const { declarations, owner } = resolution;
 		const ownerEntities = resolveBemEntities({ source: owner.selector, separators });
-		const ownerBlock = ownerEntities.length === 1
-			? ownerEntities[0].block.value
+		const ownerEntity = ownerEntities.length === 1
+			? ownerEntities[0]
 			: null;
 
 		checkDeclarations(declarations, {
 			...owner,
-			block: ownerBlock,
+			block: ownerEntity?.block.value ?? null,
+			element: ownerEntity?.element?.value ?? null,
+			modifierName: ownerEntity?.modifierName?.value ?? null,
 		});
 	});
 });
