@@ -1,6 +1,6 @@
 import { resolveBemChain } from '#modules/bem';
 import { getRuleContentMeta, isAtRule, isRule } from '#modules/postcss';
-import { createRule, extractSeparators, isCssFile, mergeMessages } from '#modules/rule-utils';
+import { createRule, extractSeparators, isSassSyntax, mergeMessages } from '#modules/rule-utils';
 import { schema } from './no-chained-entities.schema';
 import type { Root } from 'postcss';
 import type { Separators } from '#modules/shared';
@@ -186,9 +186,9 @@ export default createRule({
 			`Unexpected nested modifier value "${actual}". Use a flat selector "${expected}" instead`,
 	},
 	schema,
-}, (primary, secondary, { report, messages: ruleMessages, root }) => {
-	// The rule only applicable to SCSS files.
-	if (isCssFile(root)) return;
+}, (primary, secondary, { report, messages: ruleMessages, root, result }) => {
+	// The rule only applicable to SASS files.
+	if (!isSassSyntax(root, result)) return;
 
 	const messages = mergeMessages(ruleMessages, secondary.messages);
 	const separators = extractSeparators(secondary.separators);

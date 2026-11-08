@@ -1,7 +1,7 @@
 import { isEmpty } from '@morev/utils';
 import { getBemBlock, resolveMostSpecificBemEntities } from '#modules/bem';
 import { isSelectorOwnerNode } from '#modules/postcss';
-import { createRule, extractSeparators, isCssFile, mergeMessages } from '#modules/rule-utils';
+import { createRule, extractSeparators, isSassSyntax, mergeMessages } from '#modules/rule-utils';
 import { getResolvedNodesSourceRange, resolveSelectorNodes, selectorNodesToString, splitSelectorCompounds } from '#modules/selectors';
 import { schema } from './no-detached-entity-extensions.schema';
 import type parser from 'postcss-selector-parser';
@@ -104,12 +104,7 @@ export default createRule({
 	const separators = extractSeparators(secondary.separators);
 	const bemBlock = getBemBlock(root, separators);
 
-	const syntaxFunctionNames = [result.opts.syntax?.parse?.name, result.opts.syntax?.stringify?.name]
-		.filter(Boolean)
-		.join(' ')
-		.toLowerCase();
-	const hasScssSyntax = syntaxFunctionNames.includes('scss');
-	const isCss = isCssFile(root) || (!root.source?.input.file && !hasScssSyntax);
+	const isSass = isSassSyntax(root, result);
 
 	root.walk((node) => {
 		if (!isSelectorOwnerNode(node)) return;
@@ -141,9 +136,9 @@ export default createRule({
 			let expectedOwners: string[];
 			if (hasLocalExtension) {
 				expectedOwners = [entity.bemSelector];
-			} else if (!isCss && entity.modifierValue) {
+			} else if (isSass && entity.modifierValue) {
 				expectedOwners = [getBaseEntitySelector(entity), getModifierNameSelector(entity)];
-			} else if (!isCss && entity.modifierName) {
+			} else if (isSass && entity.modifierName) {
 				expectedOwners = [getBaseEntitySelector(entity)];
 			} else {
 				return;

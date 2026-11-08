@@ -1,6 +1,6 @@
 import { isNullish, isString } from '@morev/utils';
 import { resolveBemEntities } from '#modules/bem';
-import { createRule, extractSeparators, isCssFile, mergeMessages } from '#modules/rule-utils';
+import { createRule, extractSeparators, isSassSyntax, mergeMessages } from '#modules/rule-utils';
 import { isSimpleSassVariableName } from '#modules/sass';
 import { parseSelectors } from '#modules/selectors';
 import { schema } from './selector-variable-pattern.schema';
@@ -36,8 +36,8 @@ export default createRule({
 		},
 	},
 	schema,
-}, (primary, secondary, { root, report, messages: ruleMessages }) => {
-	if (isCssFile(root)) return;
+}, (primary, secondary, { root, result, report, messages: ruleMessages }) => {
+	if (!isSassSyntax(root, result)) return;
 
 	const separators = extractSeparators(secondary.separators);
 	const messages = mergeMessages(ruleMessages, secondary.messages);

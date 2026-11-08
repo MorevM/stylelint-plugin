@@ -1,5 +1,5 @@
 import { isComment, isDeclaration, isRule } from '#modules/postcss';
-import { createRule, isCssFile, mergeMessages } from '#modules/rule-utils';
+import { createRule, isSassSyntax, mergeMessages } from '#modules/rule-utils';
 import { getSassVariableReferences, isSimpleSassVariableName, normalizeSassMemberName } from '#modules/sass';
 import { toRegExp } from '#modules/shared';
 import { schema } from './no-unused-variables.schema';
@@ -18,9 +18,9 @@ export default createRule({
 		unused: (name: string) => `Unexpected unused variable: "${name}"`,
 	},
 	schema,
-}, (primary, secondary, { report, messages: ruleMessages, root }) => {
-	// The rule only applicable to SCSS files.
-	if (isCssFile(root)) return;
+}, (primary, secondary, { report, messages: ruleMessages, root, result }) => {
+	// The rule only applicable to SASS files.
+	if (!isSassSyntax(root, result)) return;
 
 	const messages = mergeMessages(ruleMessages, secondary.messages);
 
