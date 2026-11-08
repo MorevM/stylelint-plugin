@@ -545,7 +545,7 @@ testRule({
 
 // RegExp wildcard as RegExp
 testRule({
-	description: 'RegExp wildcard as string',
+	description: 'RegExp wildcard as RegExp',
 	config: [true, {
 		ignore: {
 			media: /.*/,

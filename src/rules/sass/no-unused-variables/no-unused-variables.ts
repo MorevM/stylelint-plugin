@@ -155,7 +155,7 @@ export default createRule({
 
 			const authoredName = declaration.prop;
 			const isIgnored = normalizedIgnorePatterns
-				.some((pattern) => pattern.test(authoredName.slice(1)));
+				.some((pattern) => authoredName.slice(1).search(pattern) !== -1);
 
 			if (isIgnored) return;
 

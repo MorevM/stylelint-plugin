@@ -3,6 +3,7 @@ import { resolveBemEntities } from '#modules/bem';
 import { createRule, extractSeparators, isSassSyntax, mergeMessages } from '#modules/rule-utils';
 import { isSimpleSassVariableName } from '#modules/sass';
 import { parseSelectors } from '#modules/selectors';
+import { toRegExp } from '#modules/shared';
 import { schema } from './selector-variable-pattern.schema';
 import { getSassVariableRenameFix, resolveVariableDeclarations } from './utils';
 import type { ResolvedSassDeclaration } from '#modules/postcss';
@@ -85,7 +86,7 @@ export default createRule({
 			const actualName = context.variable.name;
 			const isValid = isString(expected)
 				? actualName === expected
-				: new RegExp(expected.source, expected.flags).test(actualName);
+				: actualName.search(toRegExp(expected)) !== -1;
 			if (isValid) continue;
 
 			const fix = isString(expected) && isSimpleSassVariableName(`$${expected}`)

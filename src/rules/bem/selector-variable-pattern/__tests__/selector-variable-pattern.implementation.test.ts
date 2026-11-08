@@ -468,18 +468,14 @@ testRule({
 testRule({
 	description: 'Regular expression results',
 	config: [true, {
-		resolve: () => /^item$/g,
+		resolve: () => /^item$/,
 	}],
 	accept: [
 		{
-			description: 'Resets stateful patterns between variables',
+			description: 'Accepts a name matching the resolver pattern',
 			code: `
-				.first {
-					$item: '.first__item';
-				}
-
-				.second {
-					$item: '.foo__item';
+				.block {
+					$item: #{&}__item;
 				}
 			`,
 		},
@@ -498,7 +494,7 @@ testRule({
 				}
 			`,
 			warnings: [{
-				message: `Expected variable "$wrong" to match "/^item$/g" for BEM selector ".block__item". (${ruleName})`,
+				message: `Expected variable "$wrong" to match "/^item$/" for BEM selector ".block__item". (${ruleName})`,
 				line: 2, column: 2,
 				endLine: 2, endColumn: 8,
 			}],
