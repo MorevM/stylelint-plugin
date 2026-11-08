@@ -1,15 +1,11 @@
-import { isEmpty } from '@morev/utils';
-import { resolveMostSpecificBemEntities } from '#modules/bem';
+import { resolveBemCompoundTarget } from '#modules/bem';
 import { isNodeWithin, isSelectorOwnerNode } from '#modules/postcss';
 import { createRule, extractSeparators, mergeMessages } from '#modules/rule-utils';
 import { getResolvedNodesSourceRange, resolveSelectorNodes, selectorNodesToString, splitSelectorCompounds } from '#modules/selectors';
 import { schema } from './no-grouped-entities.schema';
 import type { AtRule, Rule } from 'postcss';
-import type parser from 'postcss-selector-parser';
 import type { ResolvedNode } from '#modules/selectors';
 import type { Separators } from '#modules/shared';
-
-const IGNORED_FUNCTIONAL_PSEUDOS = new Set([':has', ':is', ':not', ':where']);
 
 type SourceRange = {
 	/**
@@ -53,67 +49,30 @@ type SelectorListAnalysis = {
 };
 
 /**
- * Detects selector lists nested inside functional pseudo-classes.
- * Their branches are intentionally outside the initial ownership model.
- *
- * @param   nodes   Selector nodes to inspect recursively.
- *
- * @returns         Whether an ignored nested selector list is present.
- */
-const hasIgnoredFunctionalSelectorList = (nodes: parser.Node[]): boolean => {
-	return nodes.some((node) => {
-		if (
-			node.type === 'pseudo'
-			&& IGNORED_FUNCTIONAL_PSEUDOS.has(node.value)
-			&& (node.nodes?.length ?? 0) > 1
-		) return true;
-
-		if (!('nodes' in node) || isEmpty(node.nodes)) return false;
-
-		return node.nodes.some((child) => hasIgnoredFunctionalSelectorList([child]));
-	});
-};
-
-/**
  * Resolves one unambiguous BEM target from an authored selector-list branch.
  * The most specific entity from the rightmost compound owns the declarations.
  *
- * @param   source       Authored selector branch.
  * @param   resolved     Resolved selector branch.
  * @param   separators   BEM separators used in the current config.
  *
  * @returns              Canonical BEM identity and its authored source range, or `null`.
  */
 const resolveBranchTarget = (
-	source: parser.Node[],
 	resolved: ResolvedNode[],
 	separators: Separators,
 ) => {
-	if (
-		selectorNodesToString(resolved).includes('#{')
-		|| hasIgnoredFunctionalSelectorList(source)
-		|| hasIgnoredFunctionalSelectorList(resolved)
-	) return null;
+	if (selectorNodesToString(resolved).includes('#{')) return null;
 
 	const targetCompound = splitSelectorCompounds(resolved).at(-1);
 	if (!targetCompound) return null;
 
-	const entities = resolveMostSpecificBemEntities({
-		nodes: targetCompound,
-		separators,
-	});
-	if (entities.length !== 1) return null;
+	const target = resolveBemCompoundTarget(targetCompound, separators);
+	if (target.status !== 'resolved') return null;
 
-	const [{ bemSelector: entity }] = entities;
-	const targetNode = targetCompound.findLast((node) => {
-		return node.type === 'class' && node.value === entity.slice(1);
-	});
-	if (!targetNode) return null;
-
-	const range = getResolvedNodesSourceRange([targetNode]);
+	const range = getResolvedNodesSourceRange([target.entityNode]);
 	if (!range) return null;
 
-	return { entity, range };
+	return { entity: target.entity.bemSelector, range };
 };
 
 /**
@@ -131,7 +90,7 @@ const analyzeSelectorList = (
 ): SelectorListAnalysis | null => {
 	const branches = new Map<string, BranchAnalysis>();
 
-	for (const { resolved, source } of resolveSelectorNodes({ node })) {
+	for (const { resolved } of resolveSelectorNodes({ node })) {
 		const branchRange = getResolvedNodesSourceRange(resolved);
 		if (!branchRange) continue;
 
@@ -143,7 +102,7 @@ const analyzeSelectorList = (
 		};
 		branches.set(branchKey, branch);
 
-		const target = resolveBranchTarget(source, resolved, separators);
+		const target = resolveBranchTarget(resolved, separators);
 		if (!target) {
 			branch.isAmbiguous = true;
 			continue;
