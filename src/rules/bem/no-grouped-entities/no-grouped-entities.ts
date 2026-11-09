@@ -1,7 +1,7 @@
-import { resolveBemCompoundTarget } from '#modules/bem';
+import { resolveBemSelectorTarget } from '#modules/bem';
 import { isNodeWithin, isSelectorOwnerNode } from '#modules/postcss';
 import { createRule, extractSeparators, mergeMessages } from '#modules/rule-utils';
-import { getResolvedNodesSourceRange, resolveSelectorNodes, selectorNodesToString, splitSelectorCompounds } from '#modules/selectors';
+import { getResolvedNodesSourceRange, resolveSelectorNodes } from '#modules/selectors';
 import { schema } from './no-grouped-entities.schema';
 import type { AtRule, Rule } from 'postcss';
 import type { ResolvedNode } from '#modules/selectors';
@@ -61,12 +61,7 @@ const resolveBranchTarget = (
 	resolved: ResolvedNode[],
 	separators: Separators,
 ) => {
-	if (selectorNodesToString(resolved).includes('#{')) return null;
-
-	const targetCompound = splitSelectorCompounds(resolved).at(-1);
-	if (!targetCompound) return null;
-
-	const target = resolveBemCompoundTarget(targetCompound, separators);
+	const target = resolveBemSelectorTarget(resolved, separators);
 	if (target.status !== 'resolved') return null;
 
 	const range = getResolvedNodesSourceRange([target.entityNode]);

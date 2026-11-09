@@ -1,5 +1,6 @@
 import { isEmpty } from '@morev/utils';
 import { resolveMostSpecificBemEntities } from '#modules/bem/utils/resolve-most-specific-bem-entities/resolve-most-specific-bem-entities';
+import { selectorNodesToString, splitSelectorCompounds } from '#modules/selectors';
 import type parser from 'postcss-selector-parser';
 import type { BemEntity } from '#modules/bem/types';
 import type { Separators } from '#modules/shared';
@@ -7,11 +8,21 @@ import type { Separators } from '#modules/shared';
 /**
  * Distinguishes a known target, its absence, and selectors whose ownership cannot be determined.
  */
-type CompoundTarget<Node extends parser.Node> = {
+type SelectorTarget<Node extends parser.Node> = {
 	/**
 	 * A direct BEM class uniquely identifies the target.
 	 */
 	status: 'resolved';
+
+	/**
+	 * Rightmost compound whose entity receives the declarations, with original nodes preserved.
+	 */
+	compound: Node[];
+
+	/**
+	 * Preceding compounds in source order; empty for a local selector.
+	 */
+	context: Node[][];
 
 	/**
 	 * Most-specific direct entity, without pseudo-class conditions.
@@ -30,22 +41,31 @@ type CompoundTarget<Node extends parser.Node> = {
 };
 
 /**
- * Resolves the direct BEM target of a compound independently of its pseudo-class conditions.
+ * Resolves the direct BEM target of the rightmost compound in one resolved selector branch.
+ * Preceding compounds describe its context and never supply a missing target.
  * Without a direct class, top-level `:is()` and `:where()` leave the target unknown, even with a single branch.
  * `:not()` and `:has()` only constrain a target and never supply its BEM identity.
  *
- * @param   nodes        Nodes of one selector compound.
+ * @param   nodes        Nodes of one resolved selector branch.
  * @param   separators   Separators used to parse BEM entities.
  *
- * @returns              Target status, with the entity and its last original class node when resolved.
+ * @returns              Target status, with its compound, context, entity, and original class node when resolved.
  */
-export const resolveBemCompoundTarget = <Node extends parser.Node>(
+export const resolveBemSelectorTarget = <Node extends parser.Node>(
 	nodes: Node[],
 	separators: Separators,
-): CompoundTarget<Node> => {
-	const directNodes = nodes.filter((node) => node.type === 'class');
+): SelectorTarget<Node> => {
+	// Unresolved Sass interpolation anywhere in the branch prevents reliable ownership checks.
+	if (selectorNodesToString(nodes).includes('#{')) return { status: 'unknown' };
+
+	const compounds = splitSelectorCompounds(nodes);
+	const compound = compounds.at(-1);
+	// Missing selector content does not establish the absence of a BEM owner.
+	if (!compound) return { status: 'unknown' };
+
+	const directNodes = compound.filter((node) => node.type === 'class');
 	if (isEmpty(directNodes)) {
-		const hasIndirectTarget = nodes.some((node) => {
+		const hasIndirectTarget = compound.some((node) => {
 			return node.type === 'pseudo' && [':is', ':where'].includes(node.value.toLowerCase());
 		});
 		return { status: hasIndirectTarget ? 'unknown' : 'none' };
@@ -55,10 +75,10 @@ export const resolveBemCompoundTarget = <Node extends parser.Node>(
 	if (entities.length !== 1) return { status: 'unknown' };
 
 	const [entity] = entities;
-	const entityNode = nodes.findLast((node) => {
+	const entityNode = compound.findLast((node) => {
 		return node.type === 'class' && node.value === entity.bemSelector.slice(1);
 	});
 	if (!entityNode) return { status: 'unknown' };
 
-	return { status: 'resolved', entity, entityNode };
+	return { status: 'resolved', compound, context: compounds.slice(0, -1), entity, entityNode };
 };
