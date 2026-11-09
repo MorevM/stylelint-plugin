@@ -2,28 +2,60 @@
 
 Requires BEM entities and their local extensions to be declared within their lexical owners.
 
-In SCSS, elements belong inside their block, and element modifiers belong inside their element by default.
-Modifier values require a modifier-name group when it exists or is shared by distinct values.
-The `nesting` map controls which structural parents are allowed or conditionally required.
-Local extensions (states, pseudo-elements, attributes, and qualifying classes) belong inside the entity they extend.
+::: info
+The following examples use the default options, but nesting requirements
+are **highly** configurable to match your preferred level of strictness.
+:::
 
 ::: code-group
 
-```scss [❌ Detached entities]
-.block {}
+```scss [❌ State outside its entity]
+.card {}
 
-.block__title { color: black; } // [!code error]
-.block__title:hover { color: red; } // [!code error]
-.block__title--large { font-size: 2rem; } // [!code error]
+// ❌ The hover styles are separate from the card. Move them inside `.card`.
+.card:hover {} /* [!code error] */
 ```
 
-```scss [✅ Entity-owned styles]
-.block {
-  &__title {
-    color: black;
+```scss [✅ State inside its entity]
+.card {
+  &:hover {}
+}
+```
 
-    &:hover { color: red; }
-    &--large { font-size: 2rem; }
+:::
+
+::: code-group
+
+```scss [❌ Element outside its block]
+.card {}
+
+// ❌ The element is outside its block. Move it inside `.card`.
+.card__title {} // [!code error]
+```
+
+```scss [✅ Element inside its block]
+.card {
+  &__title {}
+}
+```
+
+:::
+
+::: code-group
+
+```scss [❌ Modifier outside its element]
+.card {
+  &__title {}
+
+  // ❌ The modifier is next to its element. Move it inside `&__title`.
+  &__title--large {} // [!code error]
+}
+```
+
+```scss [✅ Modifier inside its element]
+.card {
+  &__title {
+    &--large {}
   }
 }
 ```
@@ -32,79 +64,15 @@ Local extensions (states, pseudo-elements, attributes, and qualifying classes) b
 
 ## Motivation
 
-Finding a BEM block should be enough to find its elements, and finding an entity should expose its local styles.
+Finding a BEM entity should be enough to understand how it looks and behaves.
+When elements, modifiers, or local extensions are declared separately from the entity they belong to,
+related styles are scattered across sibling declarations.
+Changing or removing the entity then requires searching for every selector that belongs to or extends it.
+
 Keeping these declarations together makes their ownership visible when reading, changing, or removing a component.
-A separate declaration of the expected owner elsewhere in the file does not establish nesting.
-When an owner is explicitly declared in the same file, the diagnostic includes its line:
-`Expected ".block__title:hover" to be declared within ".block__title" (declared at line 8).`
-The first declaration is used, including declarations after the violation and ignored declarations.
-Locations refer to the authored selector branch, including nested selectors and `@at-root`.
-Only entity targets without local extensions supply locations; context classes and states do not.
-
-## Ownership in SCSS
-
-| Map key                | Example target               | Default parent                                               |
-| ---------------------- | ---------------------------- | ------------------------------------------------------------ |
-| `element`              | `.block__title`              | `block`                                                      |
-| `blockModifier`        | `.block--compact`            | `block`                                                      |
-| `blockModifierValue`   | `.block--theme--dark`        | `blockModifier` if existing or shared; otherwise `block`     |
-| `elementModifier`      | `.block__title--large`       | `element`                                                    |
-| `elementModifierValue` | `.block__title--theme--dark` | `elementModifier` if existing or shared; otherwise `element` |
-
-Blocks have no structural owner requirement.
-Local extensions always require their complete entity: `.block__title--large:hover` belongs inside `.block__title--large`.
-There is no option to disable local extension checks; `ignore` remains available for individual target exceptions.
-
-The nearest lexical selector determines ownership.
-Owners are compared by BEM identity; local states of an owner do not create another entity.
-Conditional wrappers such as `@media`, `@supports`, `@container`, and `@layer` preserve it.
-All blocks in a file are checked independently; repeated declarations are allowed.
-When a structural policy requires a parent, it must be the matching ancestor of this same BEM entity.
-A foreign block or sibling element cannot satisfy it, even when a matching block exists further up the tree.
-
-A lone modifier value may stay directly inside its base entity.
-When a matching modifier-name group exists anywhere in the file or is shared by distinct values,
-all its values must be nested inside it:
-
-```scss
-.block {
-  &--compact {}
-  &--theme--dark {}
-
-  &__title {
-    &:hover {}
-    &::before {}
-    &[aria-current='true'] {}
-    &.is-active {}
-
-    &--large {
-      &:hover {}
-    }
-
-    &--size--large {}
-    &--theme {
-      &--dark {}
-      &--light {}
-    }
-  }
-}
-```
-
-To require the flat modifier-value form for checked selectors, override the grouping policies:
-
-```js
-export default {
-  plugins: ['@morev/stylelint-plugin'],
-  rules: {
-    '@morev/bem/no-detached-entities': [true, {
-      nesting: {
-        blockModifierValue: ['block'],
-        elementModifierValue: ['element'],
-      },
-    }],
-  },
-};
-```
+Each entity gives its related styles one predictable location.
+You can read its modifiers and states alongside the base styles, find a block’s elements within that block,
+and update or remove them together without leaving detached selectors behind.
 
 ## Native CSS
 
@@ -121,38 +89,26 @@ Their local extensions still require nesting:
 .block__title--large:hover {} /* [!code error] */
 ```
 
-Syntax is inferred from the parser and filename.
-Without a filename, `postcss-scss` enables SCSS checks; the default parser uses CSS behavior.
-A `.css` filename uses CSS behavior even with `postcss-scss`.
-
-## `@at-root` and selector spelling
-
-`@at-root` changes the emitted CSS context while retaining the lexical owner.
-Both selector and block forms are supported, including static `with`/`without` queries:
-
-```scss
-.block {
-  $b: #{&};
-
-  @at-root #{$b}__title {}
-  @at-root { #{&}__label {} }
-  @at-root (without: rule) { #{$b}__icon {} }
-
-  @at-root #{$b}__title:hover {} // [!code error]
-}
-```
-
-Correct interpolation does not have to be replaced with `&`.
-In the last declaration, the state belongs inside `.block__title`.
-A full selector nested without `@at-root` produces a descendant relation;
-[`no-misplaced-relational-styles`](./no-misplaced-relational-styles.md) checks its placement.
-[`block-variable`](./block-variable.md) controls repeated literal block names.
-
 ## Rule options
 
-Enable with `true`; disable with `null`.
+All options are optional and come with recommended default values.
 
-```js
+::: code-group
+
+```js [Enabling a rule without options]
+// 📄 .stylelintrc.js
+
+export default {
+  plugins: ['@morev/stylelint-plugin'],
+  rules: {
+    '@morev/bem/no-detached-entities': true,
+  },
+};
+```
+
+```js [Enabling a rule with custom options]
+// 📄 .stylelintrc.js
+
 export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
@@ -176,6 +132,8 @@ export default {
 };
 ```
 
+:::
+
 ::: details Show full type of the options
 
 ```ts
@@ -185,7 +143,7 @@ type PrimaryOption = true;
 type Condition = 'exists' | 'shared';
 
 /** Conditional entries precede all unconditional alternatives; an empty array sets no requirements. */
-type Policy<Parent extends string> = Array<Parent | 'root' | {
+type Policy<Parent extends string> = Array<Parent | {
   /** Own canonical ancestor required when the condition matches. */
   parent: Parent;
 
@@ -195,10 +153,10 @@ type Policy<Parent extends string> = Array<Parent | 'root' | {
 
 /** Canonical owner or nesting-path entry with its first declaration location. */
 type Owner = {
-  /** Canonical BEM selector, or `root` for a required standalone declaration. */
+  /** Canonical BEM selector of an owner. */
   readonly selector: string;
 
-  /** First explicit declaration line; absent for undeclared entities and the selector root. */
+  /** First explicit declaration line; absent for undeclared entities. */
   readonly line?: number;
 };
 
@@ -258,77 +216,210 @@ type SecondaryOption = {
 
 ### `nesting`
 
-Each category accepts an array of nesting requirements. An empty array (`[]`) sets no structural requirements.
-Missing categories retain their defaults.
-Each category accepts its structural ancestor categories shown in the option types above,
-plus `root` as an unconditional alternative. Names refer to the target's own ancestors:
-for `.block__title--theme--dark`, `elementModifier` means `.block__title--theme`.
+Defines the nesting requirements for elements and modifiers in SCSS.
+Each key controls one type of BEM entity, so you can adjust its allowed parents and conditions independently.
 
-An array consists of conditional entries followed by unconditional owner strings:
+| Key                    | Entity example               |
+| ---------------------- | ---------------------------- |
+| `element`              | `.block__title`              |
+| `blockModifier`        | `.block--compact`            |
+| `blockModifierValue`   | `.block--theme--dark`        |
+| `elementModifier`      | `.block__title--large`       |
+| `elementModifierValue` | `.block__title--theme--dark` |
+
+Local extensions (`:hover`, `::before` and so on) must always be nested inside the entity they extend,
+regardless of the `nesting` configuration.
+
+Configure where each type of entity belongs.
+For example, `elementModifier: ['element']` requires element modifiers inside their own element. \
+Use `[]` to allow any placement, or leave a key out to keep its defaults.
+
+The simplest form lists the allowed parents:
 
 ```js
 nesting: {
+  elementModifier: ['block', 'element'],
+},
+```
+
+This allows an element modifier either directly inside its block or inside its own element:
+
+```scss
+.card {
+  // ✅ Directly inside its block.
+  &__title--large {}
+
+  &__title {
+    // ✅ Inside its own element.
+    &--small {}
+  }
+}
+
+// ❌ Outside both allowed parents. Move it inside `.card` or `.card__title`.
+.card__title--muted {}
+```
+
+Changing the list to `['element']` requires it to be inside the element, even if that element has no styles of its own:
+
+```scss
+.card {
+  &__title {
+    // ✅ Inside its own element.
+    &--small {}
+  }
+
+  // ❌ Move this modifier inside `&__title`.
+  &__title--large {}
+}
+```
+
+When several parents are listed, any of them is allowed; their order does not matter.
+
+#### Conditions
+
+You may want to require a wrapper only when it already exists or groups several related entities:
+
+```js
+nesting: {
+  element: [
+    { parent: 'block', when: 'exists' },
+  ],
   elementModifier: [
-    { parent: 'element', when: ['exists', 'shared'] },
-    'block',
-    'root',
+    { parent: 'element', when: 'shared' },
+  ],
+  elementModifierValue: [
+    { parent: 'elementModifier', when: ['exists', 'shared'] },
   ],
 },
 ```
 
-1. Evaluate conditional entries in order. The **first matching entry requires that parent**.
-   Later entries and unconditional alternatives cannot excuse a misplaced declaration.
-1. If no condition matches, any trailing owner string is allowed. Their order does not change validity.
-1. If no condition matches and there are no trailing strings, this category has **no structural requirement**.
-   It may occur at the selector root or under any lexical selector. An empty array (`[]`) always has this effect.
+Here:
 
-`root` specifically requires **no lexical selector owner**. It allows enclosing `@media`, `@supports`,
-and other conditional wrappers, but does not allow `.other { @at-root .block__title {} }`.
-It is optional and can only appear as an unconditional string, never as a conditional `parent`.
-Unknown keys, empty `when` arrays, and conditions after unconditional strings are rejected.
-TypeScript checks category-specific parents; array ordering and nonempty `when` constraints are validated at runtime.
+- `exists`: elements must be inside their block if it is declared in the same file.
+- `shared`: element modifiers need an element wrapper when it is needed to group several related modifiers.
+- `['exists', 'shared']`: values must be inside their modifier-name group if it exists or groups several values.
+  **Either** condition is sufficient.
+- Conditions are evaluated in order, and the **first matching parent becomes mandatory**.
+- If nothing matches, this configuration allows the entity anywhere.
 
-#### Conditions
+Each tab below represents a separate file using this configuration:
 
-`exists` matches an explicit declaration of the candidate parent anywhere in the same file.
-Declaration order and `ignore` do not affect this evidence. Only unextended entity targets count:
-`.layout .block {}` declares `.block`, while `.block .other {}` and `.block:hover {}` do not.
+::: code-group
 
-`shared` matches when a candidate parent has at least two distinct structural branches:
+```scss [One value]
+// ✅ No wrapper is needed yet.
+.card__title--theme--dark {}
+```
 
-| Declarations                                                | Shared parent          |
-| ----------------------------------------------------------- | ---------------------- |
-| `.block__title`, `.block__label`                            | `.block`               |
-| `.block__title--large`, `.block__title--small`              | `.block__title`        |
-| `.block__title--theme--dark`, `.block__title--theme--light` | `.block__title--theme` |
-| Two declarations of `.block__title`                         | None                   |
-| `.block__title` and `.block__title:hover`                   | None                   |
+```scss [Two values]
+// ❌ Both values now need a shared `.card__title--theme` wrapper.
+.card__title--theme--dark {} // [!code error]
 
-An element represents one branch under its block, including when it is only implied by modifiers.
-An explicitly declared modifier group represents one branch under its base entity, regardless of how many values it contains.
-Without that group, its values are separate branches. Grouping them can therefore remove the need for a further wrapper.
-With the fluid recipe below, this does not require an otherwise unnecessary `.block__title` or `.block`:
+.card__title--theme--light {} // [!code error]
+```
 
-```scss
-.block__title--theme {
+```scss [Grouped values]
+// ✅ One wrapper is enough; no extra element or block is required.
+.card__title--theme {
   &--dark {}
   &--light {}
 }
 ```
 
-Repeated selectors and local extensions do not add branches.
-Selectors that introduce relations do not contribute structural branches,
-although their explicit final target can satisfy `exists`.
-Local selectors under inherited context contribute to both conditions.
-Ignored structural declarations still contribute evidence. Imports and other files are not inspected.
-`when: ['exists', 'shared']` matches either condition.
+:::
 
-#### Configuration examples
+If `.card__title--theme` is already declared, even a single value must be nested inside it.
 
-These are configuration recipes, not named modes or exported presets.
-The defaults enforce base-entity ownership and require modifier-name groups when existing or shared.
+You can also combine conditions with unconditional alternatives:
 
-To always allow modifier values either directly under their base entity or inside a modifier-name group:
+```js
+nesting: {
+  elementModifier: [
+    { parent: 'element', when: 'exists' },
+    'block',
+  ],
+},
+```
+
+If the element is declared, its modifiers **must** be inside it.
+Otherwise, they belong directly inside the block, creating that block declaration if necessary.
+
+::: code-group
+
+```scss [Element not declared]
+.card {
+  // ✅ No element declaration exists, so the block is an allowed parent.
+  &__title--large {}
+}
+```
+
+```scss [Element declared]
+.card {
+  &__title {}
+
+  // ❌ The element exists. Move this modifier inside `&__title`.
+  &__title--large {} // [!code error]
+}
+```
+
+:::
+
+Put conditions first.
+Parents listed after the conditions are alternatives only when none of the conditions match.
+If you omit those alternatives, an entity can be placed anywhere when no condition matches, including outside a block.
+
+#### Recipes
+
+::: details Enforce the full BEM hierarchy
+
+Require each entity inside its immediate BEM parent: block → element → modifier name → value.
+Block modifiers belong directly inside their block.
+Every required parent must be declared, even if it has no styles of its own.
+
+```js
+nesting: {
+  element: ['block'],
+  blockModifier: ['block'],
+  blockModifierValue: ['blockModifier'],
+  elementModifier: ['element'],
+  elementModifierValue: ['elementModifier'],
+},
+```
+
+```scss
+.card {
+  &--theme {
+    // ✅ Even one value needs its modifier-name group.
+    &--dark {}
+  }
+
+  // ❌ Move this value inside `&--theme`.
+  &--theme--light {} // [!code error]
+
+  &__title {
+    &--size {
+      // ✅ Element modifier values follow the full hierarchy too.
+      &--large {}
+    }
+
+    // ❌ Move this value inside `&--size`.
+    &--size--small {} // [!code error]
+  }
+
+  // ❌ Move this modifier inside `&__title`.
+  &__title--muted {} // [!code error]
+}
+
+// ❌ Move this element inside `.card`.
+.card__footer {} // [!code error]
+```
+
+:::
+
+::: details Make modifier-name groups optional
+
+Allow both forms, so authors can group values when it makes the styles easier to read.
+An existing group does not require moving other values inside it.
 
 ```js
 nesting: {
@@ -337,12 +428,80 @@ nesting: {
 },
 ```
 
-To require a modifier-name group for every modifier value, use
-`blockModifierValue: ['blockModifier']` and `elementModifierValue: ['elementModifier']`.
-For example, `&__title { &--theme { &--dark {} } }` satisfies that policy;
-`&__title { &--theme--dark {} }` does not.
+```scss
+.card {
+  // ✅ A value can stay directly inside the block even when its group exists.
+  &--theme--dark {}
 
-For fluid grouping that requires an existing or shared parent, starting with the closest ancestor:
+  &--theme {
+    // ✅ Nesting inside the modifier-name group is also allowed.
+    &--light {}
+  }
+
+  &__title {
+    // ✅ The same choice applies to element modifier values.
+    &--size--large {}
+
+    &--size {
+      &--small {}
+    }
+  }
+
+  // ❌ Move this value inside `&__title` or its `&--size` group.
+  &__title--size--medium {} // [!code error]
+}
+```
+
+:::
+
+::: details Nest modifiers inside an existing element, otherwise inside the block
+
+Keep an element's modifiers with its base styles when the element is declared.
+If it is absent, allow modifiers directly inside the block without requiring an empty element wrapper.
+This recipe changes `elementModifier`; modifier values keep their default nesting requirements.
+
+```js
+nesting: {
+  elementModifier: [
+    { parent: 'element', when: 'exists' },
+    'block',
+  ],
+},
+```
+
+Each example below is a separate file.
+Without an element declaration, the block is the required parent:
+
+```scss
+.card {
+  // ✅ No `.card__title` declaration exists.
+  &__title--large {}
+}
+
+// ❌ The modifier still needs its block. Move it inside `.card`.
+.card__title--small {} // [!code error]
+```
+
+Once the element is declared, it becomes the required parent for its modifiers:
+
+```scss
+.card {
+  &__title {
+    // ✅ The modifier is inside its declared element.
+    &--large {}
+  }
+
+  // ❌ The element exists. Move this modifier inside `&__title`.
+  &__title--small {} // [!code error]
+}
+```
+
+:::
+
+::: details Require wrappers only when they exist or group related entities
+
+Allow a declaration to stand on its own until a parent is declared or several related entities need grouping.
+The first matching parent in each list is required; if none matches, there is no structural nesting requirement.
 
 ```js
 nesting: {
@@ -368,12 +527,51 @@ nesting: {
 },
 ```
 
-A lone `.block__title--theme--dark {}` has no structural requirement with this recipe.
-Adding `.block__title--theme--light {}` requires a shared `.block__title--theme` group.
-Adding an explicit `.block__title {}` requires that element as owner of the group.
-Append `'root'` to each array if unmatched entities must remain at the selector root.
+Each example below is a separate file.
+A single value needs no wrapper:
 
-For CSS-like structural freedom in SCSS, set all five categories to `[]`:
+```scss
+// ✅ No parent is declared or needed for grouping.
+.card__title--theme--dark {}
+```
+
+Adding another value requires a shared modifier-name group:
+
+```scss
+// ❌ Move both values inside a shared `.card__title--theme` group.
+.card__title--theme--dark {} // [!code error]
+
+.card__title--theme--light {} // [!code error]
+```
+
+That group is enough while no element or block declaration exists:
+
+```scss
+// ✅ The values are grouped; no extra element or block wrapper is required.
+.card__title--theme {
+  &--dark {}
+  &--light {}
+}
+```
+
+An existing parent requires nesting even when there is only one child:
+
+```scss
+.card__title {}
+
+// ❌ The element exists. Move this group inside `.card__title`.
+.card__title--theme { // [!code error]
+  &--dark {}
+}
+```
+
+:::
+
+::: details Allow standalone entities while keeping their states nested
+
+This applies the rule's **native CSS behavior** to SCSS.
+Setting all five categories to `[]` allows elements and modifiers anywhere.
+States, pseudo-elements, attributes, and other local extensions still belong inside their complete entity.
 
 ```js
 nesting: {
@@ -385,57 +583,71 @@ nesting: {
 },
 ```
 
+```scss
+// ✅ Elements and modifiers can stand on their own.
+.card__title {}
+
+.card__title--large {}
+
+.card--compact {}
+
+.card--theme--dark {}
+
+.card__title--size--large {
+  // ✅ States stay inside the complete entity they extend.
+  &:hover {}
+}
+
+// ❌ Move this state inside `.card__title--size--large`.
+.card__title--size--large:focus {} // [!code error]
+```
+
+:::
+
 **Every recipe still requires local extensions to be nested inside their complete entity.**
 The map does not change native CSS behavior.
 
-#### Missing-owner diagnostics
 
-When no immediate owner is declared, diagnostics can show a complete creation path.
-For the default map and `.block {}` followed by `.block__title--theme--dark {}`:
+### `ignore`
 
-```text
-Expected nesting for ".block__title--theme--dark": ".block" (declared at line 1) > ".block__title" > ".block__title--theme--dark".
+Skip selected BEM entities when checking nesting.
+Use their full class selectors, including the leading dot:
+
+```js
+ignore: ['.card__legacy'],
 ```
 
-The path minimizes new declarations and accounts for how those declarations change `exists` and `shared`.
-Ties follow the configured parent order. Existing or ignored owners stop the path;
-an absent ignored owner still needs to be declared to own the target.
-If an immediate owner already exists, the diagnostic points to its declaration instead.
+```scss
+// ✅ This element is ignored, so no block wrapper is required.
+.card__legacy {
+  // ✅ This modifier is correctly nested inside its element.
+  &--active {}
+}
+
+// ✅ States and other local extensions of the ignored element are skipped too.
+.card__legacy:hover {}
+
+// ❌ This modifier is not ignored. Move it inside `.card__legacy`.
+.card__legacy--muted {} // [!code error]
+```
+
+Use `.card__legacy*` to ignore the element and all its modifiers.
+You can also use regular expressions, such as `/^\.vendor-/` or the string `'/vendor/i'`.
+
+Ignoring an entity does not disable checks for everything nested inside it.
 
 ### `separators`
 
 <!-- @include: @/docs/_parts/separators.md#header -->
 
-### `ignore`
-
-Each pattern matches the canonical target selector, including its leading dot and any modifier,
-but excluding local extensions and relational context.
-For example, `.block__title--large:hover` is matched as `.block__title--large`.
-Plain strings match the complete selector and support `*`.
-Regular expressions, including strings such as `'/legacy/i'`, use their own matching rules.
-Each target is checked independently, including with global (`g`) and sticky (`y`) flags.
-
-An entry `.block__legacy` excludes that element and its states, but not `.block__legacy--active`.
-Use `.block__legacy*` to include modifiers as well.
-Ignored declarations remain possible owners; their descendants are still checked independently.
-These exclusions do not affect other rules.
-
 ### `messages`
 
 <!-- @include: @/docs/_parts/custom-messages.md#header -->
 
-The callback receives `detached(selector, owners, path)`. `selector` is the complete resolved local selector.
-Both arrays contain readonly `{ selector: string; line?: number }` entries and are themselves readonly.
-Each entry contains a canonical BEM selector and its first explicit declaration line when available.
-The selector `root` denotes the absence of a lexical selector owner and has no declaration line.
+The `detached` function receives the selector, its allowed parents, and a suggested nesting path when several wrappers are needed.
+Parent entries include their declaration line when available.
 
-`owners` contains the allowed immediate parents. A matching condition supplies one owner;
-otherwise the owners follow configured fallback order. Local extensions always supply their complete canonical entity.
-`path` is empty when one placement step suffices or an immediate owner already exists.
-Otherwise, it describes the recommended nesting path from outermost to innermost,
-excluding the offending selector.
-With conditional policies, the proposed declarations can change the selected parent;
-`owners` describes the current requirement, while `path` describes a valid completed hierarchy.
+#### Example
 
 ```js
 export default {
@@ -445,7 +657,7 @@ export default {
       messages: {
         detached: (selector, owners) => {
           const ownerSelectors = owners.map((owner) => owner.selector);
-          return `Move ${selector} into ${ownerSelectors.join(' or ')}.`;
+          return `⛔ Move "${selector}" into ${ownerSelectors.join(' or ')}.`;
         },
       },
     }],
@@ -453,48 +665,102 @@ export default {
 };
 ```
 
-Each violation reports one missing ownership link, with a complete creation path when the configured hierarchy requires it.
-A detached `.block__title--large:hover` still requires `.block__title--large` under every structural policy.
-Each authored selector-list branch receives at most one warning;
-when parent expansion produces several violations, the first failing expansion supplies the message.
+::: details Show function signature
 
-## Scope and limitations
+```ts
+/**
+ * BEM parent used in a diagnostic or suggested nesting path.
+ */
+type Owner = {
+  /**
+   * Full BEM class selector without local extensions.
+   */
+  readonly selector: string;
 
-The rule checks resolved local selectors with one unambiguous direct BEM target.
-Context inherited through `&` does not prevent local ownership checks:
-`.layout .block { &__title:hover {} }` still requires the state inside `&__title`.
-Selectors that introduce relations through combinators, implicit descendants, or interpolation remain
-the responsibility of `no-misplaced-relational-styles`.
-Functional pseudo-classes do not obscure a direct target: `.block:is(:hover, :focus)` and `.block:has(.icon, .badge)`
-are local extensions of `.block` and must be nested inside it.
-They do not count as standalone declarations of `.block` for the `exists` condition.
+  /**
+   * First declaration line; omitted when the parent has not been declared.
+   */
+  readonly line?: number;
+};
 
-Unresolved interpolation and ambiguous compound targets are skipped.
-Compounds without a direct class but with a top-level `:is()` or `:where()` have unknown ownership,
-whether their arguments contain BEM classes, as in `:where(.block)`, or only tags, as in `:is(button, a)`;
-the rule skips them as targets and skips ownership checks for declarations directly inside them.
-By contrast, `:not(.block)` and `:has(.block)` have no BEM owner:
-the classes in their arguments do not satisfy a nested entity's ownership requirement.
-Dynamic `@at-root` queries containing variables or interpolation are not resolved.
+/**
+ * Custom messages for nesting violations.
+ */
+export type MessagesOption = {
+  /**
+   * Custom message for a BEM entity or local extension declared outside its required parent.
+   *
+   * @param   selector   Complete resolved selector, including local extensions.
+   * @param   owners     Allowed immediate parents and their declaration lines when available.
+   * @param   path       Suggested parent chain, from outermost to innermost; empty when no chain is needed.
+   *
+   * @returns            The error message to report.
+   */
+  detached?: (selector: string, owners: readonly Owner[], path: readonly Owner[]) => string;
+};
+```
 
-The rule does not merge duplicate declarations or analyze a component across files.
-It has no autofix: moving declarations can change cascade order and selector-list expansion.
+`path` excludes the offending selector and describes the suggested hierarchy after creating missing parents.
+With conditional policies, it can differ from `owners`, which describes the current requirement.
 
-## Migration from `no-detached-entity-extensions`
+:::
 
-Replace `@morev/bem/no-detached-entity-extensions` with `@morev/bem/no-detached-entities` in configuration
-and Stylelint disable comments. The old name is removed without an alias.
+<!-- @include: @/docs/_parts/custom-messages.md#formatting -->
 
-By default, the new rule requires SCSS elements inside blocks and element modifiers inside their elements.
-Values belong inside their modifier-name group when it exists or is shared by distinct values;
-otherwise they belong directly inside their block or element.
-Every block in the file is checked. Use the `nesting` map to configure the required hierarchy.
-For separate element files, `element: [{ parent: 'block', when: 'exists' }, 'root']` allows a standalone
-element only when its block is absent. Other categories retain their defaults.
-To retain only local extension enforcement, set all five structural categories to `[]`.
-Existing `separators` settings remain valid.
+## Defaults
 
-Custom `messages.detached` callbacks must change their second parameter from a single `owner` string
-to an array of readonly `{ selector: string; line?: number }` entries.
-Read `owner.selector` for each alternative and `owner.line` for its declaration location when available.
-The third argument, `path`, uses the same entry shape and describes the recommended configured nesting path.
+In both CSS and SCSS, local extensions (states, pseudo-elements, attributes, and qualifying classes)
+belong inside the complete entity they extend.
+
+```scss
+.card {
+  &__title {
+    &--large {
+      // ✅ The state is inside the complete entity it extends.
+      &:hover {}
+    }
+
+    // ❌ Being inside the element is not enough. Move this state inside `&--large`.
+    &--large:focus {} // [!code error]
+  }
+}
+```
+
+In SCSS, the default nesting requirements are:
+
+- Elements and block modifiers belong directly inside their block.
+- Element modifiers belong directly inside their element.
+- Modifier values belong inside their modifier-name group when that group exists anywhere in the file,
+  or when two or more distinct values need a shared group.
+  Otherwise, a single value may be declared directly inside its block or element.
+
+Each tab below represents a separate file using the default options:
+
+::: code-group
+
+```scss [One value]
+.card {
+  // ✅ A single value needs no modifier-name group.
+  &--theme--dark {}
+}
+```
+
+```scss [Two values]
+.card {
+  // ❌ Move both values inside a shared `&--theme` group.
+  &--theme--dark {} // [!code error]
+  &--theme--light {} // [!code error]
+}
+```
+
+```scss [Grouped values]
+.card {
+  &--theme {
+    // ✅ The values share their modifier-name group.
+    &--dark {}
+    &--light {}
+  }
+}
+```
+
+:::
