@@ -1,0 +1,11 @@
+{
+	"name": "package-preview-tools",
+	"type": "module",
+	"private": true,
+	"engines": {
+		"node": ">=20"
+	},
+	"dependencies": {
+		"pkg-pr-new": "0.0.93"
+	}
+}
