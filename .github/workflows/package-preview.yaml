@@ -1,0 +1,176 @@
+name: Package preview
+
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit to publish
+        required: true
+        default: master
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: package-preview-${{ github.event.issue.number || inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request && github.event.comment.body == '/preview')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+      pull-request: ${{ steps.target.outputs.pull-request }}
+    steps:
+      - name: Resolve the requested commit
+        id: target
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          REQUESTED_REF: ${{ inputs.ref }}
+        with:
+          script: |
+            const repository = context.repo;
+            const { data: collaborator } = await github.rest.repos.getCollaboratorPermissionLevel({
+              ...repository,
+              username: context.actor,
+            });
+            if (!['admin', 'maintain', 'write'].includes(collaborator.permission)) {
+              throw new Error('Package previews require write access to the repository.');
+            }
+
+            if (context.eventName === 'issue_comment') {
+              const { data: pullRequest } = await github.rest.pulls.get({
+                ...repository,
+                pull_number: context.issue.number,
+              });
+              if (pullRequest.state !== 'open') {
+                throw new Error('Package previews require an open pull request.');
+              }
+              if (pullRequest.head.repo?.full_name !== `${repository.owner}/${repository.repo}`) {
+                throw new Error('Comment previews are only available for branches in this repository.');
+              }
+              core.setOutput('sha', pullRequest.head.sha);
+              core.setOutput('pull-request', pullRequest.number);
+              return;
+            }
+
+            const { data: commit } = await github.rest.repos.getCommit({
+              ...repository,
+              ref: process.env.REQUESTED_REF,
+            });
+            core.setOutput('sha', commit.sha);
+
+  publish:
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      url: ${{ steps.package.outputs.url }}
+    steps:
+      # Keep publishing tools available when the requested branch predates this workflow.
+      - name: Checkout the workflow tools
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+
+      - name: Checkout the requested commit
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          path: package-preview-source
+          persist-credentials: false
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 11
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: |
+            .github/package-preview/pnpm-lock.yaml
+            package-preview-source/pnpm-lock.yaml
+
+      - name: Install publishing tools
+        working-directory: .github/package-preview
+        run: pnpm install --ignore-workspace --frozen-lockfile --ignore-scripts
+
+      - name: Install package dependencies
+        working-directory: package-preview-source
+        env:
+          LEFTHOOK: '0'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the package
+        working-directory: package-preview-source
+        run: pnpm build
+
+      - name: Publish the preview
+        working-directory: package-preview-source
+        run: >-
+          "$GITHUB_WORKSPACE/.github/package-preview/node_modules/.bin/pkg-pr-new"
+          publish --pnpm --previewVersion --no-template --comment=off
+          --json "$RUNNER_TEMP/package-preview.json"
+
+      - name: Record the installation URL
+        id: package
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          PREVIEW_SHA: ${{ needs.resolve.outputs.sha }}
+        with:
+          script: |
+            const { readFile } = require('node:fs/promises');
+            const { join } = require('node:path');
+            const result = JSON.parse(await readFile(join(process.env.RUNNER_TEMP, 'package-preview.json'), 'utf8'));
+            const preview = result.packages.find((entry) => entry.name === '@morev/stylelint-plugin');
+            if (!preview || !/^https:\/\/pkg\.pr\.new\/[\w@./%-]+$/.test(preview.url)) {
+              throw new Error('The publisher did not return a valid package preview URL.');
+            }
+            core.setOutput('url', preview.url);
+            await core.summary
+              .addHeading('Package preview')
+              .addRaw(`Commit: ${process.env.PREVIEW_SHA}\n\n`)
+              .addCodeBlock(`npm install ${preview.url}`, 'sh')
+              .write();
+
+  comment:
+    needs: [resolve, publish]
+    if: needs.resolve.outputs.pull-request != ''
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      # Report from a separate job so package scripts never receive a write token.
+      - name: Reply with the installation URL
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          PREVIEW_URL: ${{ needs.publish.outputs.url }}
+          PREVIEW_SHA: ${{ needs.resolve.outputs.sha }}
+          PULL_REQUEST: ${{ needs.resolve.outputs.pull-request }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: Number(process.env.PULL_REQUEST),
+              body: [
+                `Package preview for ${process.env.PREVIEW_SHA}:`,
+                '',
+                '```sh',
+                `npm install ${process.env.PREVIEW_URL}`,
+                '```',
+              ].join('\n'),
+            });
