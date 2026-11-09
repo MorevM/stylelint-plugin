@@ -12,21 +12,21 @@ export type Nesting = Exclude<v.InferOutput<typeof schema.secondary>, undefined>
 export type EntityKind = 'block' | keyof Nesting;
 
 /**
- * Configurable owner category; `root` means no lexical selector owner.
+ * Configurable BEM owner category.
  */
-export type NestingOwner = 'root' | 'block' | 'element' | 'blockModifier' | 'elementModifier';
+export type NestingOwner = 'block' | 'element' | 'blockModifier' | 'elementModifier';
 
 /**
  * Canonical owner or nesting-path entry with its first declaration location.
  */
 export type Owner = {
 	/**
-	 * Canonical BEM selector of an owner, or `root` for a required standalone declaration.
+	 * Canonical BEM selector of an owner.
 	 */
 	readonly selector: string;
 
 	/**
-	 * First explicit declaration line; absent for undeclared entities and the selector root.
+	 * First explicit declaration line; absent for undeclared entities.
 	 */
 	readonly line?: number;
 };

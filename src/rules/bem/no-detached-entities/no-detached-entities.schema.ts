@@ -16,7 +16,6 @@ const createNestingPolicySchema = <const Parents extends readonly [string, ...st
 ) => v.pipe(
 	v.array(v.union([
 		v.picklist(parents),
-		v.literal('root'),
 		v.strictObject({
 			/**
 			 * Own structural ancestor made mandatory when a condition matches.
@@ -80,12 +79,12 @@ const nestingSchema = v.strictObject({
 
 const ownersSchema = vReadonly(v.array(vReadonly(v.object({
 	/**
-	 * Canonical BEM selector of an owner, or `root` for a required standalone declaration.
+	 * Canonical BEM selector of an owner.
 	 */
 	selector: v.string(),
 
 	/**
-	 * First explicit declaration line; absent for undeclared entities and the selector root.
+	 * First explicit declaration line; absent for undeclared entities.
 	 */
 	line: v.optional(v.number()),
 }))));

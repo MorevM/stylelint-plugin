@@ -40,7 +40,6 @@ const getModifierNameSelector = (entity: BemEntity) => {
  */
 const formatOwner = (owner: Owner) => {
 	const { selector, line } = owner;
-	if (selector === 'root') return 'the selector root';
 	return isUndefined(line) ? `"${selector}"` : `"${selector}" (declared at line ${line})`;
 };
 
@@ -61,13 +60,6 @@ export default createRule({
 			if (!isEmpty(path)) {
 				const expectedPath = path.map((owner) => formatOwner(owner)).join(' > ');
 				return `Expected nesting for "${selector}": ${expectedPath} > "${selector}".`;
-			}
-
-			if (owners.some((owner) => owner.selector === 'root')) {
-				const placements = owners.map((owner) => {
-					return `${owner.selector === 'root' ? 'at' : 'within'} ${formatOwner(owner)}`;
-				});
-				return `Expected "${selector}" to be declared ${placements.join(' or ')}.`;
 			}
 
 			const expectedOwners = owners.map((owner) => formatOwner(owner)).join(' or ');
@@ -152,7 +144,6 @@ export default createRule({
 				const expectedOwners = hasLocalExtension ? [entity.bemSelector] : nestingContext.getOwners(entity.bemSelector);
 				if (isEmpty(expectedOwners)) return;
 				if (owner && expectedOwners.includes(owner)) return;
-				if (!lexicalParent && expectedOwners.includes('root')) return;
 
 				const sourceRange = getResolvedNodesSourceRange(compound);
 				if (!sourceRange) return;
@@ -169,7 +160,7 @@ export default createRule({
 					line: nestingContext.getDeclarationLine(expectedOwner),
 				}));
 
-				const path = isSass && !expectedOwners.includes('root')
+				const path = isSass
 					&& owners.every((expectedOwner) => isUndefined(expectedOwner.line))
 					? nestingContext.getOwnerChain(entity.bemSelector, hasLocalExtension)
 					: [];

@@ -577,9 +577,9 @@ testCssRule({
 });
 
 testRule({
-	description: 'Conditional block ownership with a selector-root fallback',
+	description: 'Conditional block ownership without a fallback',
 	config: [true, {
-		nesting: { element: [{ parent: 'block', when: 'exists' }, 'root'] },
+		nesting: { element: [{ parent: 'block', when: 'exists' }] },
 		ignore: ['.block', '.block--compact'],
 	}],
 	accept: [
@@ -593,7 +593,9 @@ testRule({
 				}
 
 				.block__title {
-					> {}
+					&--active {
+						> {}
+					}
 				}
 			`,
 		},
@@ -617,6 +619,14 @@ testRule({
 				}
 			`,
 		},
+		{
+			description: 'Allows a foreign lexical owner when the required block does not exist',
+			code: `
+				.other {
+					@at-root .block__title {}
+				}
+			`,
+		},
 	],
 	reject: [
 		{
@@ -631,16 +641,6 @@ testRule({
 			message: messages.detached('.block__title', [{ selector: '.block', line: 4 }], []),
 		},
 		{
-			description: 'Rejects a foreign lexical block despite at-root hoisting',
-			code: `
-				.other {
-					@at-root .block__title {}
-				}
-			`,
-			message: 'Expected ".block__title" to be declared at the selector root. (@morev/bem/no-detached-entities)',
-			line: 2, column: 11, endLine: 2, endColumn: 24,
-		},
-		{
 			description: 'Still requires owners for modifiers and local extensions',
 			code: `
 				.block__title--active {}
@@ -648,12 +648,8 @@ testRule({
 				.block__title:hover {}
 			`,
 			warnings: [
-				{ message: messages.detached('.block__title--active', [{ selector: '.block__title' }], [
-					{ selector: 'root' }, { selector: '.block__title' },
-				]) },
-				{ message: messages.detached('.block__title:hover', [{ selector: '.block__title' }], [
-					{ selector: 'root' }, { selector: '.block__title' },
-				]) },
+				{ message: messages.detached('.block__title--active', [{ selector: '.block__title' }], []) },
+				{ message: messages.detached('.block__title:hover', [{ selector: '.block__title' }], []) },
 			],
 		},
 	],
@@ -848,22 +844,18 @@ testRule({
 	description: 'Ordered conditions and unconditional alternatives',
 	config: [true, { nesting: {
 		element: [{ parent: 'block', when: 'exists' }],
-		elementModifier: [{ parent: 'element', when: 'exists' }, 'block', 'root'],
+		elementModifier: [{ parent: 'element', when: 'exists' }, 'block'],
 		elementModifierValue: [
 			{ parent: 'element', when: 'exists' },
 			{ parent: 'elementModifier', when: 'exists' },
-			'block', 'root',
+			'block',
 		],
 	} }],
 	accept: [{
-		description: 'Leaves unmatched conditional-only policies unrestricted and keeps every fallback alternative',
+		description: 'Leaves unmatched conditional-only policies unrestricted and applies unconditional fallbacks',
 		code: `
 			main {
 				@at-root .external__title {}
-			}
-
-			@media (width > 30rem) {
-				.standalone__title--active {}
 			}
 
 			.block {
@@ -904,14 +896,13 @@ testRule({
 			line: 2, column: 2, endLine: 2, endColumn: 18,
 		},
 		{
-			description: 'Distinguishes root alternatives from an unrelated selector owner',
+			description: 'Rejects an unrelated selector owner when a fallback requires the block',
 			code: `
 				main {
 					@at-root .block__title--active {}
 				}
 			`,
-			message: 'Expected ".block__title--active" to be declared within ".block" or at the selector root.'
-				+ ' (@morev/bem/no-detached-entities)',
+			message: messages.detached('.block__title--active', [{ selector: '.block' }], []),
 		},
 	],
 });

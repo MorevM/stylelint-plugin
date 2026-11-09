@@ -78,7 +78,7 @@ export const createNestingContext = (nesting: Nesting, isIgnored: (selector: str
 		parent!.isStructural ||= isStructural;
 	};
 
-	const getParent = (entity: EntityNode, kind: Exclude<NestingOwner, 'root'>): EntityNode => {
+	const getParent = (entity: EntityNode, kind: NestingOwner): EntityNode => {
 		let { parent } = entity;
 		while (parent) {
 			if (parent.kind === kind) return parent;
@@ -141,7 +141,7 @@ export const createNestingContext = (nesting: Nesting, isIgnored: (selector: str
 		let projected: ReturnType<typeof projectBranches> | undefined;
 		for (const entry of policy) {
 			if (isString(entry)) {
-				fallback.push(entry === 'root' ? 'root' : getParent(entity, entry).selector);
+				fallback.push(getParent(entity, entry).selector);
 				continue;
 			}
 			const parent = getParent(entity, entry.parent);
@@ -178,7 +178,7 @@ export const createNestingContext = (nesting: Nesting, isIgnored: (selector: str
 		const parents = new Set<EntityNode>();
 		for (const entry of policy) {
 			const kind = isString(entry) ? entry : entry.parent;
-			if (kind !== 'root') parents.add(getParent(entity, kind));
+			parents.add(getParent(entity, kind));
 		}
 		for (const parent of parents) {
 			if (!isUndefined(parent.line)) paths.push([parent]);
@@ -202,21 +202,18 @@ export const createNestingContext = (nesting: Nesting, isIgnored: (selector: str
 			const isValid = path.every((owner, index) => {
 				if (!isUndefined(owner.line) || isIgnored(owner.selector)) return true;
 				const expected = resolveOwners(owner, declarations);
-				return isEmpty(expected) || expected.includes(path[index - 1]?.selector ?? 'root');
+				const parent = path[index - 1];
+				return isEmpty(expected) || (!isUndefined(parent) && expected.includes(parent.selector));
 			});
 			if (!isValid) continue;
 			const expected = hasLocalExtension ? [selector] : resolveOwners(entity, declarations);
-			if (!isEmpty(expected) && !expected.includes(path.at(-1)?.selector ?? 'root')) continue;
+			const parent = path.at(-1);
+			if (!isEmpty(expected) && (isUndefined(parent) || !expected.includes(parent.selector))) continue;
 			best = path;
 			missing = declarations.length;
 		}
 
 		const chain: Owner[] = best.map((owner) => ({ selector: owner.selector, line: owner.line }));
-		const first = best[0];
-		if (first && isUndefined(first.line) && !isIgnored(first.selector)) {
-			const declarations = best.filter((owner) => isUndefined(owner.line));
-			if (resolveOwners(first, declarations).includes('root')) chain.unshift({ selector: 'root' });
-		}
 		const result = chain.length > 1 ? chain : [];
 		chainCache.set(cacheKey, result);
 		return result;

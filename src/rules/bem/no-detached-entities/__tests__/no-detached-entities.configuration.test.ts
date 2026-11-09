@@ -8,14 +8,14 @@ testRuleConfig({
 	accept: [
 		{ config: [true, { nesting: {} }] },
 		{ config: [true, { nesting: {
-			element: ['block', 'root'],
+			element: ['block'],
 			blockModifier: [],
 			blockModifierValue: ['blockModifier'],
 			elementModifier: [{ parent: 'element', when: 'exists' }],
 			elementModifierValue: [
 				{ parent: 'elementModifier', when: ['exists', 'shared'] },
 				{ parent: 'element', when: 'shared' },
-				'block', 'root',
+				'block',
 			],
 		} }] },
 	],
@@ -29,7 +29,7 @@ testRuleConfig({
 		{ config: [true, { nesting: { blockModifierValue: ['elementModifier'] } }] },
 		{ config: [true, { nesting: { elementModifier: ['blockModifier'] } }] },
 		{ config: [true, { nesting: { elementModifierValue: ['blockModifierValue'] } }] },
-		{ config: [true, { nesting: { element: [{ parent: 'root', when: 'exists' }] } }] },
+		{ config: [true, { nesting: { element: ['root'] } }] },
 		{ config: [true, { nesting: { element: [{ parent: 'block', when: [] }] } }] },
 		{ config: [true, { nesting: { element: [{ parent: 'block', when: 'always' }] } }] },
 		{ config: [true, { nesting: { element: [{ parent: 'block', when: 'exists', extra: true }] } }] },
