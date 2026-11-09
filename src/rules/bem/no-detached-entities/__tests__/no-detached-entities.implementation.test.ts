@@ -64,12 +64,8 @@ testRule({
 			`,
 		},
 		{
-			description: 'Skips relational selectors and indeterminate targets or owners',
+			description: 'Skips indeterminate targets or owners',
 			code: `
-				.layout .block {
-					&__title:hover {}
-				}
-
 				#{$unknown}__title {}
 
 				#{$unknown} {
@@ -91,8 +87,54 @@ testRule({
 				}
 			`,
 		},
+		{
+			description: 'Distinguishes local nesting from authored relations under inherited context',
+			code: `
+				.layout .block {
+					&__title {
+						&:has(> .icon, .badge) {}
+					}
+					.block__title:hover {}
+					.theme &__label:hover {}
+					$relation: '.theme .wrapper';
+					#{$relation}&__icon:hover {}
+				}
+			`,
+		},
 	],
 	reject: [
+		{
+			description: 'Reports local extensions under inherited context once across parent-list expansions',
+			code: `
+				.layout .block, .theme .block {
+					&__title:hover {}
+				}
+			`,
+			message: messages.detached('.block__title:hover', [{ selector: '.block__title' }], [
+				{ selector: '.block', line: 1 }, { selector: '.block__title' },
+			]),
+			line: 2, column: 2, endLine: 2, endColumn: 16,
+		},
+		{
+			description: 'Counts existing and shared modifier groups under inherited context',
+			code: `
+				.layout .block {
+					&--size--large {}
+					&--size {}
+					&--theme--dark {}
+					&--theme--light {}
+				}
+			`,
+			warnings: [
+				{ message: messages.detached('.block--size--large', [{ selector: '.block--size', line: 3 }], []) },
+				{ message: messages.detached('.block--theme--dark', [{ selector: '.block--theme' }], [
+					{ selector: '.block', line: 1 }, { selector: '.block--theme' },
+				]) },
+				{ message: messages.detached('.block--theme--light', [{ selector: '.block--theme' }], [
+					{ selector: '.block', line: 1 }, { selector: '.block--theme' },
+				]) },
+			],
+		},
 		{
 			description: 'Requires complete entity owners for direct targets with functional conditions',
 			code: `
@@ -323,6 +365,35 @@ testRule({
 });
 
 testRule({
+	description: 'Flat modifier-value policies under inherited context',
+	config: [true, { nesting: {
+		blockModifierValue: ['block'],
+		elementModifierValue: ['element'],
+	} }],
+	reject: [{
+		description: 'Requires values directly inside their base entity despite the external context',
+		code: `
+			.layout .block {
+				&--theme {
+					&--dark {}
+				}
+				&__title {
+					&--theme {
+						&--dark {}
+					}
+				}
+			}
+		`,
+		warnings: [
+			{ message: messages.detached('.block--theme--dark', [{ selector: '.block', line: 1 }], []),
+				line: 3, column: 3, endLine: 3, endColumn: 10 },
+			{ message: messages.detached('.block__title--theme--dark', [{ selector: '.block__title', line: 5 }], []),
+				line: 7, column: 4, endLine: 7, endColumn: 11 },
+		],
+	}],
+});
+
+testRule({
 	description: 'Custom policies allowing grouped and ungrouped modifier values',
 	config: [true, { nesting: ungroupedValuesNesting }],
 	accept: [
@@ -491,6 +562,16 @@ testCssRule({
 				{ message: messages.detached('.block:has(.icon, .badge)', [{ selector: '.block' }], []) },
 				{ message: messages.detached('.block__title--active::before', [{ selector: '.block__title--active' }], []) },
 			],
+		},
+		{
+			description: 'Checks local CSS extensions under inherited context',
+			code: `
+				.layout .block {
+					&:hover {}
+					&.block__title:hover {}
+				}
+			`,
+			message: messages.detached('.block.block__title:hover', [{ selector: '.block__title' }], []),
 		},
 	],
 });

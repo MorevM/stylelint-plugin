@@ -95,11 +95,21 @@ export default createRule({
 
 		const reportedViolations = new Set<string>();
 
-		resolveSelectorNodes({ node }).forEach(({ lexicalParent, resolved }) => {
+		resolveSelectorNodes({ node }).forEach(({ lexicalParent, replacements, resolved }) => {
 			const target = resolveBemSelectorTarget(resolved, separators);
 			if (target.status !== 'resolved') return;
 
 			const { compound, context, entity, entityNode } = target;
+			// Combinators expanded from `&` belong to an inherited relation, not to this declaration.
+			// Authored relations, including implicit descendants and interpolated selectors, stay outside this rule.
+			const hasOwnRelation = !isEmpty(context) && resolved.some((resolvedNode) => {
+				if (resolvedNode.type !== 'combinator') return false;
+
+				return !replacements.some(({ type, resolvedRange: [start, end] }) => {
+					return type === 'nesting' && resolvedNode.sourceIndex >= start && resolvedNode.sourceIndex < end;
+				});
+			});
+
 			// Base and modifier classes can describe one entity in the same compound.
 			// Exclude those classes when detecting extra states and qualifiers.
 			const ancestorEntitySelectors = new Set<string>();
@@ -120,11 +130,11 @@ export default createRule({
 				const entityRange = getResolvedNodesSourceRange([entityNode])!;
 				declarationLine = node.positionBy({ index: entityRange.index }).line;
 			}
-			nestingContext.register(entity, declarationLine, !hasLocalExtension && isEmpty(context));
+			nestingContext.register(entity, declarationLine, !hasLocalExtension && !hasOwnRelation);
 
 			// Contextual and ignored declarations still supply evidence for other targets.
-			// Only checked single-compound targets proceed; CSS retains local extension checks.
-			if (!isEmpty(context)) return;
+			// Local selectors also participate under inherited context; CSS retains local extension checks.
+			if (hasOwnRelation) return;
 			if (isIgnored(entity.bemSelector)) return;
 			if (!isSass && !hasLocalExtension) return;
 

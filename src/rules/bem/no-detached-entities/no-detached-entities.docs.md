@@ -317,7 +317,9 @@ With the fluid recipe below, this does not require an otherwise unnecessary `.bl
 ```
 
 Repeated selectors and local extensions do not add branches.
-Relational selectors do not contribute structural branches, although their explicit final target can satisfy `exists`.
+Selectors that introduce relations do not contribute structural branches,
+although their explicit final target can satisfy `exists`.
+Local selectors under inherited context contribute to both conditions.
 Ignored structural declarations still contribute evidence. Imports and other files are not inspected.
 `when: ['exists', 'shared']` matches either condition.
 
@@ -459,7 +461,10 @@ when parent expansion produces several violations, the first failing expansion s
 ## Scope and limitations
 
 The rule checks resolved local selectors with one unambiguous direct BEM target.
-Selectors with combinators, including inherited external context, remain outside its scope.
+Context inherited through `&` does not prevent local ownership checks:
+`.layout .block { &__title:hover {} }` still requires the state inside `&__title`.
+Selectors that introduce relations through combinators, implicit descendants, or interpolation remain
+the responsibility of `no-misplaced-relational-styles`.
 Functional pseudo-classes do not obscure a direct target: `.block:is(:hover, :focus)` and `.block:has(.icon, .badge)`
 are local extensions of `.block` and must be nested inside it.
 They do not count as standalone declarations of `.block` for the `exists` condition.

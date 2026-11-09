@@ -32,7 +32,7 @@ type EntityNode = {
 	line: number | undefined;
 
 	/**
-	 * Whether a standalone compound explicitly declares this structural entity.
+	 * Whether a local selector explicitly declares this entity, including under inherited context.
 	 */
 	isStructural: boolean;
 };
