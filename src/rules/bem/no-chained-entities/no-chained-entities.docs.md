@@ -118,12 +118,11 @@ export default {
   plugins: ['@morev/stylelint-plugin'],
   rules: {
     '@morev/bem/no-chained-entities': [true, {
-      disallowNestedModifierValues: false,
       separators: {
         element: '__',
         modifier: '--',
         modifierValue: '--',
-      }
+      },
       messages: {
         element: (actual, expected) => {
           return `
@@ -144,13 +143,6 @@ export default {
 
 ```ts
 export type NoChainedEntitiesSecondaryOption = {
-  /**
-   * Whether to disallow nesting for modifier values.
-   *
-   * @default false
-   */
-  disallowNestedModifierValues?: boolean;
-
   /**
    * Custom message functions for each violation type.
    * If provided, overrides the default error messages.
@@ -195,16 +187,6 @@ export type NoChainedEntitiesSecondaryOption = {
      * @returns            Error message.
      */
     modifierValue?: (actual: string, expected: string) => string;
-
-    /**
-     * Custom message for nested BEM modifier values.
-     *
-     * @param   actual     Actual BEM selector found in the source code.
-     * @param   expected   Expected BEM selector.
-     *
-     * @returns            Error message.
-     */
-    nestedModifierValue?: (actual: string, expected: string) => string;
   };
 
   /**
@@ -244,45 +226,6 @@ export type NoChainedEntitiesSecondaryOption = {
 
 ---
 
-### `disallowNestedModifierValues`
-
-Enforces that modifier values must be expressed as flat, single-level selectors rather than nested under modifier names.
-
-```ts
-/**
- * @default false
- */
-type DisallowNestedModifierValuesOption = boolean;
-```
-
-Some teams prefer to keep the BEM structure strictly three-leveled,
-without introducing an extra nesting level for modifier values:
-
-1. `block`
-1. `[element]`
-1. `[modifier[-value]]`
-
-
-```scss
-// ❌ Nested modifier values — not allowed with this option
-.app-button {
-  &--variant {
-    &--primary {}
-    &--secondary {}
-  }
-}
-
-// ✅ Flat modifier values — allowed
-.app-button {
-  &--variant--primary {}
-  &--variant--secondary {}
-}
-```
-
-This keeps selectors simple and consistent, and makes each full modifier easily searchable and traceable in code.
-
----
-
 ### `separators`
 
 <!-- @include: @/docs/_parts/separators.md -->
@@ -306,9 +249,9 @@ export default {
         block: (actual, expected) =>
           `⛔ Do not split block names like "${actual}". Rewrite to ${expected}.`,
 
-        nestedModifierValue: (actual, expected) => {
+        modifierValue: (actual, expected) => {
           return `
-            Do not nest modifier values - prefer flat form.
+            Do not split modifier values across nesting levels.
             Write "${expected}" at the parent level instead of "${actual}".
           `
         },
@@ -361,16 +304,6 @@ export type MessagesOption = {
    * @returns            Error message.
    */
   modifierValue?: (actual: string, expected: string) => string;
-
-  /**
-   * Custom message for nested BEM modifier values.
-   *
-   * @param   actual     Actual BEM selector found in the source code.
-   * @param   expected   Expected BEM selector.
-   *
-   * @returns            Error message.
-   */
-  nestedModifierValue?: (actual: string, expected: string) => string;
 };
 ```
 

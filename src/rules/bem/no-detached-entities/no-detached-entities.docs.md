@@ -90,7 +90,7 @@ all its values must be nested inside it:
 }
 ```
 
-To always require the flat modifier-value form, override grouping and enable the `no-chained-entities` option:
+To require the flat modifier-value form for checked selectors, override the grouping policies:
 
 ```js
 export default {
@@ -101,9 +101,6 @@ export default {
         blockModifierValue: ['block'],
         elementModifierValue: ['element'],
       },
-    }],
-    '@morev/bem/no-chained-entities': [true, {
-      disallowNestedModifierValues: true,
     }],
   },
 };

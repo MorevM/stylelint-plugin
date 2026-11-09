@@ -339,55 +339,15 @@ testRule({
 	],
 });
 
-// disallowNestedModifierValues: true
+// Custom messages
 testRule({
-	description: 'Secondary > disallowNestedModifierValues: true',
-	config: [true, { disallowNestedModifierValues: true }],
-	reject: [
-		{
-			code: `
-				.block {
-					&__element {
-						&--modifier {
-							@media (width > 360px) {
-								@layer components {
-									&--value {
-										&value {}
-									}
-								}
-							}
-						}
-					}
-
-					&--modifier--value {}
-				}
-			`,
-			warnings: [
-				{
-					message: messages.nestedModifierValue('&--value', '&--modifier--value'),
-					line: 6, column: 9,
-					endLine: 6, endColumn: 14,
-				},
-				{
-					message: messages.nestedModifierValue('&value', '&--modifier--valuevalue'),
-					line: 7, column: 7,
-					endLine: 7, endColumn: 13,
-				},
-			],
-		},
-	],
-});
-
-// `messages` option with allowed modifier values
-testRule({
-	description: '`messages` option with allowed modifier values',
+	description: 'Custom messages',
 	config: [true, {
 		messages: {
 			block: (actual: string, expected: string) => `Block ${actual} ${expected}`,
 			element: (actual: string, expected: string) => `Element ${actual} ${expected}`,
 			modifierName: (actual: string, expected: string) => `Modifier name ${actual} ${expected}`,
 			modifierValue: (actual: string, expected: string) => `Modifier value ${actual} ${expected}`,
-			nestedModifierValue: (actual: string, expected: string) => `Nested ${actual} ${expected}`,
 		},
 	}],
 	reject: [
@@ -415,46 +375,6 @@ testRule({
 				{ message: `Element &-e &__el-e (@morev/bem/no-chained-entities)` },
 				{ message: `Modifier name &-m &--mod-m (@morev/bem/no-chained-entities)` },
 				{ message: `Modifier value &-v &--value-v (@morev/bem/no-chained-entities)` },
-			],
-		},
-	],
-});
-
-// `messages` option with disallowed modifier values
-testRule({
-	description: '`messages` option with disallowed modifier values',
-	config: [true, {
-		disallowNestedModifierValues: true,
-		messages: {
-			block: (actual: string, expected: string) => `Block ${actual} ${expected}`,
-			element: (actual: string, expected: string) => `Element ${actual} ${expected}`,
-			modifierName: (actual: string, expected: string) => `Modifier name ${actual} ${expected}`,
-			modifierValue: (actual: string, expected: string) => `Modifier value ${actual} ${expected}`,
-			nestedModifierValue: (actual: string, expected: string) => `Nested ${actual} ${expected}`,
-		},
-	}],
-	reject: [
-		{
-			description: 'Uses custom messages if provided',
-			code: `
-				.foo {
-					&-b {}
-					&--mod {
-						&--value {}
-					}
-
-					&--mod2 {
-						&--value2 {
-							&-value3 {}
-						}
-					}
-				}
-			`,
-			warnings: [
-				{ message: `Block &-b .foo-b (@morev/bem/no-chained-entities)` },
-				{ message: `Nested &--value &--mod--value (@morev/bem/no-chained-entities)` },
-				{ message: `Nested &--value2 &--mod2--value2 (@morev/bem/no-chained-entities)` },
-				{ message: `Nested &-value3 &--mod2--value2-value3 (@morev/bem/no-chained-entities)` },
 			],
 		},
 	],
