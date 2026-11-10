@@ -5,4 +5,7 @@ allowBuilds:
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - '@morev/*'
-  - eslint-plugin-unicorn@71.1.0
+packageExtensions:
+  conventional-changelog-preset-loader@6.0.1:
+    dependencies:
+      conventional-changelog-conventionalcommits: ^10.4.1
