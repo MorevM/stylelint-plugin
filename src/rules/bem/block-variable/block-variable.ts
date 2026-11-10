@@ -5,7 +5,7 @@ import { getBemBlock } from '#modules/bem';
 import {
 	getRuleContentMeta, getRuleDeclarations, isAtRule, isNodeWithin, isRule, isSelectorOwnerNode,
 } from '#modules/postcss';
-import { createRule, extractSeparators, isCssFile, mergeMessages } from '#modules/rule-utils';
+import { createRule, extractSeparators, isSassSyntax, mergeMessages } from '#modules/rule-utils';
 import { parseSelectors } from '#modules/selectors';
 import { schema } from './block-variable.schema';
 import type { AtRule } from 'postcss';
@@ -145,9 +145,9 @@ export default createRule({
 			`;
 		},
 	},
-}, (primary, secondary, { root, report, messages: ruleMessages }) => {
-	// The rule only applicable to `scss` files.
-	if (isCssFile(root)) return;
+}, (primary, secondary, { root, result, report, messages: ruleMessages }) => {
+	// The rule only applicable to SASS files.
+	if (!isSassSyntax(root, result)) return;
 
 	const separators = extractSeparators(secondary.separators);
 	const bemBlock = getBemBlock(root, separators);

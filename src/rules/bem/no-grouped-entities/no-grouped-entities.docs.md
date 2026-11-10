@@ -170,8 +170,8 @@ so these selector lists remain valid in both modes:
 }
 ```
 
-The rule resolves SCSS and native CSS nesting and uses the final, rightmost BEM target of each top-level selector-list branch.
-Unresolved interpolation, ambiguous targets, and selector lists nested inside functional pseudo-classes are skipped conservatively.
+The rule resolves SCSS and native CSS nesting and checks the rightmost direct BEM target of each selector-list branch.
+Selectors without an unambiguous direct target are skipped.
 
 ## Rule options
 

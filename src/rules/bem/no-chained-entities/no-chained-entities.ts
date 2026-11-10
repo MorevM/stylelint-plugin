@@ -1,10 +1,10 @@
 import { resolveBemChain } from '#modules/bem';
 import { getRuleContentMeta, isAtRule, isRule } from '#modules/postcss';
-import { createRule, extractSeparators, isCssFile, mergeMessages } from '#modules/rule-utils';
+import { createRule, extractSeparators, isSassSyntax, mergeMessages } from '#modules/rule-utils';
 import { schema } from './no-chained-entities.schema';
 import type { Root } from 'postcss';
 import type { Separators } from '#modules/shared';
-import type { RepeatingGroup, RepeatingGroupItem, SecondaryOption, Violation } from './no-chained-entities.types';
+import type { RepeatingGroup, RepeatingGroupItem, Violation } from './no-chained-entities.types';
 
 /**
  * Generates a standardized violation message for a chained BEM entity.
@@ -24,14 +24,12 @@ const createMessage = (type: string, actual: string, expected: string) =>
  *
  * @param   root         PostCSS root node.
  * @param   separators   BEM separators used in the current config.
- * @param   secondary    Rule options.
  *
  * @returns              List of repeating BEM entity groups.
  */
 const collectRepeatingGroups = (
 	root: Root,
 	separators: Separators,
-	secondary: SecondaryOption,
 ): RepeatingGroup[] => {
 	const repeatingGroups: RepeatingGroup[] = [];
 
@@ -75,16 +73,7 @@ const collectRepeatingGroups = (
 
 				const next = chain[i];
 
-				if (
-					repeating.length > 1
-					// Also report even a single modifier value if it's nested under a modifier name,
-					// flat structure is required when `disallowNestedModifierValues` is `true`.
-					|| (
-						secondary.disallowNestedModifierValues
-						&& currentType === 'modifierValue'
-						&& next?.type === 'modifierName'
-					)
-				) {
+				if (repeating.length > 1) {
 					repeatingGroups.push({
 						rule: current.rule,
 						repeating,
@@ -103,15 +92,11 @@ const collectRepeatingGroups = (
  * Converts repeating BEM entity groups into Violation objects
  * that can later be reported by the rule.
  *
- * @param   groups      Repeating groups collected from BEM chains.
- * @param   secondary   Rule options.
+ * @param   groups   Repeating groups collected from BEM chains.
  *
- * @returns             Flat list of violation objects.
+ * @returns          Flat list of violation objects.
  */
-const getViolationsFromGroups = (
-	groups: RepeatingGroup[],
-	secondary: SecondaryOption,
-): Violation[] => {
+const getViolationsFromGroups = (groups: RepeatingGroup[]): Violation[] => {
 	const seen = new Set<string>();
 	const violations: Violation[] = [];
 
@@ -141,29 +126,10 @@ const getViolationsFromGroups = (
 			return `&${nextPart?.separator ?? ''}${actual}`;
 		})();
 
-		const violationTemplate = {
-			node: group.rule,
-			index,
-			endIndex,
-			actual,
-		};
-
-		if (
-			secondary.disallowNestedModifierValues
-			&& nextPart?.type === 'modifierName'
-		) {
-			violations.push({
-				type: 'nestedModifierValue',
-				expected: `&${nextPart.selector}${part.selector}`,
-				...violationTemplate,
-			});
-			continue;
-		}
-
 		// `nextPart` will be `undefined` for the block itself, `.foo-block`
 		const expected = nextPart ? `&${part.selector}` : part.selector;
 
-		violations.push({ type, expected, ...violationTemplate });
+		violations.push({ type, expected, node: group.rule, index, endIndex, actual });
 	}
 
 	return violations;
@@ -182,18 +148,16 @@ export default createRule({
 		element: (actual: string, expected: string) => createMessage('element name', actual, expected),
 		modifierName: (actual: string, expected: string) => createMessage('modifier name', actual, expected),
 		modifierValue: (actual: string, expected: string) => createMessage('modifier value', actual, expected),
-		nestedModifierValue: (actual: string, expected: string) =>
-			`Unexpected nested modifier value "${actual}". Use a flat selector "${expected}" instead`,
 	},
 	schema,
-}, (primary, secondary, { report, messages: ruleMessages, root }) => {
-	// The rule only applicable to SCSS files.
-	if (isCssFile(root)) return;
+}, (primary, secondary, { report, messages: ruleMessages, root, result }) => {
+	// The rule only applicable to SASS files.
+	if (!isSassSyntax(root, result)) return;
 
 	const messages = mergeMessages(ruleMessages, secondary.messages);
 	const separators = extractSeparators(secondary.separators);
-	const repeatingGroups = collectRepeatingGroups(root, separators, secondary);
-	const violations = getViolationsFromGroups(repeatingGroups, secondary);
+	const repeatingGroups = collectRepeatingGroups(root, separators);
+	const violations = getViolationsFromGroups(repeatingGroups);
 
 	violations.forEach((violation) => {
 		report({

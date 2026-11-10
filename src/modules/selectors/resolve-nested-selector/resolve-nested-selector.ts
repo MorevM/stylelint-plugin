@@ -76,22 +76,6 @@ const getNestingSourceRanges = (source: string): Array<[number, number]> => {
 };
 
 /**
- * Checks whether a selector depends on its parent context.
- *
- * Both raw `&` and interpolated `#{&}` require the parent selector.
- * Syntax-aware splitting avoids false positives.
- * Ampersands in strings, attributes, or escapes are not nesting selectors.
- *
- * @param   value   Selector value to inspect.
- *
- * @returns         Whether the selector contains a parent reference.
- */
-const hasParentReference = (value: string) => {
-	return getNestingSourceRanges(value).length > 0
-		|| value.search(SASS_NESTING_INTERPOLATION_REGEXP) !== -1;
-};
-
-/**
  * Applies one resolved path segment to the accumulated selector context.
  *
  * `#{&}` is expanded first but remains a regular selector fragment.
@@ -99,17 +83,15 @@ const hasParentReference = (value: string) => {
  * For example, `.block { #{&}__element {} }` still gets the `.block` parent.
  * A raw nesting selector, in contrast, replaces `&` in place.
  *
- * @param   context          Fully resolved parent selector.
- * @param   item             Current resolved path segment.
- * @param   remainingItems   Descendants checked for bare `@at-root`.
- * @param   previousItem     Preceding selector or bare `@at-root` wrapper.
+ * @param   context        Fully resolved parent selector.
+ * @param   item           Current resolved path segment.
+ * @param   previousItem   Preceding selector or bare `@at-root` wrapper.
  *
- * @returns                  Resolved context after this segment.
+ * @returns                Resolved context after this segment.
  */
 const resolvePathItemContext = (
 	context: string,
 	item: Pick<ResolvedPathItem, 'node' | 'resolvedValue'>,
-	remainingItems: PathItem[],
 	previousItem: PathItem | undefined,
 ) => {
 	const value = item.resolvedValue
@@ -124,11 +106,9 @@ const resolvePathItemContext = (
 		// An explicit `@at-root` selector replaces the accumulated ancestry.
 		if (value) return value;
 
-		// Keep context only to expand parent references in the first hoisted selector.
-		const nextSelector = remainingItems.find(({ value: remainingValue }) => !!remainingValue);
-		return hasParentReference(nextSelector?.value ?? '')
-			? context
-			: '';
+		// Variables declared inside the wrapper still see its lexical `&`.
+		// The first child suppresses parent injection independently of this context.
+		return context;
 	}
 
 	const isBareAtRootChild = previousItem?.type === 'at-root' && !previousItem.value;
@@ -188,6 +168,24 @@ const getOffset = (selectorParts: string[], index: number) => {
 };
 
 /**
+ * Checks whether a static `@at-root` query excludes selector ancestry.
+ *
+ * @param   params   Parameters of the `@at-root` declaration.
+ *
+ * @returns          Whether the query removes the style-rule context.
+ */
+const shouldRemoveAtRootRuleContext = (params: string): boolean => {
+	const query = params.match(/^\(\s*(with|without)\s*:\s*([\s\w-]+)\)$/);
+	if (!query) return false;
+
+	const [, mode, value] = query;
+	const contexts = value.trim().split(/\s+/);
+	const hasRuleContext = contexts.includes('rule') || contexts.includes('all');
+
+	return mode === 'without' ? hasRuleContext : !hasRuleContext;
+};
+
+/**
  * Builds a tree of nesting contexts (rules and at-rules) for a given PostCSS node.
  *
  * Each returned path represents a chain of `rule`, `@nest`, or `@at-root` constructs
@@ -223,10 +221,15 @@ const getTrees = (
 		}
 
 		if (isAtRule(parent, ['nest', 'at-root'])) {
-			// Skip `@at-root (with[out]: media)` declarations -
-			// they don't impact the tree structure.
-			if (parent.name === 'at-root' && parent.params.match(/\(\s*with(?:out)?:/)) {
-				return walk(parent, path);
+			// Queries only cut selector ancestry when they exclude the `rule` context.
+			// Model that case as bare `@at-root` to preserve lexical ownership and source mapping.
+			if (parent.name === 'at-root' && parent.params.match(/\(\s*with(?:out)?\s*:/)) {
+				return walk(
+					parent,
+					shouldRemoveAtRootRuleContext(parent.params)
+						? [{ type: 'at-root', value: '', node: parent }, ...path]
+						: path,
+				);
 			}
 
 			const parts = split(parent.params, ',', false)
@@ -265,22 +268,8 @@ const getTrees = (
  * During path expansion we should traverse through all ancestors up to the Root
  * to collect SASS variables that could be referenced below.
  *
- * Constructs like `@at-root` hoist rules out of their current ancestry
- * (cutting everything above). When combined with list selectors (`,`), this can yield
- * multiple logical paths that resolve to the same final selector.
- *
- * @example
- * // Consider:
- * ```scss
- * .foo { .bar &, & .baz  { \@at-root { .bar {}  } } }
- * ```
- *
- * Formal path expansion (because of the list selector) produces two paths:
- * 1) `.foo .bar .foo .bar`
- * 2) `.foo .baz .bar`
- *
- * But `@at-root` cuts the ancestry, so both effectively resolve to `.bar`. \
- * `uniqueItems()` collapses them into a single result.
+ * Hoisting through parent lists can produce equal emitted selectors.
+ * Different lexical owners or source mappings must remain available to rule consumers.
  *
  * @param   items   A list of resolved selector records to deduplicate.
  *
@@ -302,9 +291,11 @@ const uniqueTrees = (items: ResolvedSelector[]): ResolvedSelector[] => {
 			})
 			.join(',');
 
-		// Equal resolved selectors can still point to different source ranges.
-		// Keep those mappings distinct so diagnostics are attached to the correct branch.
-		const key = `${item.source}|${item.resolved}|${item.offset}|${substitutionsKey}|${replacementsKey}`;
+		// Ownership and source positions remain significant even after emitted ancestry is removed.
+		const key = [
+			item.source, item.resolved, item.offset, item.lexicalParent, item.parent,
+			substitutionsKey, replacementsKey,
+		].join('|');
 
 		if (seen.has(key)) return false;
 
@@ -335,9 +326,8 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
 		// Every path segment has already been resolved sequentially.
 		// The preceding segment therefore contains the exact parent context.
 		const context = tree.at(-2)?.resolvedContext ?? '';
-		// Bare `@at-root` segments have no selector of their own and may clear the
-		// emitted context. Look through them to retain the nearest selector that
-		// lexically contains the declaration.
+		// Bare `@at-root` wrappers have no selector of their own.
+		// Look through them to retain the nearest lexical selector owner.
 		const lexicalParent = tree
 			.slice(0, -1)
 			.findLast(({ value }) => !!value)
@@ -560,7 +550,6 @@ const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 			context = resolvePathItemContext(
 				context,
 				resolvedPathItem,
-				pathItems.slice(index + 1),
 				pathItems[index - 1],
 			);
 

@@ -74,7 +74,7 @@ export default createRule({
 					// Skip ignored blocks
 					.filter((bemEntity) => {
 						return !ignoredPatterns
-							.some((blockPattern) => blockPattern.test(bemEntity.block.value));
+							.some((blockPattern) => bemEntity.block.value.search(blockPattern) !== -1);
 					});
 
 				if (isEmpty(entitiesToReport)) return;
