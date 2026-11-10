@@ -57,8 +57,97 @@ testRule({
 			description: 'Keeps conditional wrappers transparent to lexical ownership',
 			code: `
 				.block {
-					@supports (display: grid) {
-						@nest &__title {}
+					@media (width <= 85px) {
+						@supports (display: grid) {
+							@nest &__title {}
+						}
+					}
+				}
+			`,
+		},
+		{
+			description: 'Keeps lone modifier values independent across root and separate media regions',
+			code: `
+				.card {
+					&--theme--system {}
+				}
+
+				@media (width <= 85px) {
+					.card {
+						&--theme--dark {}
+					}
+				}
+
+				@media (width > 85px) {
+					.card {
+						&--theme--light {}
+					}
+				}
+
+				@media (width <= 85px) {
+					.card {
+						&--theme--contrast {}
+					}
+				}
+			`,
+		},
+		{
+			description: 'Does not impose a conditional modifier group on outer or sibling declarations',
+			code: `
+				.card {
+					&--theme--dark {}
+				}
+
+				@media (width <= 85px) {
+					.card {
+						&--theme {}
+					}
+				}
+
+				@media (width > 85px) {
+					.card {
+						&--theme--light {}
+					}
+				}
+			`,
+		},
+		{
+			description: 'Separates selector contexts including different combinators',
+			code: `
+				.dark .card {
+					&--theme {}
+				}
+
+				.light .card {
+					&--theme--light {}
+				}
+
+				.dark > .card {
+					&--theme--contrast {}
+				}
+
+				.card {
+					&--theme--system {}
+				}
+			`,
+		},
+		{
+			description: 'Keeps hoisted values separate from the conditions removed by static at-root queries',
+			code: `
+				.card {
+					@media (width <= 85px) {
+						&--theme--dark {}
+						@at-root (without: media) {
+							&--theme--light {}
+						}
+						@supports (display: grid) {
+							&--size--small {}
+							@at-root (with: supports) {
+								.card {
+									&--size--large {}
+								}
+							}
+						}
 					}
 				}
 			`,
@@ -103,6 +192,71 @@ testRule({
 		},
 	],
 	reject: [
+		{
+			description: 'References the block in the same media region when several declarations exist',
+			code: `
+				.the-component {}
+
+				.the-component__title--large {}
+
+				@media (width <= 85px) {
+					.the-component {}
+					.the-component__abc {}
+				}
+			`,
+			warnings: [
+				{ line: 3, message: messages.detached('.the-component__title--large', [
+					{ selector: '.the-component__title' },
+				], [{ selector: '.the-component', line: 1 }, { selector: '.the-component__title' }]) },
+				{ line: 7, message: messages.detached('.the-component__abc', [{ selector: '.the-component', line: 6 }], []) },
+			],
+		},
+		{
+			description: 'Prefers lexical ancestors and otherwise the nearest declaration in the same context',
+			code: `
+				.card {}
+
+				.card {
+					@at-root .card {}
+					&__title:hover {}
+				}
+
+				.card {}
+
+				.card__label:hover {}
+			`,
+			warnings: [
+				{ message: messages.detached('.card__title:hover', [{ selector: '.card__title' }], [
+					{ selector: '.card', line: 3 }, { selector: '.card__title' },
+				]) },
+				{ message: messages.detached('.card__label:hover', [{ selector: '.card__label' }], [
+					{ selector: '.card', line: 8 }, { selector: '.card__label' },
+				]) },
+			],
+		},
+		{
+			description: 'Uses outer selector contexts for exists and groups values only inside their media region',
+			code: `
+				.theme .card--size {}
+
+				@media (width <= 85px) {
+					.theme .layout .card {
+						&--size--large {}
+						&--theme--dark {}
+						&--theme--light {}
+					}
+				}
+			`,
+			warnings: [
+				{ message: messages.detached('.card--size--large', [{ selector: '.card--size', line: 1 }], []) },
+				{ message: messages.detached('.card--theme--dark', [{ selector: '.card--theme' }], [
+					{ selector: '.card', line: 4 }, { selector: '.card--theme' },
+				]) },
+				{ message: messages.detached('.card--theme--light', [{ selector: '.card--theme' }], [
+					{ selector: '.card', line: 4 }, { selector: '.card--theme' },
+				]) },
+			],
+		},
 		{
 			description: 'Reports local extensions under inherited context once across parent-list expansions',
 			code: `
@@ -573,6 +727,38 @@ testCssRule({
 			`,
 			message: messages.detached('.block.block__title:hover', [{ selector: '.block__title' }], []),
 		},
+		{
+			description: 'References compatible CSS owners without borrowing declarations from sibling layers or scopes',
+			code: `
+				.card {}
+
+				@container (width > 20rem) {
+					.card {}
+					.card:hover {}
+				}
+
+				@layer base {
+					.button {}
+				}
+
+				@layer components {
+					.button:hover {}
+				}
+
+				@scope (.light) {
+					.title {}
+				}
+
+				@scope (.dark) {
+					.title:hover {}
+				}
+			`,
+			warnings: [
+				{ message: messages.detached('.card:hover', [{ selector: '.card', line: 4 }], []) },
+				{ message: messages.detached('.button:hover', [{ selector: '.button' }], []) },
+				{ message: messages.detached('.title:hover', [{ selector: '.title' }], []) },
+			],
+		},
 	],
 });
 
@@ -627,10 +813,8 @@ testRule({
 				}
 			`,
 		},
-	],
-	reject: [
 		{
-			description: 'Counts later and ignored block declarations inside conditional wrappers',
+			description: 'Does not count a block declared only inside a narrower conditional region',
 			code: `
 				.block__title {}
 
@@ -638,7 +822,27 @@ testRule({
 					.block {}
 				}
 			`,
-			message: messages.detached('.block__title', [{ selector: '.block', line: 4 }], []),
+		},
+	],
+	reject: [
+		{
+			description: 'Counts later ignored declarations in the same context and outer contexts',
+			code: `
+				@supports (display: grid) {
+					.block__title {}
+					.block {}
+				}
+
+				@media (width <= 85px) {
+					.block__label {}
+				}
+
+				.block {}
+			`,
+			warnings: [
+				{ message: messages.detached('.block__title', [{ selector: '.block', line: 3 }], []) },
+				{ message: messages.detached('.block__label', [{ selector: '.block', line: 10 }], []) },
+			],
 		},
 		{
 			description: 'Still requires owners for modifiers and local extensions',
@@ -941,6 +1145,12 @@ testRule({
 				.other__title {}
 
 				.layout .block__label {}
+
+				.layout .contextual {
+					&--theme--dark {}
+				}
+
+				.layout .contextual--theme--light:hover {}
 			`,
 		},
 		{
@@ -962,6 +1172,14 @@ testRule({
 					}
 					&__label {}
 				}
+			`,
+		},
+		{
+			description: 'Does not impose contextual explicit targets on unconditional declarations',
+			code: `
+				.block__title--active {}
+
+				:is(.dark, .light) .block__title {}
 			`,
 		},
 	],
@@ -1008,15 +1226,6 @@ testRule({
 					],
 				),
 			})),
-		},
-		{
-			description: 'Uses contextual explicit targets for exists without treating context classes as declarations',
-			code: `
-				.block__title--active {}
-
-				:is(.dark, .light) .block__title {}
-			`,
-			message: messages.detached('.block__title--active', [{ selector: '.block__title', line: 3 }], []),
 		},
 	],
 });

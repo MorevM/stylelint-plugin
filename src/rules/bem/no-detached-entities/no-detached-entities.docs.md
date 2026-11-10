@@ -139,7 +139,7 @@ export default {
 ```ts
 type PrimaryOption = true;
 
-/** Conditions are evaluated against declarations in the same file. */
+/** Conditions account for the surrounding at-rules and selector context. */
 type Condition = 'exists' | 'shared';
 
 /** Conditional entries precede all unconditional alternatives; an empty array sets no requirements. */
@@ -151,12 +151,12 @@ type Policy<Parent extends string> = Array<Parent | {
   when: Condition | Condition[];
 }>;
 
-/** Canonical owner or nesting-path entry with its first declaration location. */
+/** Canonical owner or nesting-path entry with a compatible declaration location. */
 type Owner = {
   /** Canonical BEM selector of an owner. */
   readonly selector: string;
 
-  /** First explicit declaration line; absent for undeclared entities. */
+  /** Nearest compatible declaration line; absent when no suitable declaration exists. */
   readonly line?: number;
 };
 
@@ -197,7 +197,7 @@ type SecondaryOption = {
   messages?: {
     /**
      * @param selector Complete resolved local selector, including extensions.
-     * @param owners   Allowed canonical BEM owners and their first declaration locations.
+     * @param owners   Allowed canonical BEM owners and their compatible declaration locations.
      * @param path     Shortest configured nesting path when intermediate owners are missing; otherwise empty.
      * @returns        The diagnostic message.
      */
@@ -295,8 +295,8 @@ nesting: {
 
 Here:
 
-- `exists`: elements must be inside their block if it is declared in the same file.
-- `shared`: element modifiers need an element wrapper when it is needed to group several related modifiers.
+- `exists`: elements must be inside their block if it is declared in the same context or an outer one.
+- `shared`: element modifiers need an element wrapper when it groups several related modifiers in the same context.
 - `['exists', 'shared']`: values must be inside their modifier-name group if it exists or groups several values.
   **Either** condition is sufficient.
 - Conditions are evaluated in order, and the **first matching parent becomes mandatory**.
@@ -678,7 +678,7 @@ type Owner = {
   readonly selector: string;
 
   /**
-   * First declaration line; omitted when the parent has not been declared.
+   * Nearest compatible declaration line; omitted when no suitable declaration exists.
    */
   readonly line?: number;
 };
@@ -730,8 +730,8 @@ In SCSS, the default nesting requirements are:
 
 - Elements and block modifiers belong directly inside their block.
 - Element modifiers belong directly inside their element.
-- Modifier values belong inside their modifier-name group when that group exists anywhere in the file,
-  or when two or more distinct values need a shared group.
+- Modifier values belong inside their modifier-name group when that group exists in the same or an outer context,
+  or when two or more distinct values in the same context need a shared group.
   Otherwise, a single value may be declared directly inside its block or element.
 
 Each tab below represents a separate file using the default options:

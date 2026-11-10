@@ -84,7 +84,7 @@ const ownersSchema = vReadonly(v.array(vReadonly(v.object({
 	selector: v.string(),
 
 	/**
-	 * First explicit declaration line; absent for undeclared entities.
+	 * Nearest compatible declaration line; absent when no suitable declaration exists.
 	 */
 	line: v.optional(v.number()),
 }))));
@@ -125,7 +125,7 @@ export const schema = {
 				 * Custom message for a BEM entity or local extension declared outside its lexical owner.
 				 *
 				 * @param   selector   Complete resolved local selector, including extensions.
-				 * @param   owners     Allowed canonical BEM owners and their first declaration locations.
+				 * @param   owners     Allowed canonical BEM owners and their compatible declaration locations.
 				 * @param   path       Shortest configured nesting path when intermediate owners are missing; otherwise empty.
 				 *
 				 * @returns            The error message to report.

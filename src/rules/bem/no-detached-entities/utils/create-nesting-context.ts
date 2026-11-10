@@ -1,9 +1,11 @@
 import { arrayUnique, isEmpty, isString, isUndefined, toArray } from '@morev/utils';
+import type { Node } from 'postcss';
 import type { BemEntity } from '#modules/bem';
 import type { EntityKind, Nesting, NestingOwner, Owner } from '../no-detached-entities.types';
+import type { DeclarationContext } from './create-declaration-contexts';
 
 /**
- * Canonical entity or implicit ancestor in the file's structural hierarchy.
+ * Canonical entity or implicit ancestor in one context's structural hierarchy.
  */
 type EntityNode = {
 	/**
@@ -27,11 +29,6 @@ type EntityNode = {
 	children: Set<EntityNode>;
 
 	/**
-	 * First explicit declaration line; states and context-only classes do not supply it.
-	 */
-	line: number | undefined;
-
-	/**
 	 * Whether a local selector explicitly declares this entity, including under inherited context.
 	 */
 	isStructural: boolean;
@@ -43,16 +40,21 @@ type EntityNode = {
  *
  * @param   nesting     Structural policies with defaults applied.
  * @param   isIgnored   Whether a canonical entity is exempt from ownership requirements.
+ * @param   context     Local declarations and compatible outer declaration lookup.
  *
  * @returns             Declaration registration, owner lookup, and missing-owner diagnostics.
  */
-export const createNestingContext = (nesting: Nesting, isIgnored: (selector: string) => boolean) => {
+export const createNestingContext = (
+	nesting: Nesting,
+	isIgnored: (selector: string) => boolean,
+	context: DeclarationContext,
+) => {
 	const entities = new Map<string, EntityNode>();
 	const branchCounts = new Map<EntityNode, number>();
 	const ownerCache = new Map<string, string[]>();
-	const chainCache = new Map<string, readonly Owner[]>();
+	const chainCache = new Map<string, EntityNode[]>();
 
-	const register = (entity: BemEntity, line: number | undefined, isStructural: boolean) => {
+	const register = (entity: BemEntity, sourceNode: Node, line: number | undefined, isStructural: boolean) => {
 		const parts: Array<[EntityKind, string]> = [['block', entity.block.selector]];
 		if (entity.element) parts.push(['element', entity.element.selector]);
 		if (entity.modifierName) {
@@ -68,14 +70,18 @@ export const createNestingContext = (nesting: Nesting, isIgnored: (selector: str
 			selector += part;
 			let node = entities.get(selector);
 			if (!node) {
-				node = { kind, selector, parent, children: new Set(), line: undefined, isStructural: false };
+				node = { kind, selector, parent, children: new Set(), isStructural: false };
 				entities.set(selector, node);
 				parent?.children.add(node);
 			}
 			parent = node;
 		}
-		parent!.line ??= line;
 		parent!.isStructural ||= isStructural;
+		if (!isUndefined(line)) {
+			const declarations = context.declarations.get(selector) ?? [];
+			declarations.push({ node: sourceNode, line });
+			context.declarations.set(selector, declarations);
+		}
 	};
 
 	const getParent = (entity: EntityNode, kind: NestingOwner): EntityNode => {
@@ -92,7 +98,7 @@ export const createNestingContext = (nesting: Nesting, isIgnored: (selector: str
 		if (entity.isStructural || assumed.has(entity)) return 1;
 		if (children === 0) return 0;
 		// Elements are distinct block branches; explicit modifier groups absorb their values.
-		if (entity.kind === 'element' || !isUndefined(entity.line)) return 1;
+		if (entity.kind === 'element' || context.declarations.has(entity.selector)) return 1;
 		return children;
 	};
 	const emptyAssumptions = new Set<EntityNode>();
@@ -146,7 +152,7 @@ export const createNestingContext = (nesting: Nesting, isIgnored: (selector: str
 			}
 			const parent = getParent(entity, entry.parent);
 			const conditions = toArray(entry.when);
-			if (conditions.includes('exists') && (!isUndefined(parent.line) || declarations.includes(parent))) {
+			if (conditions.includes('exists') && (context.hasDeclaration(parent.selector) || declarations.includes(parent))) {
 				return [parent.selector];
 			}
 			if (conditions.includes('shared')) {
@@ -181,13 +187,13 @@ export const createNestingContext = (nesting: Nesting, isIgnored: (selector: str
 			parents.add(getParent(entity, kind));
 		}
 		for (const parent of parents) {
-			if (!isUndefined(parent.line)) paths.push([parent]);
+			if (context.hasDeclaration(parent.selector)) paths.push([parent]);
 			else paths.push(...getPaths(parent).map((path) => [...path, parent]));
 		}
 		return paths;
 	};
 
-	const getOwnerChain = (selector: string, hasLocalExtension: boolean): readonly Owner[] => {
+	const getOwnerPath = (selector: string, hasLocalExtension: boolean): EntityNode[] => {
 		const cacheKey = `${selector}:${hasLocalExtension ? 'extension' : 'entity'}`;
 		if (chainCache.has(cacheKey)) return chainCache.get(cacheKey)!;
 		const entity = entities.get(selector)!;
@@ -197,10 +203,10 @@ export const createNestingContext = (nesting: Nesting, isIgnored: (selector: str
 		let best: EntityNode[] = [];
 		let missing = Infinity;
 		for (const path of candidates) {
-			const declarations = path.filter((owner) => isUndefined(owner.line));
+			const declarations = path.filter((owner) => !context.hasDeclaration(owner.selector));
 			if (declarations.length >= missing) continue;
 			const isValid = path.every((owner, index) => {
-				if (!isUndefined(owner.line) || isIgnored(owner.selector)) return true;
+				if (context.hasDeclaration(owner.selector) || isIgnored(owner.selector)) return true;
 				const expected = resolveOwners(owner, declarations);
 				const parent = path[index - 1];
 				return isEmpty(expected) || (!isUndefined(parent) && expected.includes(parent.selector));
@@ -213,16 +219,23 @@ export const createNestingContext = (nesting: Nesting, isIgnored: (selector: str
 			missing = declarations.length;
 		}
 
-		const chain: Owner[] = best.map((owner) => ({ selector: owner.selector, line: owner.line }));
-		const result = chain.length > 1 ? chain : [];
+		const result = best.length > 1 ? best : [];
 		chainCache.set(cacheKey, result);
 		return result;
+	};
+
+	const getOwnerChain = (selector: string, hasLocalExtension: boolean, from: Node): readonly Owner[] => {
+		// The required path is shared within a context; its most useful declaration lines depend on the caller.
+		return getOwnerPath(selector, hasLocalExtension).map((owner) => ({
+			selector: owner.selector,
+			line: context.getDeclarationLine(owner.selector, from),
+		}));
 	};
 
 	return {
 		register,
 		getOwners,
 		getOwnerChain,
-		getDeclarationLine: (selector: string) => entities.get(selector)?.line,
+		getDeclarationLine: context.getDeclarationLine,
 	};
 };

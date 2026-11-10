@@ -5,9 +5,11 @@ import { createRule, extractSeparators, isSassSyntax, mergeMessages } from '#mod
 import { getResolvedNodesSourceRange, resolveSelectorNodes, selectorNodesToString } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
 import { schema } from './no-detached-entities.schema';
+import { createDeclarationContexts } from './utils/create-declaration-contexts';
 import { createNestingContext } from './utils/create-nesting-context';
 import type { BemEntity } from '#modules/bem';
 import type { Owner } from './no-detached-entities.types';
+import type { DeclarationContext } from './utils/create-declaration-contexts';
 
 /**
  * Returns the block or element extended by a modifier.
@@ -34,7 +36,7 @@ const getModifierNameSelector = (entity: BemEntity) => {
 /**
  * Formats an owner with its declaration location when known.
  *
- * @param   owner   Canonical owner and its first declaration location.
+ * @param   owner   Canonical owner and its nearest compatible declaration location.
  *
  * @returns         Owner description for a diagnostic or nesting path.
  */
@@ -78,7 +80,8 @@ export default createRule({
 	const pendingReports: Array<() => void> = [];
 	const isIgnored = (selector: string) => ignoredTargets.some((pattern) => selector.search(pattern) !== -1);
 
-	const nestingContext = createNestingContext(secondary.nesting, isIgnored);
+	const getDeclarationContext = createDeclarationContexts();
+	const nestingContexts = new Map<DeclarationContext, ReturnType<typeof createNestingContext>>();
 
 	// First collect declaration evidence and queue candidate violations.
 	// Checking ownership after traversal lets later declarations satisfy conditions and supply diagnostic locations.
@@ -92,6 +95,12 @@ export default createRule({
 			if (target.status !== 'resolved') return;
 
 			const { compound, context, entity, entityNode } = target;
+			const declarationContext = getDeclarationContext(node, resolved.slice(0, resolved.indexOf(compound[0])));
+			if (!nestingContexts.has(declarationContext)) {
+				nestingContexts.set(declarationContext, createNestingContext(secondary.nesting, isIgnored, declarationContext));
+			}
+			// Structural siblings share one context; only declaration lookup can reach compatible outer contexts.
+			const nestingContext = nestingContexts.get(declarationContext)!;
 			// Combinators expanded from `&` belong to an inherited relation, not to this declaration.
 			// Authored relations, including implicit descendants and interpolated selectors, stay outside this rule.
 			const hasOwnRelation = !isEmpty(context) && resolved.some((resolvedNode) => {
@@ -116,13 +125,10 @@ export default createRule({
 			});
 
 			// Only explicit entity targets supply locations; context classes and states do not.
-			let declarationLine = nestingContext.getDeclarationLine(entity.bemSelector);
-			if (!hasLocalExtension && isUndefined(declarationLine)) {
-				// An unmapped inherited target has already been registered by its ancestor.
-				const entityRange = getResolvedNodesSourceRange([entityNode])!;
-				declarationLine = node.positionBy({ index: entityRange.index }).line;
-			}
-			nestingContext.register(entity, declarationLine, !hasLocalExtension && !hasOwnRelation);
+			// Unmapped inherited targets are not new declarations of their ancestor.
+			const entityRange = hasLocalExtension ? undefined : getResolvedNodesSourceRange([entityNode]);
+			const declarationLine = entityRange ? node.positionBy({ index: entityRange.index }).line : undefined;
+			nestingContext.register(entity, node, declarationLine, !hasLocalExtension && !hasOwnRelation);
 
 			// Contextual and ignored declarations still supply evidence for other targets.
 			// Local selectors also participate under inherited context; CSS retains local extension checks.
@@ -157,12 +163,12 @@ export default createRule({
 				// Existing owners give a direct destination; otherwise show the shortest chain of missing wrappers.
 				const owners = expectedOwners.map((expectedOwner) => ({
 					selector: expectedOwner,
-					line: nestingContext.getDeclarationLine(expectedOwner),
+					line: nestingContext.getDeclarationLine(expectedOwner, node),
 				}));
 
 				const path = isSass
 					&& owners.every((expectedOwner) => isUndefined(expectedOwner.line))
-					? nestingContext.getOwnerChain(entity.bemSelector, hasLocalExtension)
+					? nestingContext.getOwnerChain(entity.bemSelector, hasLocalExtension, node)
 					: [];
 
 				report({

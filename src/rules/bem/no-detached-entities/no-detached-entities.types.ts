@@ -17,7 +17,7 @@ export type EntityKind = 'block' | keyof Nesting;
 export type NestingOwner = 'block' | 'element' | 'blockModifier' | 'elementModifier';
 
 /**
- * Canonical owner or nesting-path entry with its first declaration location.
+ * Canonical owner or nesting-path entry with a compatible declaration location.
  */
 export type Owner = {
 	/**
@@ -26,7 +26,7 @@ export type Owner = {
 	readonly selector: string;
 
 	/**
-	 * First explicit declaration line; absent for undeclared entities.
+	 * Nearest compatible declaration line; absent when no suitable declaration exists.
 	 */
 	readonly line?: number;
 };
