@@ -1,3 +1,4 @@
+export * from './create-disabled-range-checker/create-disabled-range-checker';
 export * from './create-rule/create-rule';
 export * from './extract-separators/extract-separators';
 export * from './has-stylelint-directive/has-stylelint-directive';
