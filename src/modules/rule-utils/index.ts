@@ -1,5 +1,6 @@
 export * from './create-rule/create-rule';
 export * from './extract-separators/extract-separators';
+export * from './has-stylelint-directive/has-stylelint-directive';
 export * from './is-css-file/is-css-file';
 export * from './is-stylelint-directive/is-stylelint-directive';
 export * from './merge-messages/merge-messages';
