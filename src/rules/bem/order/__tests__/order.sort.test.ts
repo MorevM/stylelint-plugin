@@ -54,8 +54,8 @@ testRule({
 			.panel__title-icon {}
 		`,
 		warnings: [
-			{ message: messages.expected('.card__title-icon', '.card__element') },
-			{ message: messages.expected('.panel__element-icon', '.panel__title') },
+			{ message: messages.expectedBefore('.card__title-icon', '.card__element') },
+			{ message: messages.expectedBefore('.panel__element-icon', '.panel__title') },
 		],
 	}],
 });
@@ -104,7 +104,7 @@ testRule({
 			@container sidebar (min-width: 80rem) {}
 		`,
 		warnings: [
-			{ message: messages.expected('@media (min-width:20rem)', '@media (min-width:60rem)') },
+			{ message: messages.expectedBefore('@media (min-width:20rem)', '@media (min-width:60rem)') },
 			{ message: messages.expectedAfter('@container sidebar (min-width:80rem)', '@container sidebar (min-width:40rem)') },
 		],
 	}],
@@ -134,7 +134,7 @@ testRule({
 			@media (min-width: 60rem) {}
 		`,
 		warnings: [{
-			message: messages.expected('@container sidebar (min-width:40rem)', '@media (min-width:60rem)'),
+			message: messages.expectedBefore('@container sidebar (min-width:40rem)', '@media (min-width:60rem)'),
 		}],
 	}],
 });
@@ -172,7 +172,7 @@ testRule({
 				--theme: red;
 			}
 		`,
-		warnings: [{ message: messages.expected('--size-a', '--theme') }],
+		warnings: [{ message: messages.expectedBefore('--size-a', '--theme') }],
 	}],
 });
 
@@ -213,9 +213,9 @@ testRule({
 			}
 		`,
 		warnings: [
-			{ message: messages.expected('--size-a', '--size-c') },
-			{ message: messages.expected('--size-b', '--size-c') },
-			{ message: messages.expected('--theme', '--zeta') },
+			{ message: messages.expectedBefore('--size-a', '--size-c') },
+			{ message: messages.expectedBefore('--size-b', '--size-c') },
+			{ message: messages.expectedBefore('--theme', '--zeta') },
 		],
 	}],
 });
@@ -257,9 +257,9 @@ testRule({
 			}
 		`,
 		warnings: [
-			{ message: messages.expected('--size-a', '--size-c') },
-			{ message: messages.expected('--size-b', '--size-c') },
-			{ message: messages.expected('--alpha', '--free') },
+			{ message: messages.expectedBefore('--size-a', '--size-c') },
+			{ message: messages.expectedBefore('--size-b', '--size-c') },
+			{ message: messages.expectedBefore('--alpha', '--free') },
 			{ message: messages.expectedAfter('--zeta', '--free') },
 		],
 	}],

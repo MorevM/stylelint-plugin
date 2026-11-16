@@ -40,7 +40,7 @@ testRule({
 			.card {}
 			.button {}
 		`,
-		warnings: [{ message: messages.expectedGroup('at-rules "@function tone()", "@function --tone()"', '.card') }],
+		warnings: [{ message: messages.expectedGroupBefore('at-rules "@function tone()", "@function --tone()"', '.card') }],
 	}],
 });
 
@@ -179,9 +179,9 @@ testRule({
 			}
 		`,
 		warnings: [
-			{ message: messages.expected('@media screen', '&:hover') },
-			{ message: messages.expected('.button', '@media screen') },
-			{ message: messages.expected('.button:hover', '@media screen') },
+			{ message: messages.expectedBefore('@media screen', '&:hover') },
+			{ message: messages.expectedBefore('.button', '@media screen') },
+			{ message: messages.expectedBefore('.button:hover', '@media screen') },
 			{ message: messages.expectedAfter('@media screen', '.card:hover') },
 		],
 	}],
@@ -225,7 +225,7 @@ testRule({
 			.card:active {}
 			.card:hover {}
 		`,
-		warnings: [{ message: messages.expected('@media screen', '.card') }],
+		warnings: [{ message: messages.expectedBefore('@media screen', '.card') }],
 	}],
 });
 

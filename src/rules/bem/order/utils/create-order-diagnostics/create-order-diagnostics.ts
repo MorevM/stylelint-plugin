@@ -89,8 +89,8 @@ export const createOrderDiagnostics = (
 
 		const isGroup = move.items.length > 1;
 		let header = labels.get(item)!;
-		let message: 'expected' | 'expectedAfter' | 'expectedGroup' | 'expectedGroupAfter' =
-			isAfter ? 'expectedAfter' : 'expected';
+		let message: 'expectedBefore' | 'expectedAfter' | 'expectedGroupBefore' | 'expectedGroupAfter' =
+			isAfter ? 'expectedAfter' : 'expectedBefore';
 		if (isGroup) {
 			let group = 'nodes';
 			if (move.items.every(({ node }) => node.type === 'decl')) group = 'declarations';
@@ -101,7 +101,7 @@ export const createOrderDiagnostics = (
 			const remaining = move.items.length - members.length;
 			const suffix = remaining > 0 ? ` and ${remaining} more ${group}` : '';
 			header = `${group} ${members.join(', ')}${suffix}`;
-			message = isAfter ? 'expectedGroupAfter' : 'expectedGroup';
+			message = isAfter ? 'expectedGroupAfter' : 'expectedGroupBefore';
 		}
 
 		return {

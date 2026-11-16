@@ -89,8 +89,8 @@ testRule({
 			.button {}
 		`,
 		warnings: [
-			{ message: messages.expected('.card:hover', '.card:active') },
-			{ message: messages.expectedGroup('at-rules "@mixin theme", "@mixin --theme"', '.card') },
+			{ message: messages.expectedBefore('.card:hover', '.card:active') },
+			{ message: messages.expectedGroupBefore('at-rules "@mixin theme", "@mixin --theme"', '.card') },
 		],
 	}],
 });
@@ -128,8 +128,8 @@ for (const directive of ['@content', '@contents']) {
 				}
 			`,
 			warnings: [
-				{ message: messages.expected('content', '&:hover') },
-				{ message: messages.expected('display', '@supports (display:grid)') },
+				{ message: messages.expectedBefore('content', '&:hover') },
+				{ message: messages.expectedBefore('display', '@supports (display:grid)') },
 			],
 		}],
 	});

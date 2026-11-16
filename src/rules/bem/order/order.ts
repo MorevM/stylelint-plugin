@@ -23,9 +23,9 @@ export default createRule({
 		fixable: true,
 	},
 	messages: {
-		expected: (first: string, second: string) => `Expected "${first}" to come before "${second}".`,
+		expectedBefore: (first: string, second: string) => `Expected "${first}" to come before "${second}".`,
 		expectedAfter: (first: string, second: string) => `Expected "${first}" to come after "${second}".`,
-		expectedGroup: (group: string, anchor: string) => `Expected ${group} to come before "${anchor}".`,
+		expectedGroupBefore: (group: string, anchor: string) => `Expected ${group} to come before "${anchor}".`,
 		expectedGroupAfter: (group: string, anchor: string) => `Expected ${group} to come after "${anchor}".`,
 		unsafeOrder: (first: string, second: string) => `Cannot reorder "${first}" and "${second}" without changing their cascade.`,
 		expectedEmptyLine: (group: string) => `Expected an empty line before "${group}".`,

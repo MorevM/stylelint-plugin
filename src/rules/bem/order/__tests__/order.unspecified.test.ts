@@ -61,8 +61,8 @@ testRule({
 			.card__icon {}
 		`,
 		warnings: [
-			{ message: messages.expected('.card__title', '.card__icon') },
-			{ message: messages.expected('.card__unknown:hover', '.card__unknown:active') },
+			{ message: messages.expectedBefore('.card__title', '.card__icon') },
+			{ message: messages.expectedBefore('.card__unknown:hover', '.card__unknown:active') },
 		],
 	}],
 });
@@ -98,8 +98,8 @@ testRule({
 			}
 		`,
 		warnings: [
-			{ message: messages.expected('@media screen', 'color') },
-			{ message: messages.expected('.button', '.card') },
+			{ message: messages.expectedBefore('@media screen', 'color') },
+			{ message: messages.expectedBefore('.button', '.card') },
 		],
 	}],
 });
