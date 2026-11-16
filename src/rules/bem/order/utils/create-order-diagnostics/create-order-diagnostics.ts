@@ -1,9 +1,10 @@
-import { assert } from '@morev/utils';
+import { assert, quote } from '@morev/utils';
 import { getOrderHeader } from '../get-order-header/get-order-header';
 import type { OrderItem } from '../../order.internal-types';
 import type { createOrderMoves } from '../create-order-moves/create-order-moves';
 
 const MAX_LABEL_LENGTH = 80;
+const MAX_GROUP_LABELS = 2;
 
 /**
  * Finds labels requiring extra detail to distinguish authored nodes in diagnostics.
@@ -86,11 +87,28 @@ export const createOrderDiagnostics = (
 		// Without a crossed retained node, this run could also have been retained.
 		assert(anchor !== undefined && (isAfter || sourceIndexes.get(anchor)! < sourceIndexes.get(item)!));
 
+		const isGroup = move.items.length > 1;
+		let header = labels.get(item)!;
+		let message: 'expected' | 'expectedAfter' | 'expectedGroup' | 'expectedGroupAfter' =
+			isAfter ? 'expectedAfter' : 'expected';
+		if (isGroup) {
+			let group = 'nodes';
+			if (move.items.every(({ node }) => node.type === 'decl')) group = 'declarations';
+			else if (move.items.every(({ node }) => node.type === 'rule')) group = 'rules';
+			else if (move.items.every(({ node }) => node.type === 'atrule')) group = 'at-rules';
+
+			const members = move.items.slice(0, MAX_GROUP_LABELS).map((member) => quote(labels.get(member)!, '"'));
+			const remaining = move.items.length - members.length;
+			const suffix = remaining > 0 ? ` and ${remaining} more ${group}` : '';
+			header = `${group} ${members.join(', ')}${suffix}`;
+			message = isAfter ? 'expectedGroupAfter' : 'expectedGroup';
+		}
+
 		return {
 			node: item.node,
-			header: labels.get(item)!,
+			header,
 			anchor: labels.get(anchor)!,
-			message: isAfter ? 'expectedAfter' as const : 'expected' as const,
+			message,
 			endIndex: headers.get(item)!.length,
 		};
 	});
