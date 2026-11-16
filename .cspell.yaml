@@ -28,6 +28,7 @@ words:
   - yalc
   - oxlint
   - ValiError
+  - Thirouin
 
 useGitignore: true
 allowCompoundWords: true

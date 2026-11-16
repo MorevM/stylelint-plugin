@@ -1,4 +1,4 @@
-import { quote } from '@morev/utils';
+import { isNull, quote } from '@morev/utils';
 import * as v from 'valibot';
 import type { PostcssResult } from 'stylelint';
 import type { GenericSchema } from 'valibot';
@@ -13,7 +13,9 @@ const createErrorMessage = (
 		: `Invalid secondary option {path} for rule ${quote(ruleName)}`;
 
 	const messages = issues.map((issue) => {
-		const message = `expected ${quote(issue.expected, '`')} but got ${quote(issue.received, '`')}`;
+		const message = isNull(issue.expected)
+			? issue.message
+			: `expected ${quote(issue.expected, '`')} but got ${quote(issue.received, '`')}`;
 		const path = issue.path?.map((pathPart: any) => pathPart.key).join('.');
 		const formattedBase = base.replace('{path}', () => path ? quote(path, "'") : ' ');
 
