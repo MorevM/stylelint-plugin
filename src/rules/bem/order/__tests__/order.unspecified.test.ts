@@ -1,0 +1,145 @@
+import rule from '../order';
+
+const { ruleName, messages } = rule;
+const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
+
+testRule({
+	description: 'Ignored declaration slots',
+	config: [true, {
+		within: {
+			declarations: {
+				order: ['display', 'position', 'color', 'width', 'height'],
+				unspecified: 'ignore',
+			},
+		},
+	}],
+	reject: [{
+		description: 'Keeps an unspecified property in place without reporting it as a cheaper physical move',
+		code: `
+			.card {
+				width: 1px;
+				height: 1px;
+				z-index: 1;
+				display: grid;
+				position: relative;
+				color: red;
+			}
+		`,
+		fixed: `
+			.card {
+				display: grid;
+				position: relative;
+				z-index: 1;
+				color: red;
+				width: 1px;
+				height: 1px;
+			}
+		`,
+		warnings: [{ message: messages.expectedGroupAfter('declarations "width", "height"', 'color') }],
+	}],
+});
+
+testRule({
+	description: 'Ignored semantic families',
+	config: [true, {
+		within: {
+			elements: { order: ['.card__title', '.card__icon'], unspecified: 'ignore' },
+		},
+	}],
+	reject: [{
+		description: 'Retains an ignored family slot while still checking its states',
+		code: `
+			.card__icon {}
+			.card__unknown:active {}
+			.card__title {}
+			.card__unknown:hover {}
+		`,
+		fixed: `
+			.card__title {}
+			.card__unknown:hover {}
+			.card__unknown:active {}
+			.card__icon {}
+		`,
+		warnings: [
+			{ message: messages.expected('.card__title', '.card__icon') },
+			{ message: messages.expected('.card__unknown:hover', '.card__unknown:active') },
+		],
+	}],
+});
+
+testRule({
+	description: 'Independent root policy',
+	config: [true, {
+		order: ['declarations', 'pseudo-classes'],
+		unspecified: 'top',
+		root: {
+			order: [{ type: 'rule', selector: '.button' }, { type: 'rule', selector: '.card' }],
+			unspecified: 'ignore',
+		},
+	}],
+	reject: [{
+		description: 'Overrides the document policy while preserving the nested policy',
+		code: `
+			.card {
+				color: red;
+				@media screen {}
+				&:hover {}
+			}
+			@supports (display: grid) {}
+			.button {}
+		`,
+		fixed: `
+			.button {}
+			@supports (display: grid) {}
+			.card {
+				@media screen {}
+				color: red;
+				&:hover {}
+			}
+		`,
+		warnings: [
+			{ message: messages.expected('@media screen', 'color') },
+			{ message: messages.expected('.button', '.card') },
+		],
+	}],
+});
+
+testRule({
+	description: 'Unspecified priorities and transformed sequences',
+	config: [true, {
+		within: { declarations: { order: () => ['color'], unspecified: 'top' } },
+	}],
+	reject: [{
+		description: 'Places unspecified properties first in their original order',
+		code: `
+			.card {
+				color: red;
+				display: grid;
+				width: 1px;
+			}
+		`,
+		fixed: `
+			.card {
+				display: grid;
+				width: 1px;
+				color: red;
+			}
+		`,
+		warnings: [{ message: messages.expectedAfter('color', 'width') }],
+	}],
+});
+
+testRule({
+	description: 'Explicit remainder priority',
+	config: [true, {
+		root: { order: ['rules', '*'], unspecified: 'top' },
+		within: { declarations: { order: ['color', '*'], unspecified: 'ignore' } },
+	}],
+	accept: [{
+		description: 'Treats an explicit remainder as matched before applying unspecified policies',
+		code: `
+			.card { color: red; display: grid; }
+			@media screen {}
+		`,
+	}],
+});
