@@ -129,7 +129,7 @@ for (const directive of ['@content', '@contents']) {
 			`,
 			warnings: [
 				{ message: messages.expectedBefore('content', '&:hover') },
-				{ message: messages.expectedBefore('display', '@supports (display:grid)') },
+				{ message: messages.expectedBefore('display', '@supports (display: grid)') },
 			],
 		}],
 	});

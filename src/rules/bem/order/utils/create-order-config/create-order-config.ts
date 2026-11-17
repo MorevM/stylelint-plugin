@@ -145,9 +145,11 @@ const isWithinMatch = (matcher: WithinSequence[number], item: OrderItem, family?
 	if (isRegExp(matcher)) {
 		if (item.node.type === 'decl') return matchesProperty(matcher, item.node.prop);
 
-		const header = item.node.type === 'rule'
-			? selectorParser().processSync(item.node.selector, { lossless: false })
-			: getOrderHeader(item.node);
+		const header = item.node.type === 'atrule'
+			? `@${item.node.name} ${normalizeParameters(item.node.params)}`.trimEnd()
+			: item.node.type === 'rule'
+				? selectorParser().processSync(item.node.selector, { lossless: false })
+				: getOrderHeader(item.node);
 
 		return matchesValue(matcher, header);
 	}

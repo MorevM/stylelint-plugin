@@ -134,3 +134,97 @@ testRule({
 		},
 	],
 });
+
+testRule({
+	description: 'Authored at-rule headers',
+	config: [true, {
+		within: { 'at-rules': [/^@media \(min-width:10px\)$/u, '@media(min-width:20px)'] },
+	}],
+	reject: [
+		{
+			description: 'Preserves horizontal spacing and comments while matching normalized headers',
+			code: `
+				@media /* large */ (min-width: 20px) {}
+				@media\t /* small */ (min-width:/* size */  10px) /* query */ {}
+			`,
+			fixed: `
+				@media\t /* small */ (min-width:/* size */  10px) /* query */ {}
+				@media /* large */ (min-width: 20px) {}
+			`,
+			warnings: [{
+				line: 2, column: 1, endLine: 2, endColumn: 61,
+				message: messages.expectedBefore(
+					'@media\t /* small */ (min-width:/* size */  10px) /* query */',
+					'@media /* large */ (min-width: 20px)',
+				),
+			}],
+		},
+		{
+			description: 'Keeps multiline headers and highlights their original source range',
+			code: `
+				@media (min-width: 20px) {}
+				@media
+				  (min-width: 10px) {}
+			`,
+			fixed: `
+				@media
+				  (min-width: 10px) {}
+				@media (min-width: 20px) {}
+			`,
+			warnings: [{
+				line: 2, column: 1, endLine: 3, endColumn: 20,
+				message: messages.expectedBefore('@media\n  (min-width: 10px)', '@media (min-width: 20px)'),
+			}],
+		},
+	],
+});
+
+testRule({
+	description: 'Sass variables in media diagnostics',
+	config: [true, {
+		within: { 'at-rules': ['@media #{$tablet}', '@media screen'] },
+	}],
+	reject: [{
+		description: 'Shows the authored interpolated variable without expanding its media query',
+		code: `
+			$tablet: '(min-width: 40rem)';
+			@media screen {}
+			@media #{$tablet} {}
+		`,
+		fixed: `
+			$tablet: '(min-width: 40rem)';
+			@media #{$tablet} {}
+			@media screen {}
+		`,
+		warnings: [{
+			line: 3, column: 1, endLine: 3, endColumn: 18,
+			message: messages.expectedBefore('@media #{$tablet}', '@media screen'),
+		}],
+	}],
+});
+
+testRule({
+	description: 'Authored repeated declaration labels',
+	config: [true],
+	reject: [{
+		description: 'Retains declaration spacing and importance spelling while highlighting only the property',
+		code: `
+			.card {
+				color: red;
+				& {}
+				color:\t  green  !IMPORTANT;
+			}
+		`,
+		fixed: `
+			.card {
+				color: red;
+				color:\t  green  !IMPORTANT;
+				& {}
+			}
+		`,
+		warnings: [{
+			line: 4, column: 2, endLine: 4, endColumn: 7,
+			message: messages.expectedBefore('color:\t  green  !IMPORTANT', '&'),
+		}],
+	}],
+});

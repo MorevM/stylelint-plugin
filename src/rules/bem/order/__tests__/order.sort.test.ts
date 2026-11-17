@@ -104,8 +104,12 @@ testRule({
 			@container sidebar (min-width: 80rem) {}
 		`,
 		warnings: [
-			{ message: messages.expectedBefore('@media (min-width:20rem)', '@media (min-width:60rem)') },
-			{ message: messages.expectedAfter('@container sidebar (min-width:80rem)', '@container sidebar (min-width:40rem)') },
+			{ message: messages.expectedBefore('@media (min-width: 20rem)', '@media (min-width: 60rem)') },
+			{
+				message: messages.expectedAfter(
+					'@container sidebar (min-width: 80rem)', '@container sidebar (min-width: 40rem)',
+				),
+			},
 		],
 	}],
 });
@@ -134,7 +138,7 @@ testRule({
 			@media (min-width: 60rem) {}
 		`,
 		warnings: [{
-			message: messages.expectedBefore('@container sidebar (min-width:40rem)', '@media (min-width:60rem)'),
+			message: messages.expectedBefore('@container sidebar (min-width: 40rem)', '@media (min-width: 60rem)'),
 		}],
 	}],
 });

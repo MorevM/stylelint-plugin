@@ -46,11 +46,10 @@ export const createOrderDiagnostics = (
 		const header = headers.get(item)!;
 		const { node } = item;
 		const full = item.label ?? (node.type === 'decl' && duplicateHeaders.has(header)
-			? `${header}: ${node.value}${node.important ? ' !important' : ''}`
+			? node.toString()
 			: header);
-		const compact = full.replaceAll(/\s+/gu, ' ').trim();
 
-		return [item, compact.length > MAX_LABEL_LENGTH ? `${compact.slice(0, MAX_LABEL_LENGTH - 1)}…` : compact];
+		return [item, full.length > MAX_LABEL_LENGTH ? `${full.slice(0, MAX_LABEL_LENGTH - 1)}…` : full];
 	}));
 
 	const duplicateLabels = findDuplicateLabels(labels.values());
