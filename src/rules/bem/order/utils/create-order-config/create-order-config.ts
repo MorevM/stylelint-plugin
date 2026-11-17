@@ -10,7 +10,7 @@ import type { Family, OrderItem, OrderRank, PreparedOrderSorter, PreparedOrderSp
 import type {
 	AtRuleMatcher, OrderCategory, OrderGroupSpacing, OrderMatcher, OrderSequence,
 	PropertiesGroup, RuleMatcher, SecondaryOption,
-	UnspecifiedOrder, WithinOrderOptions, WithinSequence,
+	UnspecifiedOrder, WithinMatcher, WithinOrder, WithinOrderOptions, WithinSequence,
 } from '../../order.types';
 
 /**
@@ -144,12 +144,11 @@ const isWithinMatch = (matcher: WithinSequence[number], item: OrderItem, family?
 
 	if (isRegExp(matcher)) {
 		if (item.node.type === 'decl') return matchesProperty(matcher, item.node.prop);
+		if (item.node.type === 'atrule') return false;
 
-		const header = item.node.type === 'atrule'
-			? `@${item.node.name} ${normalizeParameters(item.node.params)}`.trimEnd()
-			: item.node.type === 'rule'
-				? selectorParser().processSync(item.node.selector, { lossless: false })
-				: getOrderHeader(item.node);
+		const header = item.node.type === 'rule'
+			? selectorParser().processSync(item.node.selector, { lossless: false })
+			: getOrderHeader(item.node);
 
 		return matchesValue(matcher, header);
 	}
@@ -160,18 +159,35 @@ const isWithinMatch = (matcher: WithinSequence[number], item: OrderItem, family?
 	if (family?.key === matcher || item.selector?.tokens.includes(matcher)) return true;
 
 	const { node } = item;
-	if (node.type === 'decl') return matchesProperty(matcher, node.prop);
-	if (node.type !== 'atrule' || !matcher.startsWith('@')) return false;
 
-	const shorthand = /^@([\w-]+)(.*)$/u.exec(matcher);
-	if (shorthand?.[1] !== node.name) return false;
+	return node.type === 'decl' && matchesProperty(matcher, node.prop);
+};
 
-	const suffix = shorthand[2].trim();
-	if (!suffix) return true;
-	if (suffix === ';') return !node.nodes;
-	if (suffix === '{}') return Boolean(node.nodes);
+/**
+ * Resolves a category override using defaults compatible with its matcher contract.
+ *
+ * @param   override   Optional sequence, transformer or expanded category settings.
+ * @param   defaults   Built-in matchers accepted by the same category.
+ *
+ * @returns            Prepared matchers and policies, or undefined for omitted categories.
+ */
+const prepareWithinOrder = <Matcher extends WithinMatcher>(
+	override: WithinOrder<Matcher> | undefined,
+	defaults: WithinSequence<Matcher>,
+) => {
+	if (override === undefined) return undefined;
 
-	return normalizeParameters(suffix) === normalizeParameters(node.params);
+	const settings: WithinOrderOptions<Matcher> = isArray(override) || isFunction(override)
+		? { order: override }
+		: override as WithinOrderOptions<Matcher>;
+	const sequence = settings.order ?? defaults;
+	const order = isFunction(sequence) ? sequence(defaults) : sequence;
+
+	return {
+		order, settings,
+		unspecified: settings.unspecified ?? 'bottom' as const,
+		sort: settings.sort === undefined ? undefined : createOrderSorter(settings.sort),
+	};
 };
 
 /**
@@ -275,26 +291,20 @@ const createOrderConfig = (options: SecondaryOption) => {
 
 	const within = new Map<OrderCategory, {
 		order: WithinSequence; unspecified: UnspecifiedOrder; sort?: PreparedOrderSorter;
-		settings: WithinOrderOptions;
+		settings: Omit<WithinOrderOptions, 'order'>;
 	}>();
-	for (const [category, override] of tsObject.entries(options.within ?? {})) {
-		if (override === undefined) continue;
+	const overrides = options.within ?? {};
+	for (const category of tsObject.keys(overrides)) {
+		const prepared = category === 'at-rules'
+			? prepareWithinOrder(overrides[category], REMAINDER)
+			: prepareWithinOrder(overrides[category], DEFAULT_WITHIN[category] ?? REMAINDER);
+		if (!prepared) continue;
 
-		const defaults = DEFAULT_WITHIN[category] ?? REMAINDER;
-		const settings: WithinOrderOptions = isArray(override) || isFunction(override)
-			? { order: override }
-			: override as WithinOrderOptions;
-		const sequence = settings.order ?? defaults;
-		const order = isFunction(sequence) ? sequence(defaults) : sequence;
-		if (category !== 'declarations' && order.flat().some((entry) => !isString(entry) && 'properties' in entry)) {
+		if (category !== 'declarations' && prepared.order.flat().some((entry) => !isString(entry) && 'properties' in entry)) {
 			throw new Error('Property groups are only supported within declarations');
 		}
 
-		within.set(category, {
-			order, settings,
-			unspecified: settings.unspecified ?? 'bottom',
-			sort: settings.sort === undefined ? undefined : createOrderSorter(settings.sort),
-		});
+		within.set(category, prepared);
 	}
 
 	/**

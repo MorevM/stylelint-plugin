@@ -318,7 +318,7 @@ export type GroupMatcher = OrderCategory | AtRuleMatcher | RuleMatcher | Propert
 
 /**
  * Outer ordering entry: a built-in category, named group, remainder, or explicit custom matcher.
- * Arbitrary strings and standalone regular expressions are reserved for `within`.
+ * Arbitrary strings and standalone regular expressions belong in non-at-rule `within` categories.
  * Group references require a non-empty name, checked at runtime.
  */
 export type OrderMatcher = GroupMatcher | `group:${string}` | '*';
@@ -392,15 +392,20 @@ export type GroupOrder = GroupSequence | PropertiesGroup | OrderGroupSpacing & {
 };
 
 /**
- * Category-local matcher, including compact literal strings and normalized-header regular expressions.
- * Explicit custom matcher objects are also supported; group references are rejected at runtime.
+ * Category-local matcher for property names, selector tokens, patterns and structured constraints.
+ * At-rule categories require structured matchers; group references are rejected at runtime.
  */
 export type WithinMatcher = string | RegExp | AtRuleMatcher | RuleMatcher | SelectorSetMatcher | PropertiesGroup;
 
 /**
+ * At-rule constraints use explicit fields, with a wildcard for the remaining at-rules.
+ */
+export type AtRuleWithinMatcher = AtRuleMatcher | '*';
+
+/**
  * Category-local sequence whose nested arrays assign equal rank.
  */
-export type WithinSequence = ReadonlyArray<WithinMatcher | readonly WithinMatcher[]>;
+export type WithinSequence<Matcher extends WithinMatcher = WithinMatcher> = ReadonlyArray<Matcher | readonly Matcher[]>;
 
 /**
  * Priorities for authored selector branches, excluding declaration and at-rule matchers.
@@ -417,16 +422,18 @@ export type SelectorListSequence = ReadonlyArray<
  *
  * @returns            Replacement order for the same category.
  */
-export type OrderTransformer = (defaults: WithinSequence) => WithinSequence;
+export type OrderTransformer<Matcher extends WithinMatcher = WithinMatcher> = (
+	defaults: WithinSequence<Matcher>,
+) => WithinSequence<Matcher>;
 
 /**
  * Category ordering with an explicit policy for unmatched members.
  */
-export type WithinOrderOptions = {
+export type WithinOrderOptions<Matcher extends WithinMatcher = WithinMatcher> = {
 	/**
 	 * Replaces the category defaults, optionally deriving a sequence from them.
 	 */
-	order?: WithinSequence | OrderTransformer;
+	order?: WithinSequence<Matcher> | OrderTransformer<Matcher>;
 
 	/**
 	 * Positions unmatched members or preserves their category-local slots.
@@ -477,7 +484,8 @@ export type SelectorListOrder = {
 /**
  * Replaces a category's defaults directly or derives a replacement from them.
  */
-export type WithinOrder = WithinSequence | OrderTransformer | WithinOrderOptions;
+export type WithinOrder<Matcher extends WithinMatcher = WithinMatcher> =
+	WithinSequence<Matcher> | OrderTransformer<Matcher> | WithinOrderOptions<Matcher>;
 
 /**
  * Enables semantic ordering and autofix within authored containers.
@@ -524,10 +532,14 @@ export type SecondaryOption = {
 
 	/**
 	 * Overrides inner category orders without changing their position or membership.
-	 * Accepts literal strings and regular expressions in addition to explicit matcher objects.
+	 * At-rules use explicit matcher objects; other categories also accept literal strings and patterns.
 	 * Omitted categories use their built-in defaults.
 	 */
-	within?: Readonly<Partial<Record<OrderCategory, WithinOrder>>>;
+	within?: {
+		readonly [Category in OrderCategory]?: WithinOrder<
+			Category extends 'at-rules' ? AtRuleWithinMatcher : WithinMatcher
+		>;
+	};
 
 	/**
 	 * Non-recursive sequences referenced by `group:name` from `order` or `root.order`.

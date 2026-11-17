@@ -138,7 +138,10 @@ testRule({
 testRule({
 	description: 'Authored at-rule headers',
 	config: [true, {
-		within: { 'at-rules': [/^@media \(min-width:10px\)$/u, '@media(min-width:20px)'] },
+		within: { 'at-rules': [
+			{ type: 'at-rule', name: 'media', parameter: /^\(min-width:10px\)$/u },
+			{ type: 'at-rule', name: 'media', parameter: '(min-width:20px)' },
+		] },
 	}],
 	reject: [
 		{
@@ -182,7 +185,10 @@ testRule({
 testRule({
 	description: 'Sass variables in media diagnostics',
 	config: [true, {
-		within: { 'at-rules': ['@media #{$tablet}', '@media screen'] },
+		within: { 'at-rules': [
+			{ type: 'at-rule', name: 'media', parameter: '#{$tablet}' },
+			{ type: 'at-rule', name: 'media', parameter: 'screen' },
+		] },
 	}],
 	reject: [{
 		description: 'Shows the authored interpolated variable without expanding its media query',

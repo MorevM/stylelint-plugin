@@ -44,4 +44,4 @@ export const DEFAULT_WITHIN: Readonly<Record<string, WithinSequence>> = {
 	'pseudo-elements': Object.freeze(['::before', '::after', '*']),
 };
 
-export const REMAINDER: WithinSequence = Object.freeze(['*']);
+export const REMAINDER = Object.freeze(['*'] as const);

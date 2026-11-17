@@ -233,7 +233,12 @@ testRule({
 	description: 'Protected stylesheet preamble',
 	config: [true, {
 		root: { order: ['rules', 'at-rules'] },
-		within: { 'at-rules': ['@namespace', '@charset', '@layer', '@import', '*'] },
+		within: { 'at-rules': [
+			{ type: 'at-rule', name: 'namespace' },
+			{ type: 'at-rule', name: 'charset' },
+			{ type: 'at-rule', name: 'layer' },
+			{ type: 'at-rule', name: 'import' }, '*',
+		] },
 	}],
 	reject: [{
 		description: 'Preserves charset, imports, layer statements, namespaces, and their comments during autofix',

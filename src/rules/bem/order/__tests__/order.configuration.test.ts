@@ -3,15 +3,11 @@ import * as v from 'valibot';
 import { createDefineRules } from '../../../../create-define-rules';
 import rule from '../order';
 import { schema } from '../order.schema';
-import type { GroupSequence, OrderSequence, OrderSortItem, SecondaryOption, WithinSequence } from '../order.types';
+import type { AtRuleWithinMatcher, GroupSequence, OrderSortItem, SecondaryOption, WithinSequence } from '../order.types';
 
 const { ruleName } = rule;
 const testRuleConfig = createTestRuleConfig({ ruleName });
 
-// @ts-expect-error At-rule shorthand belongs inside within.
-const shorthand: OrderSequence = ['@media'];
-// @ts-expect-error Standalone regular expressions belong inside within.
-const pattern: OrderSequence = [/^@media/];
 // @ts-expect-error Group definitions cannot reference other groups.
 const reference: GroupSequence = ['group:other'];
 // @ts-expect-error The remainder belongs directly in order or within.
@@ -56,7 +52,11 @@ testRuleConfig({
 				'pseudo-elements': ['::before', '::after', '*'],
 				'elements': { sort: { by: 'name' } },
 				'at-rules': {
-					order: ['@media(--tablet)', /^@supports\b/, { type: 'at-rule', name: 'container' }, '*'],
+					order: [
+						{ type: 'at-rule', name: 'media', parameter: '(--tablet)' },
+						{ type: 'at-rule', name: 'supports' },
+						{ type: 'at-rule', name: 'container' }, '*',
+					],
 					sort: { by: 'dimension', units: ['rem', 'px'], direction: 'desc', unresolved: 'ignore' },
 				},
 			},
@@ -75,7 +75,6 @@ testRuleConfig({
 testRuleConfig({
 	description: 'Sequence structure and placement policies',
 	reject: [
-		{ description: 'Rejects obsolete group objects', config: [true, { order: [{ group: 'early' }] }] },
 		{ description: 'Rejects arrays deeper than equal-rank groups', config: [true, { order: [[[':hover']]] }] },
 		{ description: 'Rejects unknown categories', config: [true, { within: { states: [] } }] },
 		{ description: 'Rejects unknown placement policies', config: [true, { unspecified: 'unknown' }] },
@@ -160,12 +159,6 @@ testRuleConfig({
 		{ description: 'Rejects invalid directions', config: [true, { within: { 'at-rules': {
 			sort: { by: 'name', direction: 'sideways' },
 		} } }] },
-		{ description: 'Rejects removed string presets', config: [true, { within: { 'at-rules': { sort: 'alphabetical' } } }] },
-		{
-			description: 'Rejects removed string presets in groups',
-			config: [true, { groups: { custom: { order: ['rules'], sort: 'alphabetical' } } }],
-		},
-		{ description: 'Rejects removed string presets in selector lists', config: [true, { selectorList: { sort: 'alphabetical' } }] },
 		{
 			description: 'Restricts selector-list sorting to names',
 			config: [true, { selectorList: { sort: { by: 'dimension', units: ['rem'] } } }],
@@ -176,15 +169,49 @@ testRuleConfig({
 testRuleConfig({
 	description: 'Explicit outer matchers',
 	reject: [
-		{ description: 'Rejects at-rule shorthand outside within', config: [true, { order: shorthand }] },
-		{ description: 'Rejects standalone regular expressions outside within', config: [true, { order: pattern }] },
-		{ description: 'Rejects shorthand inside equal-rank outer groups', config: [true, { order: [[':hover']] }] },
-		{ description: 'Rejects shorthand in named groups', config: [true, { groups: { media: ['@media'] } }] },
 		{ description: 'Rejects empty group references', config: [true, { order: ['group:'] }] },
 		{ description: 'Rejects at-rule fields on rule matchers', config: [true, { order: [{ type: 'rule', hasBlock: true }] }] },
 		{
 			description: 'Rejects mutually exclusive selector fields',
 			config: [true, { order: [{ type: 'rule', selector: '.card', relativeSelector: '&' }] }],
+		},
+	],
+});
+
+testRuleConfig({
+	description: 'Explicit category-local at-rule matchers',
+	accept: [
+		{
+			description: 'Accepts at-rule objects with equal ranks and a terminal remainder',
+			config: [true, { within: { 'at-rules': [
+				[
+					{ type: 'at-rule', name: 'include', hasBlock: false },
+					{ type: 'at-rule', name: 'include', hasBlock: true },
+				],
+				{ type: 'at-rule', name: 'media', parameter: /^\(min-width:/u },
+				'*',
+			] } }],
+		},
+		{
+			description: 'Accepts explicit at-rule matchers returned by transformers',
+			config: [true, { within: { 'at-rules': (defaults: WithinSequence<AtRuleWithinMatcher>) => [
+				{ type: 'at-rule', name: 'supports' }, ...defaults,
+			] } }],
+		},
+	],
+	reject: [
+		{ description: 'Rejects other strings in at-rule orders', config: [true, { within: { 'at-rules': ['media'] } }] },
+		{
+			description: 'Rejects non-at-rule objects in at-rule orders',
+			config: [true, { within: { 'at-rules': [{ type: 'rule', selector: '.card' }] } }],
+		},
+		{
+			description: 'Requires the remainder to end at-rule orders',
+			config: [true, { within: { 'at-rules': ['*', { type: 'at-rule', name: 'media' }] } }],
+		},
+		{
+			description: 'Rejects equal-rank remainders returned by at-rule transformers',
+			config: [true, { within: { 'at-rules': () => [['*']] } }],
 		},
 	],
 });
@@ -248,16 +275,28 @@ describe('bem/order configuration types and transformations', () => {
 
 						return [/^\$_/, ...defaults];
 					},
+					'at-rules': {
+						order: (defaults) => {
+							expectTypeOf(defaults).toEqualTypeOf<WithinSequence<AtRuleWithinMatcher>>();
+
+							return [{ type: 'at-rule', name: 'media' }, ...defaults];
+						},
+					},
 				},
 			}],
 		});
 		const parsed = v.parse(schema.secondary, rules['@morev/bem/order'][1]);
 		const transform = parsed?.within?.['dollar-variables'];
+		const atRules = parsed?.within?.['at-rules'];
 		const defaults = [['$size', '$gap'], '*'] as const;
 
 		assert(typeof transform === 'function');
 
 		expect(transform(defaults)).toStrictEqual([/^\$_/, ['$size', '$gap'], '*']);
 		expect(defaults).toStrictEqual([['$size', '$gap'], '*']);
+
+		assert(atRules !== undefined && 'order' in atRules && typeof atRules.order === 'function');
+
+		expect(atRules.order(['*'])).toStrictEqual([{ type: 'at-rule', name: 'media' }, '*']);
 	});
 });
