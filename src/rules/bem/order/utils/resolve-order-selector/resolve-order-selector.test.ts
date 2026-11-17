@@ -67,6 +67,42 @@ describe(resolveOrderSelector, () => {
 		expect(rule.selector).toBe('.card:hover.foo, .card.foo:focus, .card.foo:hover');
 	});
 
+	it('Keeps class qualifiers on same-block ancestors inside the internal context', () => {
+		const root = scss.parse(`
+			.card--compact.is-active .card__title {}
+			.is-active.card--compact .card__title {}
+			.theme.card--compact .card__title {}
+			.card--compact:is(.is-active) .card__title {}
+		`);
+		const categories = (root.nodes as Rule[]).map((node) => {
+			return resolveOrderSelector(node, DEFAULT_SEPARATORS, new Set())?.path.at(-1)?.category;
+		});
+
+		expect(categories).toStrictEqual([
+			'context:internal',
+			'context:internal',
+			'context:internal',
+			'context:internal',
+		]);
+	});
+
+	it('Keeps the context external when any ancestor lacks an entity from the owning block', () => {
+		const root = scss.parse(`
+			.theme .card--compact.is-active .card__title {}
+			.card--compact.is-active .theme .card__title {}
+			.theme .card__title {}
+		`);
+		const categories = (root.nodes as Rule[]).map((node) => {
+			return resolveOrderSelector(node, DEFAULT_SEPARATORS, new Set())?.path.at(-1)?.category;
+		});
+
+		expect(categories).toStrictEqual([
+			'context:external',
+			'context:external',
+			'context:external',
+		]);
+	});
+
 	it('Preserves pseudo-element boundaries in local branch keys', () => {
 		const root = scss.parse(`
 			.card:hover::before, .card::before:hover {}

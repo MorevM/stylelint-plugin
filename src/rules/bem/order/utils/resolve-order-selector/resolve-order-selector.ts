@@ -66,7 +66,9 @@ const resolveBranch = (
 			const entities = compound.flatMap((part) => (part.type === 'class'
 				? resolveMostSpecificBemEntities({ nodes: [part], separators })
 				: []));
-			return entities.length > 0 && entities.every((candidate) => candidate.block.value === owner.block.value);
+
+			// Additional classes qualify an ancestor already identified as part of the owning block.
+			return entities.some((candidate) => candidate.block.value === owner.block.value);
 		});
 		path.push({
 			name: canonicalSelector(context),
