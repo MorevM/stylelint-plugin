@@ -1,4 +1,4 @@
-import { arrayUnique, deepEqual, isEmpty } from '@morev/utils';
+import { arraysIntersection, arraysUnion, arrayUnique, deepEqual, isEmpty } from '@morev/utils';
 import parser from 'postcss-selector-parser';
 import { resolveMostSpecificBemEntities } from '#modules/bem';
 import { isPseudoElementNode } from '#modules/postcss';
@@ -110,7 +110,7 @@ const resolveBranch = (
 };
 
 /**
- * Keeps a compatible selector list atomic within a shared BEM family and local category.
+ * Keeps a selector list atomic within a shared BEM family, preferring categories common to every branch.
  *
  * @param   node           Authored selector rule.
  * @param   separators     Configured BEM separators.
@@ -132,11 +132,15 @@ export const resolveOrderSelector = (
 	// Ordinary selector lists stay atomic without requiring a shared BEM owner.
 	if (selectors.length && selectors.every((selector) => selector === undefined)) return undefined;
 	const first = selectors[0];
-	if (!first || selectors.some((selector) => !selector
-		|| !deepEqual(selector.path, first.path) || !deepEqual(selector.categories, first.categories))) return null;
+	if (!first || selectors.some((selector) => !selector || !deepEqual(selector.path, first.path))) return null;
+
+	const categorySets = selectors.map((selector) => selector!.categories);
+	const commonCategories = arraysIntersection(...categorySets);
+	const categories = isEmpty(commonCategories) ? arraysUnion(...categorySets) : commonCategories;
 
 	return {
 		...first,
+		categories: categories.toSorted(),
 		tokens: [],
 		isList: true,
 		localSelectors: arrayUnique(selectors.flatMap((selector) => selector!.localSelectors)),

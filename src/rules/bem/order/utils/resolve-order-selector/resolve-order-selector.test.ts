@@ -80,17 +80,46 @@ describe(resolveOrderSelector, () => {
 		});
 	});
 
+	it('Prefers categories shared by every branch despite additional qualifiers', () => {
+		const root = scss.parse(`
+			.card:hover.foo, .card:focus[data-active] {}
+		`);
+		const selector = resolveOrderSelector(root.first as Rule, DEFAULT_SEPARATORS, new Set(['.card']));
+
+		expect(selector).toMatchObject({
+			categories: ['pseudo-classes'],
+			isList: true,
+		});
+	});
+
+	it('Combines disjoint categories independently of branch order', () => {
+		const root = scss.parse(`
+			.card:hover, .card[data-active] {}
+			.card[data-active], .card:hover {}
+		`);
+		const [forward, reversed] = root.nodes as Rule[];
+
+		expect(resolveOrderSelector(forward, DEFAULT_SEPARATORS, new Set())).toMatchObject({
+			categories: ['pseudo-classes', 'qualifiers:attribute'],
+		});
+		expect(resolveOrderSelector(reversed, DEFAULT_SEPARATORS, new Set())).toMatchObject({
+			categories: ['pseudo-classes', 'qualifiers:attribute'],
+		});
+	});
+
 	it('Rejects incompatible families, ambiguous subjects and unresolved interpolation', () => {
 		const root = scss.parse(`
 			.card:hover, .button:hover {}
 			.card.button {}
 			#{$unknown} {}
+			.card:hover::before, .card:focus::after {}
 		`);
-		const [mixed, ambiguous, interpolated] = root.nodes as Rule[];
+		const [mixed, ambiguous, interpolated, pseudoElements] = root.nodes as Rule[];
 
 		expect(resolveOrderSelector(mixed, DEFAULT_SEPARATORS, new Set())).toBeNull();
 		expect(resolveOrderSelector(ambiguous, DEFAULT_SEPARATORS, new Set())).toBeNull();
 		expect(resolveOrderSelector(interpolated, DEFAULT_SEPARATORS, new Set())).toBeNull();
+		expect(resolveOrderSelector(pseudoElements, DEFAULT_SEPARATORS, new Set())).toBeNull();
 	});
 
 	it('Leaves ordinary selectors and their lists available to generic rule matchers', () => {

@@ -122,6 +122,7 @@ export type SelectorOrder = {
 
 	/**
 	 * Applicable local conditions, excluding the generic rule fallback.
+	 * Lists prefer categories common to every branch, or their union when none are shared.
 	 */
 	categories: OrderCategory[];
 

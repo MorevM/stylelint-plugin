@@ -143,3 +143,97 @@ testRule({
 		`,
 	}],
 });
+
+testRule({
+	description: 'Unspecified selector lists at the bottom',
+	config: [true, { within: { 'pseudo-classes': [':hover', ':active'] } }],
+	reject: [{
+		description: 'Moves hover across a list that does not match an individual state string',
+		code: `
+			.card {
+				&:active {}
+				&:hover, &:focus {} // 📌 The whole list is unspecified.
+				&:hover {} // 📌 First priority can cross the list.
+			}
+		`,
+		fixed: `
+			.card {
+				&:hover {} // 📌 First priority can cross the list.
+				&:active {}
+				&:hover, &:focus {} // 📌 The whole list is unspecified.
+			}
+		`,
+		warnings: [{ message: messages.expectedBefore('&:hover', '&:active') }],
+	}],
+});
+
+testRule({
+	description: 'Unspecified selector lists at the top',
+	config: [true, { within: { 'pseudo-classes': { order: [':hover', ':active'], unspecified: 'top' } } }],
+	reject: [{
+		description: 'Places an unmatched whole list before explicitly ranked states',
+		code: `
+			.card {
+				&:active {}
+				&:hover, &:focus {} // 📌 Unspecified lists belong before explicit priorities.
+				&:hover {}
+			}
+		`,
+		fixed: `
+			.card {
+				&:hover, &:focus {} // 📌 Unspecified lists belong before explicit priorities.
+				&:hover {}
+				&:active {}
+			}
+		`,
+		warnings: [{ message: messages.expectedAfter('&:active', '&:hover') }],
+	}],
+});
+
+testRule({
+	description: 'Ignored selector-list slots',
+	config: [true, { within: { 'pseudo-classes': { order: [':hover', ':active'], unspecified: 'ignore' } } }],
+	reject: [{
+		description: 'Keeps the list in its slot while sorting states across it',
+		code: `
+			.card {
+				&:active {}
+				&:hover, &:focus {} // 📌 This slot stays fixed without splitting the region.
+				&:hover {}
+			}
+		`,
+		fixed: `
+			.card {
+				&:hover {}
+				&:hover, &:focus {} // 📌 This slot stays fixed without splitting the region.
+				&:active {}
+			}
+		`,
+		warnings: [{ message: messages.expectedBefore('&:hover', '&:active') }],
+	}],
+});
+
+testRule({
+	description: 'Explicit selector-list remainder',
+	config: [true, {
+		within: { 'pseudo-classes': { order: [':hover', ':active', '*'], unspecified: 'ignore' } },
+	}],
+	reject: [{
+		description: 'Uses the wildcard priority for the whole list instead of ignoring it',
+		code: `
+			.card {
+				&:active {}
+				&:hover, &:focus {} // 📌 The wildcard explicitly assigns the last priority.
+				&:hover {}
+			}
+		`,
+		fixed: `
+			.card {
+				&:hover {}
+				&:active {}
+				&:hover, &:focus {} // 📌 The wildcard explicitly assigns the last priority.
+			}
+		`,
+		warnings: [{ message: messages.expectedBefore('&:hover', '&:active') }],
+	}],
+});

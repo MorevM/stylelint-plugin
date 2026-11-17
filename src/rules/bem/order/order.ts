@@ -49,7 +49,6 @@ export default createRule({
 	const hasContentInsertion = createContentInsertionChecker();
 	const knownTargets = new Set<string>();
 	const selectors = new Map<Rule, SelectorOrder | null | undefined>();
-	const owners = new Map<Rule, SelectorOrder | null | undefined>();
 
 	// Collect unambiguous BEM targets before resolving selectors with multiple possible owners.
 	root.walkRules((node) => {
@@ -63,13 +62,10 @@ export default createRule({
 		if (entities.length === 1) knownTargets.add(entities[0].bemSelector);
 	});
 
-	// Retain semantic owners even when an unsupported selector list prevents whole-rule movement.
+	// Lists with a shared owner participate as whole rules, including when their local priority is unspecified.
 	root.walkRules((node) => {
 		const selector = resolveOrderSelector(node, separators, knownTargets);
-		owners.set(node, selector);
-
-		const isSupported = !selector?.isList || config.supportsSelectorSet({ node, nodes: [node], selector });
-		selectors.set(node, isSupported ? selector : null);
+		selectors.set(node, selector);
 	});
 
 	const isDisabled = createDisabledRangeChecker(result.stylelint, '@morev/bem/order');
@@ -197,7 +193,7 @@ export default createRule({
 			}
 		}
 
-		const own = container.type === 'rule' ? owners.get(container) : parent;
+		const own = container.type === 'rule' ? selectors.get(container) : parent;
 		const items: OrderItem[] = [];
 		const leading: ChildNode[] = [];
 

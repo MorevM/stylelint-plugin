@@ -327,16 +327,28 @@ const createOrderConfig = (options: SecondaryOption) => {
 				return Boolean(selected);
 			})
 			: -1;
-		let category = categories[0];
-		if (rank === -1) {
-			rank = order.findIndex((entries) => {
-				selected = entries.find(({ matcher }) => {
-					if (!isString(matcher) || !categories.includes(matcher as OrderCategory)) return false;
-					category = matcher as OrderCategory;
-					return true;
+		const selectorList = !family && item.selector?.isList ? item.selector : undefined;
+		let category: OrderCategory = selectorList ? 'rules' : categories[0];
+		if (rank === -1 || selectorList) {
+			// Resolve list categories from configuration before considering the generic rule fallback.
+			const categoryGroups: OrderCategory[][] = selectorList ? [selectorList.categories, ['rules']] : [categories];
+			for (const eligible of categoryGroups) {
+				let categoryMatch: ExpandedMatcher | undefined;
+				const categoryRank = order.findIndex((entries) => {
+					categoryMatch = entries.find(({ matcher }) => {
+						return isString(matcher) && eligible.includes(matcher as OrderCategory);
+					});
+					return Boolean(categoryMatch);
 				});
-				return Boolean(selected);
-			});
+				if (categoryRank === -1) continue;
+
+				category = categoryMatch!.matcher as OrderCategory;
+				if (rank === -1) {
+					rank = categoryRank;
+					selected = categoryMatch;
+				}
+				break;
+			}
 		}
 
 		if (rank === -1) rank = order.findIndex((entries) => entries.some(({ matcher }) => matcher === '*'));
@@ -410,22 +422,6 @@ const createOrderConfig = (options: SecondaryOption) => {
 	};
 
 	/**
-	 * Checks whether the selected category explicitly accepts the unit's selector set.
-	 *
-	 * @param   item   Selector-list unit with resolved local selector branches.
-	 *
-	 * @returns        Whether a configured selector-set matcher accepts the branches, when an order exists.
-	 */
-	const supportsSelectorSet = (item: OrderItem) => {
-		const { category } = getRank(item);
-
-		return within.get(category)?.order.flat().some((matcher) => {
-			return !isString(matcher) && 'selectorSet' in matcher
-				&& matchesSelectorSet(matcher.selectorSet, item.selector!.localSelectors);
-		});
-	};
-
-	/**
 	 * Resolves category-local priorities with overrides before built-in defaults.
 	 *
 	 * @param   category   Category whose priority sequence is requested.
@@ -436,7 +432,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 		return within.get(category)?.order ?? DEFAULT_WITHIN[category] ?? REMAINDER;
 	};
 
-	return { getRank, supportsSelectorSet, getCategoryOrder };
+	return { getRank, getCategoryOrder };
 };
 
 export { createOrderConfig, isWithinMatch };
