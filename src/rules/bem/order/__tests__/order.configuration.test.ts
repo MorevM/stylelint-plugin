@@ -90,6 +90,12 @@ testRuleConfig({
 
 testRuleConfig({
 	description: 'Selector-set constraints',
+	accept: [{
+		description: 'Distinguishes repeated conditions and pseudo-element stages',
+		config: [true, { within: { 'pseudo-classes': [{ selectorSet: {
+			equals: ['.foo:hover', '.foo.foo:hover', ':hover::before', '::before:hover'],
+		} }] } }],
+	}],
 	reject: [
 		{
 			description: 'Requires mutually exclusive exact and inclusive requirements',
@@ -110,6 +116,18 @@ testRuleConfig({
 		{
 			description: 'Requires distinct selector branches',
 			config: [true, { within: { 'pseudo-classes': [{ selectorSet: { equals: [':hover', ':hover'] } }] } }],
+		},
+		{
+			description: 'Rejects equivalent branches in an exact set regardless of condition order',
+			config: [true, { within: { 'pseudo-classes': [{ selectorSet: {
+				equals: [':hover.foo', '.foo:hover'],
+			} }] } }],
+		},
+		{
+			description: 'Rejects equivalent required branches regardless of condition order',
+			config: [true, { within: { 'pseudo-classes': [{ selectorSet: {
+				includes: [':hover.foo', '.foo:hover'], size: 2,
+			} }] } }],
 		},
 	],
 });

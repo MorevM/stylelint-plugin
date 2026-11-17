@@ -6,6 +6,7 @@ describe(matchesSelectorSet, () => {
 
 		expect(matchesSelectorSet({ equals: [':hover', ':focus-visible'] }, selectors)).toBe(true);
 		expect(matchesSelectorSet({ equals: [':not( .disabled )'] }, [':not(.disabled)'])).toBe(true);
+		expect(matchesSelectorSet({ equals: [':hover.foo', '.foo:focus'] }, ['.foo:focus', '.foo:hover'])).toBe(true);
 	});
 
 	it('Rejects exact sets with a different size or different branches', () => {
@@ -13,6 +14,8 @@ describe(matchesSelectorSet, () => {
 
 		expect(matchesSelectorSet({ equals: [':hover'] }, selectors)).toBe(false);
 		expect(matchesSelectorSet({ equals: [':hover', ':active'] }, selectors)).toBe(false);
+		expect(matchesSelectorSet({ equals: ['.foo.foo:hover'] }, ['.foo:hover'])).toBe(false);
+		expect(matchesSelectorSet({ equals: [':hover::before'] }, ['::before:hover'])).toBe(false);
 	});
 
 	it('Allows extra branches in inclusive sets when the requested size matches', () => {
@@ -20,6 +23,7 @@ describe(matchesSelectorSet, () => {
 
 		expect(matchesSelectorSet({ includes: [':hover'] }, selectors)).toBe(true);
 		expect(matchesSelectorSet({ includes: [':hover'], size: 2 }, selectors)).toBe(true);
+		expect(matchesSelectorSet({ includes: [':hover.foo'], size: 2 }, ['.foo:hover', '.foo:focus'])).toBe(true);
 	});
 
 	it('Rejects inclusive sets when a required branch or the requested size does not match', () => {

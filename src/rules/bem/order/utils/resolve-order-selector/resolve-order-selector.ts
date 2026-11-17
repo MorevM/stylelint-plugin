@@ -3,6 +3,7 @@ import parser from 'postcss-selector-parser';
 import { resolveMostSpecificBemEntities } from '#modules/bem';
 import { isPseudoElementNode } from '#modules/postcss';
 import { resolveSelectorNodes, selectorNodesToString, splitSelectorCompounds } from '#modules/selectors';
+import { normalizeLocalSelector } from '../normalize-local-selector/normalize-local-selector';
 import type { Rule } from 'postcss';
 import type { Separators } from '#modules/shared';
 import type { Family, SelectorOrder } from '../../order.internal-types';
@@ -80,9 +81,8 @@ const resolveBranch = (
 		path.push({ name, key: name, category: 'pseudo-elements' });
 	}
 
-	const conditions = target.filter((part) => {
-		return !isPseudoElementNode(part) && !(part.type === 'class' && subjectClasses.has(part.value));
-	});
+	const localNodes = target.filter((part) => !(part.type === 'class' && subjectClasses.has(part.value)));
+	const conditions = localNodes.filter((part) => !isPseudoElementNode(part));
 	const categories: OrderCategory[] = [];
 	if (!conditions.length) categories.push('base');
 	if (conditions.some((part) => part.type === 'pseudo')) categories.push('pseudo-classes');
@@ -101,7 +101,9 @@ const resolveBranch = (
 		path,
 		categories,
 		tokens: conditions.flatMap((part) => (part.type === 'pseudo' ? [part.value, part.toString()] : [part.toString()])),
-		localSelectors: [canonicalSelector(conditions)],
+		localSelectors: [isEmpty(localNodes)
+			? ''
+			: normalizeLocalSelector(selectorNodesToString(localNodes)) ?? canonicalSelector(localNodes)],
 		isList: false,
 		relativeSelector: canonicalSelector(relative),
 	};

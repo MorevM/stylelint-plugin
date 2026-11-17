@@ -53,6 +53,33 @@ describe(resolveOrderSelector, () => {
 		expect(resolveOrderSelector(rule, DEFAULT_SEPARATORS, new Set(['.card', '.button']))).toBeNull();
 	});
 
+	it('Deduplicates equivalent local branches without rewriting authored selectors', () => {
+		const root = scss.parse(`
+			.card:hover.foo, .card.foo:focus, .card.foo:hover {}
+		`);
+		const rule = root.first as Rule;
+		const selector = resolveOrderSelector(rule, DEFAULT_SEPARATORS, new Set(['.card']));
+
+		expect(selector).toMatchObject({
+			localSelectors: ['.foo:hover', '.foo:focus'],
+			isList: true,
+		});
+		expect(rule.selector).toBe('.card:hover.foo, .card.foo:focus, .card.foo:hover');
+	});
+
+	it('Preserves pseudo-element boundaries in local branch keys', () => {
+		const root = scss.parse(`
+			.card:hover::before, .card::before:hover {}
+		`);
+		const selector = resolveOrderSelector(root.first as Rule, DEFAULT_SEPARATORS, new Set());
+
+		expect(selector).toMatchObject({
+			path: [{ key: '.card' }, { key: '::before', category: 'pseudo-elements' }],
+			localSelectors: [':hover::before', '::before:hover'],
+			isList: true,
+		});
+	});
+
 	it('Rejects incompatible families, ambiguous subjects and unresolved interpolation', () => {
 		const root = scss.parse(`
 			.card:hover, .button:hover {}

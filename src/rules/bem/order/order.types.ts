@@ -341,6 +341,7 @@ export type GroupSequence = ReadonlyArray<GroupMatcher | readonly GroupMatcher[]
 export type SelectorSetMatcher = {
 	/**
 	 * Matches complete branches rather than individual tokens in a compound selector.
+	 * Condition order is ignored within each compound; pseudo-elements retain their boundaries.
 	 */
 	selectorSet: {
 		/**

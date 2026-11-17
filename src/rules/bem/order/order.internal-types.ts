@@ -131,7 +131,7 @@ export type SelectorOrder = {
 	tokens: string[];
 
 	/**
-	 * Distinct normalized condition branches used by explicit selector-set matchers.
+	 * Distinct normalized local branches, retaining pseudo-element boundaries for selector-set matching.
 	 */
 	localSelectors: string[];
 
