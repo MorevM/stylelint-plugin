@@ -2,9 +2,37 @@ import scss from 'postcss-scss';
 import { DEFAULT_SEPARATORS } from '#modules/bem';
 import { resolveOrderSelector } from '../resolve-order-selector/resolve-order-selector';
 import { createOrderConfig } from './create-order-config';
-import type { Rule } from 'postcss';
+import type { AtRule, Rule } from 'postcss';
 
 describe(createOrderConfig, () => {
+	it('Normalizes literal parameter spacing in outer matchers and category orders', () => {
+		const root = scss.parse(`
+			@media (--tablet) {}
+			@media ( --tablet ) {}
+		`);
+		const config = createOrderConfig({
+			order: [{ type: 'at-rule', name: 'media', parameter: ' ( --tablet ) ' }, 'at-rules'],
+			within: { 'at-rules': [{ type: 'at-rule', name: 'media', parameter: '(  --tablet  )' }] },
+		});
+
+		for (const node of root.nodes) {
+			expect(config.getRank({ node, nodes: [node] })).toMatchObject({ outer: 0, inner: 0 });
+		}
+	});
+
+	it('Preserves significant whitespace inside quoted parameter values', () => {
+		const node = scss.parse('@include theme( "two  words", red );').first as AtRule;
+		const sameValue = createOrderConfig({
+			order: [{ type: 'at-rule', name: 'include', parameter: 'theme("two  words", red)' }, 'at-rules'],
+		});
+		const differentValue = createOrderConfig({
+			order: [{ type: 'at-rule', name: 'include', parameter: 'theme("two words",red)' }, 'at-rules'],
+		});
+
+		expect(sameValue.getRank({ node, nodes: [node] }).outer).toBe(0);
+		expect(differentValue.getRank({ node, nodes: [node] }).outer).toBe(1);
+	});
+
 	it('Prefers a common category over an earlier category belonging to only one branch', () => {
 		const node = scss.parse('.card:hover.foo, .card:focus[data-active] {}').first as Rule;
 		const selector = resolveOrderSelector(node, DEFAULT_SEPARATORS, new Set(['.card'])) ?? undefined;

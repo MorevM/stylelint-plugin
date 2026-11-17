@@ -1,4 +1,4 @@
-import { assert } from '@morev/utils';
+import { assert, isFunction, isUndefined } from '@morev/utils';
 import * as v from 'valibot';
 import { createDefineRules } from '../../../../create-define-rules';
 import rule from '../order';
@@ -290,12 +290,12 @@ describe('bem/order configuration types and transformations', () => {
 		const atRules = parsed?.within?.['at-rules'];
 		const defaults = [['$size', '$gap'], '*'] as const;
 
-		assert(typeof transform === 'function');
+		assert(isFunction(transform));
 
 		expect(transform(defaults)).toStrictEqual([/^\$_/, ['$size', '$gap'], '*']);
 		expect(defaults).toStrictEqual([['$size', '$gap'], '*']);
 
-		assert(atRules !== undefined && 'order' in atRules && typeof atRules.order === 'function');
+		assert(!isUndefined(atRules) && 'order' in atRules && isFunction(atRules.order));
 
 		expect(atRules.order(['*'])).toStrictEqual([{ type: 'at-rule', name: 'media' }, '*']);
 	});

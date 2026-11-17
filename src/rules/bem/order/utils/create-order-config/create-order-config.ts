@@ -1,4 +1,4 @@
-import { isArray, isFunction, isRegExp, isString, tsObject } from '@morev/utils';
+import { isArray, isFunction, isRegExp, isString, isUndefined, tsObject } from '@morev/utils';
 import selectorParser from 'postcss-selector-parser';
 import { DEFAULT_ORDER, DEFAULT_ROOT_ORDER, DEFAULT_WITHIN, REMAINDER } from '../../order.constants';
 import { createOrderSorter } from '../create-order-sorter/create-order-sorter';
@@ -52,8 +52,8 @@ type ExpandedMatcher = {
  * @returns           Whether the value satisfies the optional constraint.
  */
 const matchesValue = (pattern: string | RegExp | undefined, value: string | undefined) => {
-	if (pattern === undefined) return true;
-	if (value === undefined) return false;
+	if (isUndefined(pattern)) return true;
+	if (isUndefined(value)) return false;
 	if (isString(pattern)) return pattern === value;
 
 	// A shared /g or /y matcher must not carry state between nodes or lint runs.
@@ -108,9 +108,12 @@ const matchesObject = (matcher: AtRuleMatcher | RuleMatcher | PropertiesGroup, i
 	}
 
 	return node.type === 'atrule'
-		&& (matcher.name === undefined || matcher.name === node.name)
-		&& (matcher.hasBlock === undefined || matcher.hasBlock === Boolean(node.nodes))
-		&& matchesValue(matcher.parameter, normalizeParameters(node.params));
+		&& (isUndefined(matcher.name) || matcher.name === node.name)
+		&& (isUndefined(matcher.hasBlock) || matcher.hasBlock === Boolean(node.nodes))
+		&& matchesValue(
+			isString(matcher.parameter) ? normalizeParameters(matcher.parameter) : matcher.parameter,
+			normalizeParameters(node.params),
+		);
 };
 
 /**
@@ -175,7 +178,7 @@ const prepareWithinOrder = <Matcher extends WithinMatcher>(
 	override: WithinOrder<Matcher> | undefined,
 	defaults: WithinSequence<Matcher>,
 ) => {
-	if (override === undefined) return undefined;
+	if (isUndefined(override)) return undefined;
 
 	const settings: WithinOrderOptions<Matcher> = isArray(override) || isFunction(override)
 		? { order: override }
@@ -186,7 +189,7 @@ const prepareWithinOrder = <Matcher extends WithinMatcher>(
 	return {
 		order, settings,
 		unspecified: settings.unspecified ?? 'bottom' as const,
-		sort: settings.sort === undefined ? undefined : createOrderSorter(settings.sort),
+		sort: isUndefined(settings.sort) ? undefined : createOrderSorter(settings.sort),
 	};
 };
 
@@ -210,7 +213,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 	 * @returns         Shared prepared sorter, or undefined when the group has no sorter.
 	 */
 	const propertySorter = (group: PropertiesGroup) => {
-		if (group.sort === undefined) return undefined;
+		if (isUndefined(group.sort)) return undefined;
 		if (!sorters.has(group)) sorters.set(group, createOrderSorter(group.sort));
 		return sorters.get(group);
 	};
@@ -257,7 +260,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 		}
 
 		const settings = 'order' in definition ? definition : { order: definition };
-		const sort = settings.sort === undefined ? undefined : createOrderSorter(settings.sort);
+		const sort = isUndefined(settings.sort) ? undefined : createOrderSorter(settings.sort);
 
 		return settings.order.map((entry, index) => (isArray(entry) ? [...entry] : [entry]).map((member, memberIndex) => {
 			const memberScope = `groups.${group}.order.${index}.${memberIndex}`;
@@ -298,7 +301,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 		const prepared = category === 'at-rules'
 			? prepareWithinOrder(overrides[category], REMAINDER)
 			: prepareWithinOrder(overrides[category], DEFAULT_WITHIN[category] ?? REMAINDER);
-		if (!prepared) continue;
+		if (isUndefined(prepared)) continue;
 
 		if (category !== 'declarations' && prepared.order.flat().some((entry) => !isString(entry) && 'properties' in entry)) {
 			throw new Error('Property groups are only supported within declarations');
@@ -389,7 +392,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 		const categoryOrder = settings?.order ?? DEFAULT_WITHIN[category] ?? REMAINDER;
 		const inner = categoryOrder.findIndex((matcher) => isWithinMatch(matcher, item, family));
 		const matches = isArray(categoryOrder[inner]) ? categoryOrder[inner] : [categoryOrder[inner]];
-		const matchIndex = matches.findIndex((entry) => entry !== undefined && isWithinMatch(entry, item, family));
+		const matchIndex = matches.findIndex((entry) => !isUndefined(entry) && isWithinMatch(entry, item, family));
 		const match = matches[matchIndex];
 
 		const outerMatcher = selected?.matcher;
@@ -415,7 +418,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 
 		const sort = inner === -1 ? undefined : selected?.sort ?? settings?.sort;
 		const unmatchedSpacing = inner === -1 && settings?.unspecified !== 'ignore'
-			&& settings?.settings.emptyLineBeforeUnspecified !== undefined
+			&& !isUndefined(settings?.settings.emptyLineBeforeUnspecified)
 			? spacing({ emptyLineBefore: settings.settings.emptyLineBeforeUnspecified }, `within.${category}.unspecified`, settings.settings.emptyLineMinimumPropertyThreshold)
 			: undefined;
 

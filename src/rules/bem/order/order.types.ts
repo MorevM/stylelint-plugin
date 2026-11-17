@@ -37,6 +37,7 @@ export type AtRuleMatcher = {
 
 	/**
 	 * Exact normalized parameters as a string, or a regular expression pattern.
+	 * Strings are normalized on both sides; patterns receive normalized source parameters.
 	 * The at-rule name is excluded; omission allows any parameters.
 	 */
 	parameter?: string | RegExp;
