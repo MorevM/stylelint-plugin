@@ -218,7 +218,7 @@ export type OrderSortContext = Readonly<{
 export type UnspecifiedOrder = 'top' | 'bottom' | 'ignore';
 
 /**
- * Built-in ordering for names or one unambiguous literal size.
+ * Built-in ordering for names or one unambiguous literal dimension.
  */
 export type OrderSortPreset = {
 	/**
@@ -234,9 +234,9 @@ export type OrderSortPreset = {
 	direction?: 'asc' | 'desc';
 } | {
 	/**
-	 * Extracts exactly one literal size from at-rule parameters or a declaration value.
+	 * Extracts exactly one literal dimension from at-rule parameters or a declaration value.
 	 */
-	by: 'length';
+	by: 'dimension';
 
 	/**
 	 * Units in priority order; values are compared only within the same unit, without conversion.
@@ -252,7 +252,7 @@ export type OrderSortPreset = {
 	direction?: 'asc' | 'desc';
 
 	/**
-	 * Placement of ambiguous sizes, unknown units, variables, and expressions.
+	 * Placement of ambiguous dimensions, unknown units, variables, and expressions.
 	 *
 	 * @default 'ignore'
 	 */

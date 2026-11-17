@@ -89,7 +89,7 @@ const vNameSortPreset = v.strictObject({ by: v.literal('name'), direction: vDire
 const vOrderSortPreset: v.GenericSchema<OrderSortPreset> = v.union([
 	vNameSortPreset,
 	v.strictObject({
-		by: v.literal('length'),
+		by: v.literal('dimension'),
 		units: v.optional(vUnits),
 		direction: vDirection,
 		unresolved: v.optional(vUnspecifiedOrder),

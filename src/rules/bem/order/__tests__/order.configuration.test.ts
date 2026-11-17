@@ -57,7 +57,7 @@ testRuleConfig({
 				'elements': { sort: { by: 'name' } },
 				'at-rules': {
 					order: ['@media(--tablet)', /^@supports\b/, { type: 'at-rule', name: 'container' }, '*'],
-					sort: { by: 'length', units: ['rem', 'px'], direction: 'desc', unresolved: 'ignore' },
+					sort: { by: 'dimension', units: ['rem', 'px'], direction: 'desc', unresolved: 'ignore' },
 				},
 			},
 			groups: {
@@ -123,18 +123,18 @@ testRuleConfig({
 		{ description: 'Accepts descending names', config: [true, { within: { 'at-rules': {
 			sort: { by: 'name', direction: 'desc' },
 		} } }] },
-		{ description: 'Accepts length sorting without unit priorities', config: [true, { within: { 'at-rules': {
-			sort: { by: 'length' },
+		{ description: 'Accepts dimension sorting without unit priorities', config: [true, { within: { 'at-rules': {
+			sort: { by: 'dimension' },
 		} } }] },
 		{ description: 'Accepts empty unit priorities', config: [true, { within: { 'at-rules': {
-			sort: { by: 'length', units: [] },
+			sort: { by: 'dimension', units: [] },
 		} } }] },
 	],
 	reject: [
 		{ description: 'Rejects unknown presets', config: [true, { within: { elements: { sort: 'unknown' } } }] },
 		{ description: 'Rejects invalid group sorters', config: [true, { groups: { media: { order: [], sort: false } } }] },
 		{ description: 'Requires distinct units regardless of case', config: [true, { within: { 'at-rules': {
-			sort: { by: 'length', units: ['rem', 'REM'] },
+			sort: { by: 'dimension', units: ['rem', 'REM'] },
 		} } }] },
 		{ description: 'Rejects units in name presets', config: [true, { within: { 'at-rules': {
 			sort: { by: 'name', units: ['rem'] },
@@ -150,7 +150,7 @@ testRuleConfig({
 		{ description: 'Rejects removed string presets in selector lists', config: [true, { selectorList: { sort: 'alphabetical' } }] },
 		{
 			description: 'Restricts selector-list sorting to names',
-			config: [true, { selectorList: { sort: { by: 'length', units: ['rem'] } } }],
+			config: [true, { selectorList: { sort: { by: 'dimension', units: ['rem'] } } }],
 		},
 	],
 });

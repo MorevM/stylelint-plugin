@@ -8,11 +8,11 @@ import type { OrderSort, OrderSortItem } from '../../order.types';
 /**
  * Extracts a single literal numeric dimension without evaluating queries or expressions.
  *
- * @param   item   Description whose parameters or declaration value may contain a size.
+ * @param   item   Description whose parameters or declaration value may contain a dimension.
  *
  * @returns        The literal dimension, or undefined for an ambiguous or computed value.
  */
-const resolveLength = (item: OrderSortItem) => {
+const resolveDimension = (item: OrderSortItem) => {
 	const value = item.parameter ?? item.value;
 	if (isUndefined(value) || /\$|#\{/u.test(value)) return undefined;
 
@@ -86,15 +86,15 @@ export const createOrderSorter = (option: OrderSort): PreparedOrderSorter => {
 	/**
 	 * Resolves literal dimensions, restricting units only when priorities are supplied.
 	 *
-	 * @param   item   Description whose parameters or value may contain a size.
+	 * @param   item   Description whose parameters or value may contain a dimension.
 	 *
 	 * @returns        Dimension with its explicit unit rank, or undefined for an unresolved value.
 	 */
 	const resolve = (item: OrderSortItem) => {
-		const length = resolveLength(item);
-		if (!length || isEmpty(length.unit)) return undefined;
-		if (hasUnitPriorities && !units.includes(length.unit)) return undefined;
-		return { ...length, rank: units.indexOf(length.unit) };
+		const dimension = resolveDimension(item);
+		if (!dimension || isEmpty(dimension.unit)) return undefined;
+		if (hasUnitPriorities && !units.includes(dimension.unit)) return undefined;
+		return { ...dimension, rank: units.indexOf(dimension.unit) };
 	};
 
 	const unresolved = option.unresolved ?? 'ignore';
@@ -110,28 +110,28 @@ export const createOrderSorter = (option: OrderSort): PreparedOrderSorter => {
 		 * @returns         Sorted descriptions, or the original order if cascade constraints displace a reserved slot.
 		 */
 		run: (items) => {
-			const rows = items.map((item) => ({ item, length: resolve(item) }));
-			let known = rows.filter((row) => !isUndefined(row.length));
-			const unknown = rows.filter((row) => isUndefined(row.length)).map(({ item }) => item);
+			const rows = items.map((item) => ({ item, dimension: resolve(item) }));
+			let known = rows.filter((row) => !isUndefined(row.dimension));
+			const unknown = rows.filter((row) => isUndefined(row.dimension)).map(({ item }) => item);
 
 			if (hasUnitPriorities) {
 				known = known.toSorted((a, b) => {
-					return a.length!.rank - b.length!.rank || (a.length!.value - b.length!.value) * direction;
+					return a.dimension!.rank - b.dimension!.rank || (a.dimension!.value - b.dimension!.value) * direction;
 				});
 			} else {
 				// Sort each unit independently, then refill only the slots originally occupied by that unit.
 				const groups = new Map<string, typeof known>();
 				for (const row of known) {
-					const { unit } = row.length!;
+					const { unit } = row.dimension!;
 					const group = groups.get(unit) ?? [];
 					group.push(row);
 					groups.set(unit, group);
 				}
 
 				const ordered = new Map([...groups].map(([unit, group]) => [unit, group.toSorted((a, b) => {
-					return (a.length!.value - b.length!.value) * direction;
+					return (a.dimension!.value - b.dimension!.value) * direction;
 				}).values()]));
-				known = known.map(({ length }) => ordered.get(length!.unit)!.next().value!);
+				known = known.map(({ dimension }) => ordered.get(dimension!.unit)!.next().value!);
 			}
 
 			const resolvedItems = known.map(({ item }) => item);
@@ -141,7 +141,7 @@ export const createOrderSorter = (option: OrderSort): PreparedOrderSorter => {
 				? [...unknown, ...resolvedItems]
 				: unresolved === 'bottom'
 					? [...resolvedItems, ...unknown]
-					: rows.map(({ item, length }) => (isUndefined(length) ? item : resolvedItems[index++]));
+					: rows.map(({ item, dimension }) => (isUndefined(dimension) ? item : resolvedItems[index++]));
 
 			const sorted = preservePropertyOrder(items, preferred, (item) => (item.type === 'declaration' ? item.name : undefined));
 			if (unresolved === 'ignore' && items.some((item, position) => isUndefined(resolve(item)) && sorted[position] !== item)) {
@@ -150,8 +150,8 @@ export const createOrderSorter = (option: OrderSort): PreparedOrderSorter => {
 
 			// Cascade constraints must not make another unit occupy a reserved numeric slot.
 			if (!hasUnitPriorities && preferred.some((item, position) => {
-				const length = resolve(item);
-				return !isUndefined(length) && resolve(sorted[position])?.unit !== length.unit;
+				const dimension = resolve(item);
+				return !isUndefined(dimension) && resolve(sorted[position])?.unit !== dimension.unit;
 			})) return [...items];
 
 			return sorted;
