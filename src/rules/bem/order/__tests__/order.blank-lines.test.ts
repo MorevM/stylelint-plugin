@@ -1038,7 +1038,7 @@ testRule({
 		within: {
 			declarations: [
 				'display',
-				{ properties: ['color'], blankLines: { before: 'always' } },
+				{ properties: ['color'], groupName: 'Text', blankLines: { before: 'always' } },
 			],
 		},
 	} satisfies SecondaryOption],
@@ -1057,7 +1057,7 @@ testRule({
 				color: red;
 			}
 		`,
-		warnings: [{ message: messages.expectedEmptyLineBefore('color') }],
+		warnings: [{ message: messages.expectedEmptyLineBefore('Text') }],
 	}, {
 		description: 'Inserts the gap before the leading comment attached to the next declaration',
 		code: `
@@ -1075,7 +1075,7 @@ testRule({
 				color: red;
 			}
 		`,
-		warnings: [{ message: messages.expectedEmptyLineBefore('color') }],
+		warnings: [{ message: messages.expectedEmptyLineBefore('Text') }],
 	}],
 });
 
@@ -1312,6 +1312,36 @@ testRule({
 			{ message: messages.expectedEmptyLineBefore('.card') },
 			{ message: messages.expectedEmptyLineBefore('.other') },
 		],
+	}],
+});
+
+testRule({
+	description: 'Conditional blank lines before unspecified declarations',
+	config: [true, {
+		within: {
+			declarations: {
+				order: ['display'],
+				unspecified: {
+					position: 'bottom',
+					blankLines: {
+						before: {
+							default: 'never',
+							rules: [{ when: { minItems: 2, scope: 'container' }, mode: 'always' }],
+						},
+					},
+				},
+			},
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Expands a single-line block when a custom property and its use reach the two-item threshold',
+		code: '.icon { --color: red; color: var(--color); }',
+		fixed: `
+			.icon { --color: red;
+
+			 color: var(--color); }
+		`,
+		warnings: [{ message: messages.expectedEmptyLineBefore('color') }],
 	}],
 });
 
