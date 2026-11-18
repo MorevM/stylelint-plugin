@@ -10,7 +10,7 @@ import type { Family, OrderItem, OrderRank, PreparedOrderSorter, PreparedOrderSp
 import type {
 	AtRuleMatcher, OrderCategory, OrderGroupSpacing, OrderMatcher, OrderSequence,
 	PropertiesGroup, RuleMatcher, SecondaryOption,
-	UnspecifiedOrder, WithinMatcher, WithinOrder, WithinOrderOptions, WithinSequence,
+	UnspecifiedOrder, UnspecifiedOrderOptions, WithinMatcher, WithinOrder, WithinOrderOptions, WithinSequence,
 } from '../../order.types';
 
 /**
@@ -40,7 +40,7 @@ type ExpandedMatcher = {
 	/**
 	 * Formatting retained when a named fragment expands to several ranks.
 	 */
-	spacing?: PreparedOrderSpacing;
+	spacing: PreparedOrderSpacing;
 };
 
 /**
@@ -167,16 +167,31 @@ const isWithinMatch = (matcher: WithinSequence[number], item: OrderItem, family?
 };
 
 /**
+ * Gives unmatched siblings the same group identity for all placement shorthands.
+ *
+ * @param   key       Configuration scope that owns the group.
+ * @param   setting   Placement and optional formatting of the unmatched group.
+ *
+ * @returns           Resolved placement and spacing for this scope.
+ */
+const prepareUnspecified = (key: string, setting: UnspecifiedOrder | UnspecifiedOrderOptions = 'bottom') => ({
+	position: isString(setting) ? setting : setting.position,
+	spacing: { key, blankLines: isString(setting) ? undefined : setting.blankLines },
+});
+
+/**
  * Resolves a category override using defaults compatible with its matcher contract.
  *
  * @param   override   Optional sequence, transformer or expanded category settings.
  * @param   defaults   Built-in matchers accepted by the same category.
+ * @param   category   Category that owns the local groups.
  *
  * @returns            Prepared matchers and policies, or undefined for omitted categories.
  */
 const prepareWithinOrder = <Matcher extends WithinMatcher>(
 	override: WithinOrder<Matcher> | undefined,
 	defaults: WithinSequence<Matcher>,
+	category: OrderCategory,
 ) => {
 	if (isUndefined(override)) return undefined;
 
@@ -187,11 +202,23 @@ const prepareWithinOrder = <Matcher extends WithinMatcher>(
 	const order = isFunction(sequence) ? sequence(defaults) : sequence;
 
 	return {
-		order, settings,
-		unspecified: settings.unspecified ?? 'bottom' as const,
+		order,
+		unspecified: prepareUnspecified(`within.${category}.unspecified`, settings.unspecified),
 		sort: isUndefined(settings.sort) ? undefined : createOrderSorter(settings.sort),
 	};
 };
+
+/**
+ * Prepares spacing metadata with a stable group identity.
+ *
+ * @param   settings   Spacing policy from a group or category override.
+ * @param   key        Scope identity used to recognize adjacent members of the same group.
+ *
+ * @returns            Spacing policy with its scope identity.
+ */
+const spacing = (settings: OrderGroupSpacing | undefined, key: string): PreparedOrderSpacing => ({
+	...settings, key,
+});
 
 /**
  * Expands named fragments and prepares category orders once per stylesheet.
@@ -219,19 +246,6 @@ const createOrderConfig = (options: SecondaryOption) => {
 	};
 
 	/**
-	 * Prepares spacing metadata with a stable scope and inherited property threshold.
-	 *
-	 * @param   settings    Spacing policy from a group or category override.
-	 * @param   key         Scope identity used to recognize adjacent members of the same group.
-	 * @param   threshold   Category threshold override, when provided.
-	 *
-	 * @returns             Spacing policy with its effective threshold and scope identity.
-	 */
-	const spacing = (settings: OrderGroupSpacing, key: string, threshold?: number): PreparedOrderSpacing => ({
-		...settings, key, threshold: threshold ?? options.emptyLineMinimumPropertyThreshold ?? 5,
-	});
-
-	/**
 	 * Expands a matcher or named group into priority slots with sorting and spacing metadata.
 	 *
 	 * @param   matcher   Category, structured matcher or named group reference.
@@ -246,7 +260,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 			return [[{
 				matcher, scope,
 				sort: property && propertySorter(property),
-				spacing: property && spacing(property, scope),
+				spacing: spacing(property, scope),
 			}]];
 		}
 
@@ -291,16 +305,15 @@ const createOrderConfig = (options: SecondaryOption) => {
 
 	const nestedOrder = expandOrder(options.order ?? DEFAULT_ORDER, 'order');
 	const rootOrder = expandOrder(options.root?.order ?? DEFAULT_ROOT_ORDER, 'root.order');
+	const nestedUnspecified = prepareUnspecified('unspecified', options.unspecified);
+	const rootUnspecified = prepareUnspecified('root.unspecified', options.root?.unspecified ?? options.unspecified);
 
-	const within = new Map<OrderCategory, {
-		order: WithinSequence; unspecified: UnspecifiedOrder; sort?: PreparedOrderSorter;
-		settings: Omit<WithinOrderOptions, 'order'>;
-	}>();
+	const within = new Map<OrderCategory, NonNullable<ReturnType<typeof prepareWithinOrder>>>();
 	const overrides = options.within ?? {};
 	for (const category of tsObject.keys(overrides)) {
 		const prepared = category === 'at-rules'
-			? prepareWithinOrder(overrides[category], REMAINDER)
-			: prepareWithinOrder(overrides[category], DEFAULT_WITHIN[category] ?? REMAINDER);
+			? prepareWithinOrder(overrides[category], REMAINDER, category)
+			: prepareWithinOrder(overrides[category], DEFAULT_WITHIN[category] ?? REMAINDER, category);
 		if (isUndefined(prepared)) continue;
 
 		if (category !== 'declarations' && prepared.order.flat().some((entry) => !isString(entry) && 'properties' in entry)) {
@@ -364,22 +377,24 @@ const createOrderConfig = (options: SecondaryOption) => {
 			}
 		}
 
-		if (rank === -1) rank = order.findIndex((entries) => entries.some(({ matcher }) => matcher === '*'));
 		if (rank === -1) {
-			const unspecified = (isRoot ? options.root?.unspecified : undefined) ?? options.unspecified ?? 'bottom';
+			rank = order.findIndex((entries) => {
+				selected = entries.find(({ matcher }) => matcher === '*');
+				return Boolean(selected);
+			});
+		}
+
+		if (isUndefined(selected)) {
+			const unspecified = isRoot ? rootUnspecified : nestedUnspecified;
 
 			return {
-				outer: getUnspecifiedRank(unspecified, order.length), inner: 0, member: 0, category,
+				outer: getUnspecifiedRank(unspecified.position, order.length), inner: 0, member: 0, category,
+				spacing: unspecified.spacing,
 			};
 		}
 
-		const outerSpacing = selected?.spacing
-			? {
-				...selected.spacing,
-				threshold: within.get(category)?.settings.emptyLineMinimumPropertyThreshold ?? selected.spacing.threshold,
-			}
-			: undefined;
-		if (selected && !isString(selected.matcher) && 'properties' in selected.matcher) {
+		const outerSpacing = selected.spacing;
+		if (!isString(selected.matcher) && 'properties' in selected.matcher) {
 			return {
 				outer: rank, inner: getPropertyRank(selected.matcher, item), member: 0, category,
 				innerScope: selected.scope,
@@ -395,8 +410,8 @@ const createOrderConfig = (options: SecondaryOption) => {
 		const matchIndex = matches.findIndex((entry) => !isUndefined(entry) && isWithinMatch(entry, item, family));
 		const match = matches[matchIndex];
 
-		const outerMatcher = selected?.matcher;
-		const outerLabel = outerMatcher && !isString(outerMatcher)
+		const outerMatcher = selected.matcher;
+		const outerLabel = !isString(outerMatcher)
 			&& 'type' in outerMatcher && outerMatcher.type === 'rule'
 			? outerMatcher.name
 			: undefined;
@@ -412,25 +427,25 @@ const createOrderConfig = (options: SecondaryOption) => {
 				outer: rank, inner, member: getPropertyRank(property, item), category,
 				memberScope: scope,
 				sort: propertySorter(property), sortScope: `${scope}.sort`,
-				spacing: spacing(property, scope, settings?.settings.emptyLineMinimumPropertyThreshold),
+				spacing: spacing(property, scope),
 			};
 		}
 
-		const sort = inner === -1 ? undefined : selected?.sort ?? settings?.sort;
-		const unmatchedSpacing = inner === -1 && settings?.unspecified !== 'ignore'
-			&& !isUndefined(settings?.settings.emptyLineBeforeUnspecified)
-			? spacing({ emptyLineBefore: settings.settings.emptyLineBeforeUnspecified }, `within.${category}.unspecified`, settings.settings.emptyLineMinimumPropertyThreshold)
-			: undefined;
+		const sort = inner === -1 ? undefined : selected.sort ?? settings?.sort;
+		const unmatchedSpacing = inner === -1 ? settings?.unspecified.spacing : undefined;
+		// A named group keeps its spacing for unmatched members unless the local remainder has its own policy.
+		const useUnmatchedSpacing = !isUndefined(unmatchedSpacing)
+			&& (isUndefined(selected.group) || !isUndefined(unmatchedSpacing.blankLines));
 
 		return {
 			outer: rank,
-			inner: inner === -1 ? getUnspecifiedRank(settings?.unspecified ?? 'bottom', categoryOrder.length) : inner,
+			inner: inner === -1 ? getUnspecifiedRank(settings?.unspecified.position ?? 'bottom', categoryOrder.length) : inner,
 			member: 0, category,
 			sort,
-			sortScope: sort ? (selected?.sort ? `${selected.scope}.sort` : `within.${category}.sort`) : undefined,
-			group: selected?.group,
+			sortScope: sort ? (selected.sort ? `${selected.scope}.sort` : `within.${category}.sort`) : undefined,
+			group: selected.group,
 			label: innerLabel ?? outerLabel,
-			spacing: unmatchedSpacing ?? outerSpacing,
+			spacing: useUnmatchedSpacing ? unmatchedSpacing : outerSpacing,
 		};
 	};
 

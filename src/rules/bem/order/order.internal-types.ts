@@ -17,18 +17,13 @@ export type PreparedOrderSorter = {
 };
 
 /**
- * Formatting provenance retained after named groups expand into ranks.
+ * Identity of a consecutive group and its optional formatting policy.
  */
 export type PreparedOrderSpacing = OrderGroupSpacing & {
 	/**
 	 * Distinguishes adjacent groups even if their formatting options coincide.
 	 */
 	key: string;
-
-	/**
-	 * Required authored declaration count for threshold spacing.
-	 */
-	threshold: number;
 };
 
 /**
@@ -86,9 +81,9 @@ export type OrderRank = {
 	label?: string;
 
 	/**
-	 * Optional formatting of this unit at its current semantic level.
+	 * Group selected for this unit at its current semantic level.
 	 */
-	spacing?: PreparedOrderSpacing;
+	spacing: PreparedOrderSpacing;
 };
 
 /**
@@ -199,15 +194,25 @@ export type OrderScopes = {
 	/**
 	 * Sibling projections used to format group boundaries after the final moves.
 	 */
-	spacing: Array<Array<{
+	spacing: Array<{
 		/**
-		 * Authored members of this atomic unit in their final order.
+		 * Semantic depth used to give parent projections ownership of cross-family boundaries.
 		 */
-		items: OrderItem[];
+		depth: number;
 
 		/**
-		 * Formatting policy selected at this semantic level.
+		 * Atomic sibling units at this semantic level.
 		 */
-		policy?: PreparedOrderSpacing;
-	}>>;
+		units: Array<{
+			/**
+			 * Authored members of this atomic unit in their final order.
+			 */
+			items: OrderItem[];
+
+			/**
+			 * Formatting policy selected at this semantic level.
+			 */
+			policy: PreparedOrderSpacing;
+		}>;
+	}>;
 };

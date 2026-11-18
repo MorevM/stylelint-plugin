@@ -266,23 +266,139 @@ export type OrderSortPreset = {
 export type OrderSort = OrderSorter | OrderSortPreset;
 
 /**
- * Empty-line policy at the beginning of a semantic group.
+ * Whether an authored group boundary requires, forbids or preserves empty lines.
  */
-export type EmptyLineBefore = 'always' | 'never' | 'threshold';
+export type BlankLineMode = 'always' | 'never' | 'ignore';
+
+/**
+ * Where to count direct non-comment nodes for a spacing condition.
+ * Neighboring groups are relative to the group that owns the policy.
+ */
+export type BlankLineItemScope = 'container' | 'group' | 'previous-group' | 'next-group';
+
+/**
+ * A condition on a spacing boundary, or a boolean combination of other conditions.
+ */
+export type BlankLineCondition =
+	| 'first-nested'
+	| 'last-nested'
+	| 'inside-single-line-block'
+	| 'separated-by-comment'
+	| ({
+		/**
+		 * Inclusive lower bound on the number of items.
+		 */
+		minItems: number;
+	} | {
+		/**
+		 * Inclusive upper bound on the number of items.
+		 */
+		maxItems: number;
+	}) & {
+		/**
+		 * Counts direct items in the authored container or in a final consecutive group.
+		 *
+		 * @default 'group'
+		 */
+		scope?: BlankLineItemScope;
+	}
+	| {
+		/**
+		 * Matches when at least one condition matches.
+		 */
+		any: readonly [BlankLineCondition, ...BlankLineCondition[]];
+	}
+	| {
+		/**
+		 * Matches when every condition matches.
+		 */
+		all: readonly [BlankLineCondition, ...BlankLineCondition[]];
+	}
+	| {
+		/**
+		 * Matches when the nested condition fails.
+		 */
+		not: BlankLineCondition;
+	};
+
+/**
+ * One conditional decision for a spacing boundary.
+ */
+export type BlankLineRule = {
+	/**
+	 * Condition evaluated in the context of this boundary.
+	 */
+	when: BlankLineCondition;
+
+	/**
+	 * Formatting to apply when this is the first matching rule.
+	 */
+	mode: BlankLineMode;
+};
+
+/**
+ * Formatting chosen unconditionally or by the first matching rule.
+ */
+export type BlankLinePolicy = BlankLineMode | {
+	/**
+	 * Formatting for a boundary that matches no rule.
+	 *
+	 * @default 'ignore'
+	 */
+	default?: BlankLineMode;
+
+	/**
+	 * Conditions in priority order.
+	 */
+	rules: readonly [BlankLineRule, ...BlankLineRule[]];
+};
+
+/**
+ * Formatting at the edges of a group and between its consecutive members.
+ * Omitted policies preserve authored whitespace.
+ */
+export type BlankLines = {
+	/**
+	 * Formats the boundary before the group, including its leading attached comments.
+	 * Takes precedence over the preceding group's after policy at the same semantic level.
+	 */
+	before?: BlankLinePolicy;
+
+	/**
+	 * Formats the boundary after the group, including its trailing attached comments.
+	 * At the end of a nested container, applies before its closing brace.
+	 */
+	after?: BlankLinePolicy;
+
+	/**
+	 * Formats boundaries between physically adjacent members of the same group.
+	 */
+	between?: BlankLinePolicy;
+};
+
+/**
+ * Placement and formatting of genuinely unmatched members; an explicit wildcard remains matched.
+ */
+export type UnspecifiedOrderOptions = {
+	/**
+	 * Places unmatched members before or after explicitly selected members.
+	 */
+	position: Exclude<UnspecifiedOrder, 'ignore'>;
+
+	/**
+	 * Formats the unmatched group without including it in matched sorting batches.
+	 */
+	blankLines?: BlankLines;
+};
 
 /**
  * Optional formatting shared by named and inline groups.
  */
 export type OrderGroupSpacing = {
 	/**
-	 * Controls the gap before the group; the first container member has no leading gap.
+	 * Controls empty lines at the group's edges and between its consecutive members.
 	 */
-	emptyLineBefore?: EmptyLineBefore;
-
-	/**
-	 * Removes empty lines between consecutive members of the group.
-	 */
-	noEmptyLineBetween?: boolean;
+	blankLines?: BlankLines;
 
 	/**
 	 * Optional label used in spacing diagnostics.
@@ -442,22 +558,12 @@ export type WithinOrderOptions<Matcher extends WithinMatcher = WithinMatcher> = 
 	 *
 	 * @default 'bottom'
 	 */
-	unspecified?: UnspecifiedOrder;
+	unspecified?: UnspecifiedOrder | UnspecifiedOrderOptions;
 
 	/**
 	 * Orders matched members with equal inner rank, keeping unspecified units outside the callback.
 	 */
 	sort?: OrderSort;
-
-	/**
-	 * Formats unmatched members when their placement is top or bottom.
-	 */
-	emptyLineBeforeUnspecified?: EmptyLineBefore;
-
-	/**
-	 * Minimum number of ordinary CSS declarations in the authored container for a threshold gap.
-	 */
-	emptyLineMinimumPropertyThreshold?: number;
 };
 
 /**
@@ -510,7 +616,7 @@ export type SecondaryOption = {
 	 *
 	 * @default 'bottom'
 	 */
-	unspecified?: UnspecifiedOrder;
+	unspecified?: UnspecifiedOrder | UnspecifiedOrderOptions;
 
 	/**
 	 * Structural ordering at stylesheet level, outside selector bodies.
@@ -528,7 +634,7 @@ export type SecondaryOption = {
 		/**
 		 * Overrides the shared unmatched-unit policy at stylesheet level.
 		 */
-		unspecified?: UnspecifiedOrder;
+		unspecified?: UnspecifiedOrder | UnspecifiedOrderOptions;
 	};
 
 	/**
@@ -554,11 +660,6 @@ export type SecondaryOption = {
 	 * @default false
 	 */
 	selectorList?: false | SelectorListOrder;
-
-	/**
-	 * Shared threshold for group gaps, overridden by category-local formatting settings.
-	 */
-	emptyLineMinimumPropertyThreshold?: number;
 
 	/**
 	 * BEM separators used to identify selector families and contextual conditions.

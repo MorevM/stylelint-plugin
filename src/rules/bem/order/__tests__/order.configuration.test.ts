@@ -88,6 +88,91 @@ testRuleConfig({
 });
 
 testRuleConfig({
+	description: 'Blank line policies and conditions',
+	accept: [{
+		description: 'Accepts group policies and expanded placement settings at each level',
+		config: [true, {
+			order: ['group:layout', '*'],
+			groups: { layout: {
+				properties: ['display', 'position'],
+				blankLines: {
+					before: {
+						default: 'always',
+						rules: [{
+							when: { any: ['first-nested', 'inside-single-line-block', { maxItems: 0, scope: 'group' }] },
+							mode: 'never',
+						}],
+					},
+					after: {
+						rules: [{
+							when: { all: [{ not: 'last-nested' }, { minItems: 0, scope: 'next-group' }] },
+							mode: 'always',
+						}],
+					},
+					between: 'ignore',
+				},
+			} },
+			unspecified: { position: 'bottom', blankLines: { before: 'ignore' } },
+			root: { unspecified: { position: 'top', blankLines: { between: 'never' } } },
+			within: { declarations: {
+				unspecified: { position: 'bottom', blankLines: { before: {
+					default: 'always',
+					rules: [{ when: { any: ['first-nested', 'inside-single-line-block'] }, mode: 'ignore' }],
+				} } },
+			} },
+		} as const satisfies SecondaryOption],
+	}],
+
+	reject: [{
+		description: 'Rejects unknown blank line modes',
+		config: [true, { groups: { layout: { properties: ['display'], blankLines: { before: 'sometimes' } } } }],
+	}, {
+		description: 'Requires a mode for each conditional rule',
+		config: [true, { groups: { layout: { properties: ['display'], blankLines: {
+			before: { rules: [{ when: 'first-nested' }] },
+		} } } }],
+	}, {
+		description: 'Rejects unknown conditions',
+		config: [true, { groups: { layout: { properties: ['display'], blankLines: {
+			before: { rules: [{ when: { not: 'unknown' }, mode: 'ignore' }] },
+		} } } }],
+	}, {
+		description: 'Requires nonnegative minimum item counts',
+		config: [true, { groups: { layout: { properties: ['display'], blankLines: {
+			before: { rules: [{ when: { minItems: -1, scope: 'container' }, mode: 'always' }] },
+		} } } }],
+	}, {
+		description: 'Requires integer minimum item counts',
+		config: [true, { groups: { layout: { properties: ['display'], blankLines: {
+			before: { rules: [{ when: { minItems: 1.5, scope: 'container' }, mode: 'never' }] },
+		} } } }],
+	}, {
+		description: 'Requires nonnegative maximum item counts',
+		config: [true, { groups: { layout: { properties: ['display'], blankLines: {
+			before: { rules: [{ when: { maxItems: -1, scope: 'group' }, mode: 'always' }] },
+		} } } }],
+	}, {
+		description: 'Requires integer maximum item counts',
+		config: [true, { groups: { layout: { properties: ['display'], blankLines: {
+			before: { rules: [{ when: { maxItems: 1.5, scope: 'group' }, mode: 'always' }] },
+		} } } }],
+	}, {
+		description: 'Rejects unknown item counting scopes',
+		config: [true, { groups: { layout: { properties: ['display'], blankLines: {
+			before: { rules: [{ when: { maxItems: 1, scope: 'file' }, mode: 'never' }] },
+		} } } }],
+	}, {
+		description: 'Requires a position for expanded unspecified settings',
+		config: [true, { unspecified: { blankLines: { before: 'always' } } }],
+	}, {
+		description: 'Requires formatted unspecified content to participate in placement',
+		config: [true, { within: { declarations: {
+			unspecified: { position: 'ignore', blankLines: { before: 'always' } },
+		} } }],
+	}],
+});
+
+testRuleConfig({
 	description: 'Selector-set constraints',
 	accept: [{
 		description: 'Distinguishes repeated conditions and pseudo-element stages',

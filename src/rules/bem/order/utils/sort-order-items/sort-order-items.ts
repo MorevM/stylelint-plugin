@@ -169,6 +169,7 @@ export const sortOrderItems = (
 		}
 	}
 
+	const previousScopeCount = scopes?.spacing.length;
 	const projection = ranked.map((sibling) => ({
 		items: sibling.family
 			? sortOrderItems(sibling.items, getRank, {
@@ -179,7 +180,9 @@ export const sortOrderItems = (
 			: sibling.items,
 		policy: sibling.rank.spacing,
 	}));
-	if (projection.some((unit) => unit.policy)) scopes?.spacing.push(projection);
+	if (scopes && (scopes.spacing.length !== previousScopeCount || projection.some((unit) => unit.policy.blankLines))) {
+		scopes.spacing.push({ depth, units: projection });
+	}
 
 	return projection.flatMap((unit) => unit.items);
 };

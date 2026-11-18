@@ -1,17 +1,96 @@
-import { isUndefined } from '@morev/utils';
-import { isDeclaration } from '#modules/postcss';
+import { isString, isUndefined } from '@morev/utils';
+import { isComment } from '#modules/postcss';
 import { getOrderHeader } from '../get-order-header/get-order-header';
 import type { ChildNode, Container } from 'postcss';
-import type { OrderItem, OrderScopes } from '../../order.internal-types';
+import type { OrderItem, OrderScopes, PreparedOrderSpacing } from '../../order.internal-types';
+import type { BlankLineCondition, BlankLineItemScope, BlankLinePolicy } from '../../order.types';
+
+/**
+ * A consecutive run of members at one semantic level.
+ */
+type SpacingGroup = {
+	/**
+	 * Index of the first member in the final region.
+	 */
+	start: number;
+
+	/**
+	 * Index after the last member in the final region.
+	 */
+	end: number;
+
+	/**
+	 * Formatting selected for the run.
+	 */
+	policy: PreparedOrderSpacing;
+
+	/**
+	 * Adjacent run before this group at the same semantic level.
+	 */
+	previous?: SpacingGroup;
+
+	/**
+	 * Adjacent run after this group at the same semantic level.
+	 */
+	next?: SpacingGroup;
+};
+
+/**
+ * Groups sharing one physical whitespace slot.
+ */
+type SpacingBoundary = {
+	/**
+	 * Group ending before the slot.
+	 */
+	left?: SpacingGroup;
+
+	/**
+	 * Group starting after the slot.
+	 */
+	right?: SpacingGroup;
+};
+
+/**
+ * Checks whether leading comments occupy a line between surrounding code in the final order.
+ *
+ * @param   item           Member following the boundary, if any.
+ * @param   hasLineBreak   Whether the final slot starts on a new line.
+ *
+ * @returns                Whether a whole comment separates the surrounding code.
+ */
+const hasSeparatingComment = (item: OrderItem | undefined, hasLineBreak: boolean) => {
+	if (!item) return false;
+
+	let hasLineBreakBefore = hasLineBreak;
+	for (const [index, node] of item.nodes.entries()) {
+		if (node.type !== 'comment') break;
+		if (!item.nodes[index + 1].raws.before?.includes('\n')) continue;
+		if (hasLineBreakBefore) return true;
+
+		hasLineBreakBefore = true;
+	}
+
+	return false;
+};
 
 /**
  * One whitespace-only edit, applied after source nodes have reached their target slots.
  */
 export type OrderSpacingEdit = {
 	/**
-	 * First node of the unit, including an attached leading comment.
+	 * First node of the unit, or the container for its closing whitespace.
 	 */
-	node: ChildNode;
+	node: ChildNode | Container;
+
+	/**
+	 * PostCSS whitespace slot receiving the replacement.
+	 */
+	field: 'before' | 'after';
+
+	/**
+	 * Replacement retaining indentation and newline style.
+	 */
+	value: string;
 
 	/**
 	 * Authored node receiving the diagnostic.
@@ -19,83 +98,180 @@ export type OrderSpacingEdit = {
 	reportNode: ChildNode;
 
 	/**
-	 * Replacement for raws.before, retaining indentation and newline style.
+	 * Diagnostic for the side of the group or the separating comment being formatted.
 	 */
-	before: string;
+	message: 'expectedEmptyLineBefore' | 'unexpectedEmptyLineBefore'
+		| 'expectedEmptyLineAfter' | 'unexpectedEmptyLineAfter' | 'expectedCommentOnOwnLine';
 
 	/**
-	 * Whether an empty line is required rather than forbidden.
+	 * Whether this edit can expand a single-line container.
 	 */
-	hasEmptyLine: boolean;
+	addsLineBreak: boolean;
 
 	/**
-	 * Configured group name or the first member's header.
+	 * Configured group name or the member's header.
 	 */
 	header: string;
 };
 
 /**
  * Plans group spacing without changing comment attachment or crossing region boundaries.
+ * Each physical boundary has one owner, even when several semantic scopes meet there.
  *
- * @param   original    Source items before moves.
- * @param   sorted      Final item sequence.
- * @param   container   Authored container used for threshold counting.
- * @param   scopes      Group projections from each semantic level.
+ * @param   original       Source items before moves.
+ * @param   sorted         Final item sequence.
+ * @param   container      Authored container used for conditions and closing whitespace.
+ * @param   scopes         Group projections from each semantic level.
+ * @param   isSingleLine   Whether the block remains on one line after the planned whitespace edits.
  *
- * @returns             Independent whitespace edits in final source order.
+ * @returns                Independent whitespace edits in final source order.
  */
 export const createOrderSpacing = (
 	original: OrderItem[],
 	sorted: OrderItem[],
 	container: Container,
 	scopes: OrderScopes['spacing'],
+	isSingleLine: boolean,
 ): OrderSpacingEdit[] => {
 	if (!sorted.length) return [];
 
 	const first = sorted[0].nodes[0];
 	const originalFirst = original[0].nodes[0];
-	const count = container.nodes?.filter((node) => isDeclaration(node) && !/^(?:--|\$)/u.test(node.prop)).length ?? 0;
+	const originalLast = original.at(-1)!.nodes.at(-1);
+	const isContainerStart = container.nodes?.[0] === originalFirst;
+	const isContainerEnd = container.nodes?.at(-1) === originalLast;
 	const positions = new Map(sorted.map((item, index) => [item, index]));
-	const edits = new Map<ChildNode, OrderSpacingEdit>();
-	const rows = scopes.flatMap((units) => units.map((unit, index) => ({ unit, previous: units[index - 1] })));
+	const boundaries = new Map<number, SpacingBoundary>();
+	const edits: OrderSpacingEdit[] = [];
+	let containerItemCount: number | undefined;
 
-	for (const { unit, previous } of rows) {
-		const { policy } = unit;
-		if (!policy || !unit.items.length) continue;
+	// Outer scopes own gaps between families; descendants can only claim gaps inside a family.
+	for (const { depth, units } of [...scopes].sort((a, b) => a.depth - b.depth)) {
+		let group: SpacingGroup | undefined;
 
-		const item = unit.items[0];
-		const node = item.nodes[0];
-		const position = positions.get(item)!;
-		const isFirst = position === 0 && container.nodes?.[0] === originalFirst;
-		if (position === 0 && !isFirst) continue;
+		for (const { items, policy } of units) {
+			const start = positions.get(items[0])!;
+			const end = positions.get(items.at(-1)!)! + 1;
+			const previous = group?.end === start ? group : undefined;
 
-		const isSameGroup = previous?.policy?.key === policy.key
-			&& positions.get(previous.items.at(-1)!)! + 1 === position;
-		let hasEmptyLine: boolean | undefined;
-		if (isSameGroup) {
-			if (policy.noEmptyLineBetween) hasEmptyLine = false;
-		} else if (policy.emptyLineBefore !== undefined) {
-			hasEmptyLine = !isFirst && (policy.emptyLineBefore === 'always'
-				|| (policy.emptyLineBefore === 'threshold' && count >= policy.threshold));
+			if (previous?.policy.key === policy.key) {
+				previous.end = end;
+				group = previous;
+			} else {
+				group = { start, end, policy, previous };
+				if (previous) previous.next = group;
+			}
+
+			if (previous && !boundaries.has(start)) {
+				boundaries.set(start, { left: previous, right: group });
+			}
+			if (depth === 0 && start === 0 && isContainerStart) {
+				boundaries.set(0, { right: group });
+			}
 		}
-		if (isUndefined(hasEmptyLine)) continue;
 
-		const before = (node === first ? originalFirst : node === originalFirst ? first : node).raws.before ?? '';
-		if (!/^\s*$/u.test(before)) continue;
+		if (depth === 0 && group && isContainerEnd) {
+			boundaries.set(sorted.length, { left: group });
+		}
+	}
 
-		const hasExistingEmptyLine = /\r?\n[\t ]*\r?\n/u.test(before);
-		if (hasExistingEmptyLine === hasEmptyLine) continue;
+	const countItems = (scope: BlankLineItemScope, group: SpacingGroup) => {
+		if (scope === 'container') {
+			containerItemCount ??= container.nodes?.filter((node) => !isComment(node)).length ?? 0;
+			return containerItemCount;
+		}
 
-		const newline = before.includes('\r\n') ? '\r\n' : '\n';
-		const indent = /[\t ]*$/u.exec(before)![0];
-		const replacement = hasEmptyLine
-			? `${newline}${newline}${indent}`
-			: isFirst && container.type === 'root' ? indent : `${before.includes('\n') ? newline : ''}${indent}`;
-		edits.set(node, {
-			node, reportNode: item.node, before: replacement, hasEmptyLine,
-			header: policy.groupName ?? getOrderHeader(item.node),
+		const target = scope === 'previous-group' ? group.previous : scope === 'next-group' ? group.next : group;
+		return target ? target.end - target.start : undefined;
+	};
+
+	const resolvePolicy = (
+		policy: BlankLinePolicy, group: SpacingGroup, position: number, isSeparatedByComment: boolean,
+	) => {
+		if (isString(policy)) return policy;
+
+		const doesConditionMatch = (condition: BlankLineCondition): boolean => {
+			if (!isString(condition)) {
+				if ('all' in condition) return condition.all.every((entry) => doesConditionMatch(entry));
+				if ('any' in condition) return condition.any.some((entry) => doesConditionMatch(entry));
+				if ('not' in condition) return !doesConditionMatch(condition.not);
+
+				const count = countItems(condition.scope ?? 'group', group);
+				if (isUndefined(count)) return false;
+
+				return 'minItems' in condition ? count >= condition.minItems : count <= condition.maxItems;
+			}
+
+			if (condition === 'first-nested') return container.type !== 'root' && isContainerStart && position === 0;
+			if (condition === 'last-nested') {
+				return container.type !== 'root' && isContainerEnd && position === sorted.length - 1;
+			}
+			if (condition === 'separated-by-comment') return isSeparatedByComment;
+
+			return isSingleLine;
+		};
+
+		const rule = policy.rules.find(({ when }) => doesConditionMatch(when));
+
+		return rule?.mode ?? policy.default ?? 'ignore';
+	};
+
+	for (const [position, { left, right }] of [...boundaries].sort(([a], [b]) => a - b)) {
+		// File padding is outside group formatting, unlike whitespace inside a nested block.
+		if (container.type === 'root' && (position === 0 || position === sorted.length)) continue;
+
+		const isTerminal = position === sorted.length;
+		const isSameGroup = left === right;
+		const before = right?.policy.blankLines?.before;
+		const useFollowingPolicy = isSameGroup || !isUndefined(before);
+		const policy = isSameGroup
+			? right?.policy.blankLines?.between
+			: useFollowingPolicy ? before : left?.policy.blankLines?.after;
+		const group = useFollowingPolicy ? right : left;
+		if (isUndefined(policy) || policy === 'ignore' || isUndefined(group)) continue;
+
+		const itemPosition = useFollowingPolicy ? position : position - 1;
+		const item = sorted[itemPosition];
+		const following = sorted[position];
+		const node = isTerminal ? container : following.nodes[0];
+		const field = isTerminal ? 'after' : 'before';
+		const whitespace = isTerminal
+			? container.raws.after ?? ''
+			: (node === first ? originalFirst : node === originalFirst ? first : node).raws.before ?? '';
+		if (!/^\s*$/u.test(whitespace)) continue;
+
+		const hasLineBreak = whitespace.includes('\n');
+		const isSeparatedByComment = !isString(policy) && hasSeparatingComment(following, hasLineBreak);
+		const mode = resolvePolicy(policy, group, itemPosition, isSeparatedByComment);
+		if (mode === 'ignore') continue;
+
+		const hasEmptyLine = mode === 'always';
+		if (/\r?\n[\t ]*\r?\n/u.test(whitespace) === hasEmptyLine) continue;
+
+		// A single newline can put a leading comment on its own line and satisfy the policy in one fix.
+		const canSeparateComment = hasEmptyLine && !hasLineBreak && !isString(policy)
+			&& hasSeparatingComment(following, true) && resolvePolicy(policy, group, itemPosition, true) !== 'always';
+
+		const newline = whitespace.includes('\r\n') || container.source?.input.css.includes('\r\n') ? '\r\n' : '\n';
+		const indent = /[\t ]*$/u.exec(whitespace)![0];
+		if (canSeparateComment) {
+			edits.push({
+				node, field, value: newline + indent, reportNode: following.nodes[0],
+				message: 'expectedCommentOnOwnLine', addsLineBreak: true, header: getOrderHeader(following.node),
+			});
+			continue;
+		}
+
+		const value = hasEmptyLine ? `${newline}${newline}${indent}` : `${hasLineBreak ? newline : ''}${indent}`;
+		const message = useFollowingPolicy
+			? hasEmptyLine ? 'expectedEmptyLineBefore' : 'unexpectedEmptyLineBefore'
+			: hasEmptyLine ? 'expectedEmptyLineAfter' : 'unexpectedEmptyLineAfter';
+
+		edits.push({
+			node, field, value, reportNode: item.node, message, addsLineBreak: hasEmptyLine,
+			header: group.policy.groupName ?? getOrderHeader(item.node),
 		});
 	}
 
-	return [...edits.values()];
+	return edits;
 };

@@ -1,4 +1,4 @@
-import { isError } from '@morev/utils';
+import { isError, isUndefined } from '@morev/utils';
 import { resolveMostSpecificBemEntities } from '#modules/bem';
 import { isAtRule } from '#modules/postcss';
 import {
@@ -11,8 +11,11 @@ import {
 	findPropertyOrderConflict, getOrderHeader, isPreambleBoundary, isSassBoundary, normalizeParameters,
 	OrderSortError, resolveOrderSelector, sortOrderItems, sortSelectorList,
 } from './utils';
-import type { AtRule, ChildNode, Root, Rule } from 'postcss';
+import type { AtRule, ChildNode, Container, Document, Root, Rule } from 'postcss';
 import type { OrderItem, OrderScopes, SelectorOrder } from './order.internal-types';
+import type { OrderSpacingEdit } from './utils/create-order-spacing/create-order-spacing';
+
+class OrderSpacingError extends Error {}
 
 export default createRule({
 	scope: 'bem',
@@ -28,8 +31,11 @@ export default createRule({
 		expectedGroupBefore: (group: string, anchor: string) => `Expected ${group} to come before "${anchor}".`,
 		expectedGroupAfter: (group: string, anchor: string) => `Expected ${group} to come after "${anchor}".`,
 		unsafeOrder: (first: string, second: string) => `Cannot reorder "${first}" and "${second}" without changing their cascade.`,
-		expectedEmptyLine: (group: string) => `Expected an empty line before "${group}".`,
-		unexpectedEmptyLine: (group: string) => `Unexpected empty line before "${group}".`,
+		expectedEmptyLineBefore: (group: string) => `Expected an empty line before "${group}".`,
+		unexpectedEmptyLineBefore: (group: string) => `Unexpected empty line before "${group}".`,
+		expectedEmptyLineAfter: (group: string) => `Expected an empty line after "${group}".`,
+		unexpectedEmptyLineAfter: (group: string) => `Unexpected empty line after "${group}".`,
+		expectedCommentOnOwnLine: (member: string) => `Expected the comment before "${member}" on its own line.`,
 		selectorList: (selector: string) => `Expected selector branches in the order "${selector}".`,
 	},
 	schema,
@@ -71,6 +77,7 @@ export default createRule({
 	const isDisabled = createDisabledRangeChecker(result.stylelint, '@morev/bem/order');
 
 	const pendingReports: Array<() => void> = [];
+	const multiline = new Set<Container | Document>();
 
 	// Build the region's target order and fix plan without changing the AST.
 	const checkRegion = (
@@ -102,8 +109,9 @@ export default createRule({
 		}
 
 		const moves = createOrderMoves(items, sorted);
-		const spacing = createOrderSpacing(items, sorted, container, scopes.spacing);
-		if (!moves.length && !spacing.length) return;
+		if (!moves.length && !scopes.spacing.length) return undefined;
+
+		let spacing: OrderSpacingEdit[] = [];
 
 		// Explain managed comparisons separately when ignored units retain their slots.
 		const hasScopedComparisons = scopes.hasIgnored && scopes.sequences.length > 0;
@@ -151,7 +159,7 @@ export default createRule({
 			first.raws.before = whitespace.get(original[0]);
 			if (next) next.raws.before = nextWhitespace;
 
-			for (const edit of spacing) edit.node.raws.before = edit.before;
+			for (const edit of spacing) edit.node.raws[edit.field] = edit.value;
 		};
 
 		pendingReports.push(() => {
@@ -167,13 +175,20 @@ export default createRule({
 			}
 
 			for (const edit of spacing) {
-				const message = edit.hasEmptyLine ? 'expectedEmptyLine' : 'unexpectedEmptyLine';
 				report({
-					node: edit.reportNode, message: messages[message](edit.header),
+					node: edit.reportNode, message: messages[edit.message](edit.header),
 					messageArgs: [edit.header], index: 0, endIndex: 1, fix,
 				});
 			}
 		});
+
+		if (!scopes.spacing.length) return undefined;
+
+		return (isSingleLine: boolean) => {
+			spacing = createOrderSpacing(items, sorted, container, scopes.spacing, isSingleLine);
+
+			return spacing.some((edit) => edit.addsLineBreak);
+		};
 	};
 
 	// Partition each container into movable regions and recurse without crossing protected boundaries.
@@ -196,10 +211,12 @@ export default createRule({
 		const own = container.type === 'rule' ? selectors.get(container) : parent;
 		const items: OrderItem[] = [];
 		const leading: ChildNode[] = [];
+		const spacingPlans: Array<(isSingleLine: boolean) => boolean> = [];
 
 		// Finish the current region before collecting nodes beyond a boundary.
 		const flush = () => {
-			checkRegion(items, container, isRoot, own);
+			const plan = checkRegion(items, container, isRoot, own);
+			if (plan) spacingPlans.push(plan);
 			items.length = 0;
 			leading.length = 0;
 		};
@@ -252,19 +269,51 @@ export default createRule({
 		}
 
 		flush();
+		if (!spacingPlans.length) return;
+
+		// Descendants have already decided whether their fixes will expand this container.
+		const start = container.source?.start;
+		const isSingleLine = container.type !== 'root' && !multiline.has(container)
+			&& !isUndefined(start) && start.line === container.source?.end?.line;
+		let requiresGap = false;
+
+		for (const plan of spacingPlans) {
+			if (plan(isSingleLine)) requiresGap = true;
+		}
+
+		if (!isSingleLine || !requiresGap) return;
+
+		// Every region must agree on whether the container will be multiline after the fix.
+		requiresGap = false;
+		for (const plan of spacingPlans) {
+			if (plan(false)) requiresGap = true;
+		}
+
+		if (!requiresGap) {
+			throw new OrderSpacingError(
+				`Blank line policies at line ${start.line} require a gap only while the block is on one line.`,
+			);
+		}
+
+		let ancestor: Container | Document | undefined = container.parent;
+		while (ancestor && !multiline.has(ancestor)) {
+			multiline.add(ancestor);
+			ancestor = ancestor.parent;
+		}
 	};
 
-	// Validate every callback while planning, before emitting diagnostics or applying fixes.
+	// Validate sorting callbacks and spacing plans before emitting diagnostics or applying fixes.
 	try {
 		checkContainer(root);
 	} catch (error) {
-		if (!(error instanceof OrderSortError)) throw error;
+		if (!(error instanceof OrderSortError || error instanceof OrderSpacingError)) throw error;
 
-		result.warn(`Invalid category order for @morev/bem/order: ${error.message}`, { stylelintType: 'invalidOption' });
+		const option = error instanceof OrderSpacingError ? 'blank line policy' : 'category order';
+		result.warn(`Invalid ${option} for @morev/bem/order: ${error.message}`, { stylelintType: 'invalidOption' });
 		result.stylelint.stylelintError = true;
 		return;
 	}
 
-	// No region is reported or fixed until all user callbacks have produced valid plans.
+	// Apply reports only after every region has a valid plan.
 	for (const applyReports of pendingReports) applyReports();
 });

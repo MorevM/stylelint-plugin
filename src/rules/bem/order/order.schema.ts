@@ -5,6 +5,9 @@ import { normalizeLocalSelector } from './utils/normalize-local-selector/normali
 import type {
 	AtRuleMatcher,
 	AtRuleWithinMatcher,
+	BlankLineCondition,
+	BlankLinePolicy,
+	BlankLines,
 	GroupMatcher,
 	GroupOrder,
 	GroupSequence,
@@ -23,6 +26,7 @@ import type {
 	SelectorListSequence,
 	SelectorSetMatcher,
 	UnspecifiedOrder,
+	UnspecifiedOrderOptions,
 	WithinMatcher,
 	WithinOrder,
 	WithinSequence,
@@ -99,11 +103,43 @@ const vOrderSortPreset: v.GenericSchema<OrderSortPreset> = v.union([
 ]);
 
 const vOrderSort: v.GenericSchema<OrderSort> = v.union([vOrderSorter, vOrderSortPreset]);
-const vEmptyLineBefore = v.picklist(['always', 'never', 'threshold']);
-const vPropertyThreshold = v.pipe(v.number(), v.integer(), v.minValue(0));
+const vItemThreshold = v.pipe(v.number(), v.integer(), v.minValue(0));
+const vItemScope = v.optional(v.picklist(['container', 'group', 'previous-group', 'next-group']));
+const vBlankLineMode = v.picklist(['always', 'never', 'ignore']);
+const vBlankLineCondition = v.lazy(getBlankLineExpression);
+const vBlankLineConditions = vReadonly(v.tupleWithRest([vBlankLineCondition], vBlankLineCondition));
+const vBlankLineExpression = v.union([
+	v.picklist(['first-nested', 'last-nested', 'inside-single-line-block', 'separated-by-comment']),
+	v.strictObject({ minItems: vItemThreshold, scope: vItemScope }),
+	v.strictObject({ maxItems: vItemThreshold, scope: vItemScope }),
+	v.strictObject({ any: vBlankLineConditions }),
+	v.strictObject({ all: vBlankLineConditions }),
+	v.strictObject({ not: vBlankLineCondition }),
+]) satisfies v.GenericSchema<BlankLineCondition>;
+
+function getBlankLineExpression(): v.GenericSchema<BlankLineCondition> {
+	return vBlankLineExpression;
+}
+
+const vBlankLineRule = v.strictObject({ when: vBlankLineCondition, mode: vBlankLineMode });
+const vBlankLinePolicy: v.GenericSchema<BlankLinePolicy> = v.union([
+	vBlankLineMode,
+	v.strictObject({
+		default: v.optional(vBlankLineMode),
+		rules: vReadonly(v.tupleWithRest([vBlankLineRule], vBlankLineRule)),
+	}),
+]);
+const vBlankLines: v.GenericSchema<BlankLines> = v.strictObject({
+	before: v.optional(vBlankLinePolicy),
+	after: v.optional(vBlankLinePolicy),
+	between: v.optional(vBlankLinePolicy),
+});
+const vUnspecifiedOrderOptions: v.GenericSchema<UnspecifiedOrder | UnspecifiedOrderOptions> = v.union([
+	vUnspecifiedOrder,
+	v.strictObject({ position: v.picklist(['top', 'bottom']), blankLines: v.optional(vBlankLines) }),
+]);
 const groupSpacingEntries = {
-	emptyLineBefore: v.optional(vEmptyLineBefore),
-	noEmptyLineBetween: v.optional(v.boolean()),
+	blankLines: v.optional(vBlankLines),
 	groupName: v.optional(v.string()),
 };
 const vPropertyMatcher = v.union([v.pipe(v.string(), v.minLength(1)), v.instance(RegExp)]);
@@ -179,10 +215,8 @@ const createWithinOrderSchema = <Matcher extends WithinMatcher>(matcher: v.Gener
 		order,
 		v.strictObject({
 			order: v.optional(order),
-			unspecified: v.optional(vUnspecifiedOrder),
+			unspecified: v.optional(vUnspecifiedOrderOptions),
 			sort: v.optional(vOrderSort),
-			emptyLineBeforeUnspecified: v.optional(vEmptyLineBefore),
-			emptyLineMinimumPropertyThreshold: v.optional(vPropertyThreshold),
 		}),
 	]) satisfies v.GenericSchema<WithinOrder<Matcher>>;
 };
@@ -212,15 +246,14 @@ export const schema = {
 	primary: v.literal(true) satisfies v.GenericSchema<PrimaryOption>,
 	secondary: v.optional(v.pipe(v.object({
 		order: v.optional(vOrderSequence),
-		unspecified: v.optional(vUnspecifiedOrder),
+		unspecified: v.optional(vUnspecifiedOrderOptions),
 		root: v.optional(v.strictObject({
 			order: v.optional(vOrderSequence),
-			unspecified: v.optional(vUnspecifiedOrder),
+			unspecified: v.optional(vUnspecifiedOrderOptions),
 		})),
 		within: v.optional(vWithin),
 		groups: v.optional(vReadonly(v.record(v.string(), vGroupOrder))),
 		selectorList: v.optional(v.union([v.literal(false), vSelectorListOrder])),
-		emptyLineMinimumPropertyThreshold: v.optional(vPropertyThreshold),
 		separators: vSeparatorsSchema,
 	}), v.check((options) => [...(options.order ?? []), ...(options.root?.order ?? [])].flat().every((matcher) => {
 		return !isString(matcher) || !matcher.startsWith('group:')
