@@ -37,6 +37,8 @@ const vOrderCategory = v.picklist([
 	'sass:functions',
 	'sass:mixins',
 	'sass:placeholders',
+	'css:functions',
+	'css:mixins',
 	'custom-properties',
 	'declarations',
 	'at-rules',

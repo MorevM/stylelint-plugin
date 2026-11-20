@@ -145,8 +145,8 @@ const isWithinMatch = (matcher: WithinSequence[number], item: OrderItem, family?
 		return !family && Boolean(item.selector && matchesSelectorSet(matcher.selectorSet, item.selector.localSelectors));
 	}
 
-	if (item.sassDefinition && (isString(matcher) || isRegExp(matcher))) {
-		return matcher === '*' || matchesValue(matcher, item.sassDefinition.name);
+	if (item.atRuleMember && (isString(matcher) || isRegExp(matcher))) {
+		return matcher === '*' || matchesValue(matcher, item.atRuleMember.name);
 	}
 
 	if (isRegExp(matcher)) {
@@ -359,8 +359,8 @@ const createOrderConfig = (options: SecondaryOption) => {
 			: -1;
 		const selector = family ? undefined : item.selector;
 		const isPlaceholder = categories[0] === 'sass:placeholders';
-		const specificCategories = item.sassDefinition
-			? [item.sassDefinition.category]
+		const specificCategories = item.atRuleMember
+			? [item.atRuleMember.category]
 			: selector && (selector.isList || isPlaceholder) ? selector.categories : undefined;
 		let category: OrderCategory = selector?.isList && !isPlaceholder ? 'rules' : categories[0];
 		if (rank === -1 || specificCategories) {
@@ -413,6 +413,8 @@ const createOrderConfig = (options: SecondaryOption) => {
 			};
 		}
 
+		// A definition can inherit the generic at-rule order until it has its own override.
+		if (item.atRuleMember && !within.has(category) && within.has('at-rules')) category = 'at-rules';
 		const settings = within.get(category);
 		const categoryOrder = settings?.order ?? DEFAULT_WITHIN[category] ?? REMAINDER;
 		const inner = categoryOrder.findIndex((matcher) => isWithinMatch(matcher, item, family));

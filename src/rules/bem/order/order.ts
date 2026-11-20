@@ -8,7 +8,7 @@ import { resolveSelectorNodes, splitSelectorCompounds } from '#modules/selectors
 import { schema } from './order.schema';
 import {
 	createContentInsertionChecker, createOrderConfig, createOrderDiagnostics, createOrderMoves, createOrderSpacing,
-	findPropertyOrderConflict, getOrderHeader, getSassDefinition, hasSassPlaceholder, isPreambleBoundary, isSassBoundary,
+	findPropertyOrderConflict, getAtRuleMember, getOrderHeader, hasSassPlaceholder, isPreambleBoundary, isSassBoundary,
 	normalizeParameters, OrderSortError, resolveOrderSelector, sortOrderItems, sortSelectorList,
 } from './utils';
 import type { AtRule, ChildNode, Container, Document, Root, Rule } from 'postcss';
@@ -242,8 +242,11 @@ export default createRule({
 			}
 
 			const selector = node.type === 'rule' ? selectors.get(node) : undefined;
+			const atRuleMember = getAtRuleMember(node);
+			const isCssDefinition = atRuleMember?.category === 'css:functions' || atRuleMember?.category === 'css:mixins';
 			const isBoundary = selector === null || isDisabled(node) || hasStylelintDirective(node)
-				|| isSassBoundary(node, isRoot) || isPreambleBoundary(node) || hasContentInsertion(node);
+				|| (!isRoot && isCssDefinition) || isSassBoundary(node, isRoot)
+				|| isPreambleBoundary(node) || hasContentInsertion(node);
 			if (isBoundary) {
 				flush();
 			} else {
@@ -255,7 +258,7 @@ export default createRule({
 					node,
 					nodes: [...leading, node],
 					selector: selector ? { ...selector, path: selector.path.slice(shared) } : undefined,
-					sassDefinition: getSassDefinition(node),
+					atRuleMember,
 				});
 				leading.length = 0;
 			}

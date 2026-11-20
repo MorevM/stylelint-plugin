@@ -162,16 +162,16 @@ export type OrderItem = {
 	selector?: SelectorOrder;
 
 	/**
-	 * Sass member declared by this at-rule, used for category-local ordering.
+	 * Static name declared by this at-rule, used for category-local ordering.
 	 */
-	sassDefinition?: {
+	atRuleMember?: {
 		/**
-		 * Distinguishes function definitions from mixin definitions.
+		 * Semantic category for this definition.
 		 */
-		category: 'sass:functions' | 'sass:mixins';
+		category: 'sass:functions' | 'sass:mixins' | 'css:functions' | 'css:mixins';
 
 		/**
-		 * Declared identifier without parameters, retaining underscores and hyphens.
+		 * Declared member name without parameters.
 		 */
 		name: string;
 	};
