@@ -22,7 +22,6 @@ const localRuleOverrides = defineLocalRules({
 					'css:mixins',
 					'sass:placeholders',
 					'sass:includes',
-					{ type: 'at-rule', name: 'extend' },
 					{ type: 'at-rule', name: 'debug' },
 					{ type: 'at-rule', name: 'warn' },
 					{ type: 'at-rule', name: 'error' },
