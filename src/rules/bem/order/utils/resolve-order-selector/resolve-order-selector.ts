@@ -21,6 +21,21 @@ const canonicalSelector = (nodes: parser.Node[]) => {
 };
 
 /**
+ * Checks an authored selector branch for a Sass placeholder outside functional pseudo arguments.
+ *
+ * @param   nodes   Top-level nodes of one selector branch.
+ *
+ * @returns         Whether a simple selector contains an unescaped placeholder.
+ */
+const hasSassPlaceholder = (nodes: parser.Node[]) => nodes.some((node) => {
+	if (node.type !== 'tag' && node.type !== 'class' && node.type !== 'id' && node.type !== 'pseudo') return false;
+
+	// The CSS parser can keep a placeholder in the preceding identifier, as in `.button%control`.
+	const identifier = node.type === 'pseudo' ? node.value : node.toString();
+	return /(?:^|[^\\])(?:\\\\)*%(?=[\w\P{ASCII}\-\\]|#\{)/u.test(identifier);
+});
+
+/**
  * Resolves one selector branch while keeping conditions inside their owning families.
  * `null` marks unsafe selectors; `undefined` leaves non-BEM rules to authored matchers.
  *
@@ -35,8 +50,6 @@ const resolveBranch = (
 	separators: Separators,
 	knownTargets: Set<string>,
 ): SelectorOrder | null | undefined => {
-	if (selectorNodesToString(resolved).includes('#{')) return null;
-
 	const compounds = splitSelectorCompounds(resolved);
 	const target = compounds.at(-1);
 	if (!target) return null;
@@ -121,13 +134,31 @@ const resolveBranch = (
  *
  * @returns                Semantic classification, an unsafe boundary, or a generic rule.
  */
-export const resolveOrderSelector = (
+const resolveOrderSelector = (
 	node: Rule,
 	separators: Separators,
 	knownTargets: Set<string>,
 	source?: string,
 ): SelectorOrder | null | undefined => {
 	const branches = resolveSelectorNodes({ node, source });
+	if (branches.some(({ resolved }) => selectorNodesToString(resolved).includes('#{'))) return null;
+
+	const authored = source ?? node.selector;
+	if (authored.includes('%')) {
+		const placeholders = branches.filter((branch) => hasSassPlaceholder(branch.source));
+		if (placeholders.length) {
+			if (placeholders.length !== branches.length) return undefined;
+
+			return {
+				path: [],
+				categories: ['sass:placeholders'],
+				tokens: [authored],
+				localSelectors: [],
+				isList: !source && node.selectors.length > 1,
+			};
+		}
+	}
+
 	const selectors = branches.map(({ resolved }) => resolveBranch(resolved, separators, knownTargets));
 	if (selectors.length === 1) return selectors[0];
 
@@ -149,3 +180,5 @@ export const resolveOrderSelector = (
 		relativeSelector: selectors.map((selector) => selector!.relativeSelector).join(','),
 	};
 };
+
+export { hasSassPlaceholder, resolveOrderSelector };

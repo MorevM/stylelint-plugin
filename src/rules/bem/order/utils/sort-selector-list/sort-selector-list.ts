@@ -51,7 +51,7 @@ export const sortSelectorList = (
 
 	if (shouldInherit) {
 		const first = branches[0].selector;
-		if (!first || first.isList) return node.selector;
+		if (!first?.path.length || first.isList) return node.selector;
 		if (branches.some(({ selector }) => !selector || selector.isList
 			|| !deepEqual(selector.path, first.path) || !deepEqual(selector.categories, first.categories))) {
 			return node.selector;

@@ -297,7 +297,7 @@ export default {
           'sass:variables',
           { type: 'at-rule', name: 'function' },
           { type: 'at-rule', name: 'mixin' },
-          { type: 'rule', selector: /^%/ },
+          'sass:placeholders',
           { type: 'at-rule', name: 'include' },
           { type: 'at-rule', name: 'extend' },
           { type: 'at-rule', name: 'debug' },
@@ -353,7 +353,7 @@ and [`within`][within-option] for the default order of states and pseudo-element
   'context:external',
   'pseudo-elements',
   'elements',
-  'rules',
+  ['sass:placeholders', 'rules'],
   '*',
 ]
 ```
@@ -403,6 +403,14 @@ Each category can also be used as a key in `within`.
 
 - `at-rules` — `@media print {}`
 - `rules` — `h2 {}`
+
+**Sass placeholder selectors**
+
+- `sass:placeholders` — `%reset:hover {}`, `%reset, %clearfix {}`
+
+Each selector in the list must contain a placeholder outside pseudo-class arguments.
+A mixed list like `%reset, button {}` stays in `rules` in either order.
+Inside a selector, placeholders share a rank with ordinary rules by default.
 
 **BEM families and their base styles**
 
@@ -651,7 +659,7 @@ Media wrappers are never attached to a BEM family; there is no `groupBy` option.
     'sass:variables',
     { type: 'at-rule', name: 'function' },
     { type: 'at-rule', name: 'mixin' },
-    { type: 'rule', selector: /^%/ },
+    'sass:placeholders',
     { type: 'at-rule', name: 'include' },
     { type: 'at-rule', name: 'extend' },
     { type: 'at-rule', name: 'debug' },
@@ -667,7 +675,7 @@ Media wrappers are never attached to a BEM family; there is no `groupBy` option.
 
 :::
 
-The default places Sass variables, definitions, standalone placeholders, calls, and diagnostics before selector families.
+The default places Sass variables, definitions, placeholders, calls, and diagnostics before selector families.
 These Sass constructs share an equal rank to preserve their authored order;
 for example, a function stays before a variable that calls it.
 Ordinary CSS at-rules, including media queries, follow selector families.

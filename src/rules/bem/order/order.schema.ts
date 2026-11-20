@@ -34,6 +34,7 @@ import type {
 
 const vOrderCategory = v.picklist([
 	'sass:variables',
+	'sass:placeholders',
 	'custom-properties',
 	'declarations',
 	'at-rules',

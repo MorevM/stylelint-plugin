@@ -18,7 +18,7 @@ const localRuleOverrides = defineLocalRules({
 					'sass:variables',
 					{ type: 'at-rule', name: 'function' },
 					{ type: 'at-rule', name: 'mixin' },
-					{ type: 'rule', selector: /^%/u },
+					'sass:placeholders',
 					{ type: 'at-rule', name: 'include' },
 					{ type: 'at-rule', name: 'extend' },
 					{ type: 'at-rule', name: 'debug' },

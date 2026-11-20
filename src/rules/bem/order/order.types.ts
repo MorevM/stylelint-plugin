@@ -7,6 +7,7 @@ import type { Separators } from '#modules/shared';
  */
 export type OrderCategory =
 	| 'sass:variables'
+	| 'sass:placeholders'
 	| 'custom-properties'
 	| 'declarations'
 	| 'at-rules'

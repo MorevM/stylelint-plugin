@@ -353,11 +353,13 @@ const createOrderConfig = (options: SecondaryOption) => {
 				return Boolean(selected);
 			})
 			: -1;
-		const selectorList = !family && item.selector?.isList ? item.selector : undefined;
-		let category: OrderCategory = selectorList ? 'rules' : categories[0];
-		if (rank === -1 || selectorList) {
-			// Resolve list categories from configuration before considering the generic rule fallback.
-			const categoryGroups: OrderCategory[][] = selectorList ? [selectorList.categories, ['rules']] : [categories];
+		const selector = family ? undefined : item.selector;
+		const isPlaceholder = categories[0] === 'sass:placeholders';
+		const hasFallback = selector && (selector.isList || isPlaceholder);
+		let category: OrderCategory = selector?.isList && !isPlaceholder ? 'rules' : categories[0];
+		if (rank === -1 || hasFallback) {
+			// Lists and placeholder rules take their specific category even if the generic fallback appears first.
+			const categoryGroups: OrderCategory[][] = hasFallback ? [selector.categories, ['rules']] : [categories];
 			for (const eligible of categoryGroups) {
 				let categoryMatch: ExpandedMatcher | undefined;
 				const categoryRank = order.findIndex((entries) => {

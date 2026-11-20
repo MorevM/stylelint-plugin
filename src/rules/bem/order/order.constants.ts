@@ -5,7 +5,7 @@ export const DEFAULT_ROOT_ORDER: OrderSequence = [
 		'sass:variables',
 		{ type: 'at-rule', name: 'function' },
 		{ type: 'at-rule', name: 'mixin' },
-		{ type: 'rule', selector: /^%/u },
+		'sass:placeholders',
 		{ type: 'at-rule', name: 'include' },
 		{ type: 'at-rule', name: 'extend' },
 		{ type: 'at-rule', name: 'debug' },
@@ -33,7 +33,7 @@ export const DEFAULT_ORDER: OrderSequence = [
 	'context:external',
 	'pseudo-elements',
 	'elements',
-	'rules',
+	['sass:placeholders', 'rules'],
 	'*',
 ];
 

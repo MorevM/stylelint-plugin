@@ -8,8 +8,8 @@ import { resolveSelectorNodes, splitSelectorCompounds } from '#modules/selectors
 import { schema } from './order.schema';
 import {
 	createContentInsertionChecker, createOrderConfig, createOrderDiagnostics, createOrderMoves, createOrderSpacing,
-	findPropertyOrderConflict, getOrderHeader, isPreambleBoundary, isSassBoundary, normalizeParameters,
-	OrderSortError, resolveOrderSelector, sortOrderItems, sortSelectorList,
+	findPropertyOrderConflict, getOrderHeader, hasSassPlaceholder, isPreambleBoundary, isSassBoundary,
+	normalizeParameters, OrderSortError, resolveOrderSelector, sortOrderItems, sortSelectorList,
 } from './utils';
 import type { AtRule, ChildNode, Container, Document, Root, Rule } from 'postcss';
 import type { OrderItem, OrderScopes, SelectorOrder } from './order.internal-types';
@@ -59,7 +59,7 @@ export default createRule({
 	// Collect unambiguous BEM targets before resolving selectors with multiple possible owners.
 	root.walkRules((node) => {
 		const branches = resolveSelectorNodes({ node });
-		if (branches.length !== 1) return;
+		if (branches.length !== 1 || (node.selector.includes('%') && hasSassPlaceholder(branches[0].source))) return;
 
 		const target = splitSelectorCompounds(branches[0].resolved).at(-1);
 		if (!target) return;
@@ -102,7 +102,7 @@ export default createRule({
 			const headers: [string, string] = [getOrderHeader(first.node), getOrderHeader(second.node)];
 
 			pendingReports.push(() => report({
-				node: second.node, message: messages.unsafeOrder(headers[0], headers[1]),
+				node: second.node, message: messages.unsafeOrder,
 				messageArgs: headers, index: 0, endIndex: headers[1].length,
 			}));
 			return;
@@ -166,7 +166,7 @@ export default createRule({
 			for (const violation of violations) {
 				report({
 					node: violation.node,
-					message: messages[violation.message](violation.header, violation.anchor),
+					message: () => messages[violation.message](violation.header, violation.anchor),
 					messageArgs: [violation.message, violation.header, violation.anchor],
 					index: 0,
 					endIndex: violation.endIndex,
@@ -176,7 +176,7 @@ export default createRule({
 
 			for (const edit of spacing) {
 				report({
-					node: edit.reportNode, message: messages[edit.message](edit.header),
+					node: edit.reportNode, message: messages[edit.message],
 					messageArgs: [edit.header], index: 0, endIndex: 1, fix,
 				});
 			}
@@ -201,7 +201,7 @@ export default createRule({
 			const selector = sortSelectorList(container, secondary.selectorList, config, separators, knownTargets);
 			if (selector !== container.selector) {
 				pendingReports.push(() => report({
-					node: container, message: messages.selectorList(selector), messageArgs: [selector],
+					node: container, message: messages.selectorList, messageArgs: [selector],
 					index: 0, endIndex: container.selector.length,
 					fix: () => { container.selector = selector; },
 				}));

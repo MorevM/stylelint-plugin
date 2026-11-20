@@ -137,9 +137,9 @@ export type SelectorOrder = {
 	isList: boolean;
 
 	/**
-	 * Canonical selector with the BEM subject represented by `&`.
+	 * Canonical selector with the BEM subject represented by `&`, when it has one.
 	 */
-	relativeSelector: string;
+	relativeSelector?: string;
 };
 
 /**
