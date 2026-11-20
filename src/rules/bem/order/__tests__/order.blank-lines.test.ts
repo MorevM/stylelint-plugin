@@ -1259,18 +1259,20 @@ describe('Invalid conditional spacing', () => {
 });
 
 testRule({
-	description: 'Shared unmatched group formatting',
+	description: 'Independent formatting for unmatched root and nested items',
 	config: [true, {
+		root: { order: ['rules'] },
 		order: ['declarations'],
 		unspecified: { position: 'top', blankLines: { after: 'always' } },
 	} satisfies SecondaryOption],
 	reject: [{
-		description: 'Places unmatched custom properties first and separates them from declarations',
+		description: 'Applies the nested position and blank lines only inside the selector',
 		code: `
 			.card {
 				color: red;
 				--theme: red;
 			}
+			@media print {}
 		`,
 		fixed: `
 			.card {
@@ -1278,6 +1280,7 @@ testRule({
 
 				color: red;
 			}
+			@media print {}
 		`,
 		warnings: [
 			{ message: messages.expectedBefore('--theme', 'color') },

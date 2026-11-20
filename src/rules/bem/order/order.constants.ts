@@ -14,7 +14,6 @@ export const DEFAULT_ROOT_ORDER: OrderSequence = [
 	'custom-properties',
 	'rules',
 	'at-rules',
-	'*',
 ];
 
 export const DEFAULT_ORDER: OrderSequence = [

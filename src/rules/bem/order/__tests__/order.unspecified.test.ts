@@ -1,4 +1,5 @@
 import rule from '../order';
+import { DEFAULT_ROOT_ORDER } from '../order.constants';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
@@ -64,6 +65,29 @@ testRule({
 			{ message: messages.expectedBefore('.card__title', '.card__icon') },
 			{ message: messages.expectedBefore('.card__unknown:hover', '.card__unknown:active') },
 		],
+	}],
+});
+
+describe('Default root order', () => {
+	it('Leaves unmatched items to root.unspecified', () => {
+		expect(DEFAULT_ROOT_ORDER).not.toContain('*');
+	});
+});
+
+testRule({
+	description: 'Unspecified at-rules at the top of the stylesheet',
+	config: [true, { root: { order: ['rules'], unspecified: 'top' } }],
+	reject: [{
+		description: 'Moves an unmatched media query before a selector',
+		code: `
+			.card {}
+			@media print {}
+		`,
+		fixed: `
+			@media print {}
+			.card {}
+		`,
+		warnings: [{ message: messages.expectedBefore('@media print', '.card') }],
 	}],
 });
 

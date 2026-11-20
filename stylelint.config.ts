@@ -29,8 +29,8 @@ const localRuleOverrides = defineLocalRules({
 				'group:media',
 				{ type: 'at-rule', name: 'container' },
 				'at-rules',
-				'*',
 			],
+			unspecified: 'bottom',
 		},
 
 		order: [

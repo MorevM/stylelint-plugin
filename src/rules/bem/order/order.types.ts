@@ -622,7 +622,7 @@ export type SecondaryOption = {
 	order?: OrderSequence;
 
 	/**
-	 * Placement of units not matched by `order`, also inherited by the document order.
+	 * Placement of units not matched by `order` inside selectors and semantic families.
 	 *
 	 * @default 'bottom'
 	 */
@@ -642,7 +642,9 @@ export type SecondaryOption = {
 		order?: OrderSequence;
 
 		/**
-		 * Overrides the shared unmatched-unit policy at stylesheet level.
+		 * Placement of units not matched by `root.order` at stylesheet level.
+		 *
+		 * @default 'bottom'
 		 */
 		unspecified?: UnspecifiedOrder | UnspecifiedOrderOptions;
 	};
