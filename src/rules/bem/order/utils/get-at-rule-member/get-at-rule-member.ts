@@ -21,7 +21,7 @@ const readIdentifier = (source: string) => {
 };
 
 /**
- * Reads the static name from a CSS or Sass definition or a Sass mixin call.
+ * Identifies CSS and Sass definitions, Sass mixin calls, and Sass diagnostics.
  *
  * @param   node   Authored node being classified.
  *
@@ -29,6 +29,10 @@ const readIdentifier = (source: string) => {
  */
 export const getAtRuleMember = (node: ChildNode): OrderItem['atRuleMember'] => {
 	if (node.type !== 'atrule') return undefined;
+	if (!node.nodes && ['debug', 'warn', 'error'].includes(node.name)) {
+		return { category: 'sass:diagnostics', name: node.name };
+	}
+
 	const directive = node.name.toLowerCase();
 	const isInclude = node.name === 'include';
 	if (!isInclude && (!node.nodes || (directive !== 'function' && directive !== 'mixin'))) return undefined;

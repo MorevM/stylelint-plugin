@@ -39,6 +39,7 @@ const vOrderCategory = v.picklist([
 	'sass:includes',
 	'sass:include-statements',
 	'sass:include-blocks',
+	'sass:diagnostics',
 	'sass:placeholders',
 	'css:functions',
 	'css:mixins',

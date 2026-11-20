@@ -12,6 +12,7 @@ export type OrderCategory =
 	| 'sass:includes'
 	| 'sass:include-statements'
 	| 'sass:include-blocks'
+	| 'sass:diagnostics'
 	| 'sass:placeholders'
 	| 'css:functions'
 	| 'css:mixins'
