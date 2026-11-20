@@ -33,7 +33,7 @@ import type {
 } from './order.types';
 
 const vOrderCategory = v.picklist([
-	'dollar-variables',
+	'sass:variables',
 	'custom-properties',
 	'declarations',
 	'at-rules',

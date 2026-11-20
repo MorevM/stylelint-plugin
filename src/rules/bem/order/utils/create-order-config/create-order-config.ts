@@ -341,7 +341,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 			if (node.type === 'rule') return [...(item.selector?.categories ?? []), 'rules'];
 			if (node.type === 'atrule') return ['at-rules'];
 			if (node.type !== 'decl') return [];
-			if (node.prop.startsWith('$')) return ['dollar-variables'];
+			if (node.prop.startsWith('$')) return ['sass:variables'];
 			if (node.prop.startsWith('--')) return ['custom-properties'];
 			return ['declarations'];
 		})();

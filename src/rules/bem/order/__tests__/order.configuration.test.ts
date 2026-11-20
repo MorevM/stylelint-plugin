@@ -355,7 +355,7 @@ describe('bem/order configuration types and transformations', () => {
 							return items;
 						},
 					},
-					'dollar-variables': (defaults) => {
+					'sass:variables': (defaults) => {
 						expectTypeOf(defaults).toEqualTypeOf<WithinSequence>();
 
 						return [/^\$_/, ...defaults];
@@ -371,7 +371,7 @@ describe('bem/order configuration types and transformations', () => {
 			}],
 		});
 		const parsed = v.parse(schema.secondary, rules['@morev/bem/order'][1]);
-		const transform = parsed?.within?.['dollar-variables'];
+		const transform = parsed?.within?.['sass:variables'];
 		const atRules = parsed?.within?.['at-rules'];
 		const defaults = [['$size', '$gap'], '*'] as const;
 

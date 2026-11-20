@@ -15,7 +15,7 @@ const localRuleOverrides = defineLocalRules({
 		root: {
 			order: [
 				[
-					'dollar-variables',
+					'sass:variables',
 					{ type: 'at-rule', name: 'function' },
 					{ type: 'at-rule', name: 'mixin' },
 					{ type: 'rule', selector: /^%/u },
@@ -37,7 +37,7 @@ const localRuleOverrides = defineLocalRules({
 		order: [
 			{ type: 'at-rule', name: 'function' },
 
-			'dollar-variables',
+			'sass:variables',
 			'custom-properties',
 
 			{ type: 'at-rule', name: 'extend' },

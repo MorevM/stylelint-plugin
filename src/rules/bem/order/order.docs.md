@@ -241,7 +241,7 @@ export default {
       },
 
       order: [
-        'dollar-variables',
+        'sass:variables',
         'custom-properties',
         { type: 'at-rule', name: 'include', hasBlock: false },
         'declarations',
@@ -270,7 +270,7 @@ export default {
       selectorList: { order: 'inherit' },
 
       within: {
-        'dollar-variables': (defaults) => [/^\$_/, ...defaults],
+        'sass:variables': (defaults) => [/^\$_/, ...defaults],
         declarations: [
           'display',
           ['width', 'height'],
@@ -294,7 +294,7 @@ export default {
 
       groups: {
         sass: [[
-          'dollar-variables',
+          'sass:variables',
           { type: 'at-rule', name: 'function' },
           { type: 'at-rule', name: 'mixin' },
           { type: 'rule', selector: /^%/ },
@@ -339,7 +339,7 @@ and [`within`][within-option] for the default order of states and pseudo-element
 
 ```js
 [
-  'dollar-variables',
+  'sass:variables',
   'custom-properties',
   { type: 'at-rule', name: 'include', hasBlock: false },
   'declarations',
@@ -395,7 +395,7 @@ Each category can also be used as a key in `within`.
 
 **Variables and declarations**
 
-- `dollar-variables` — `$gap: 1rem;`
+- `sass:variables` — `$gap: 1rem;`
 - `custom-properties` — `--gap: 1rem;`
 - `declarations` — `gap: 1rem;`
 
@@ -576,7 +576,7 @@ For example:
 
 ```js
 {
-  order: ['dollar-variables', 'declarations', 'base', 'pseudo-classes', 'pseudo-elements'],
+  order: ['sass:variables', 'declarations', 'base', 'pseudo-classes', 'pseudo-elements'],
   within: {
     'pseudo-classes': [':hover', ':active', '*'],
     'pseudo-elements': ['::before', '::after', '*'],
@@ -648,7 +648,7 @@ Media wrappers are never attached to a BEM family; there is no `groupBy` option.
 ```js
 [
   [
-    'dollar-variables',
+    'sass:variables',
     { type: 'at-rule', name: 'function' },
     { type: 'at-rule', name: 'mixin' },
     { type: 'rule', selector: /^%/ },
@@ -711,7 +711,7 @@ For example, this puts Sass variables starting with `$_` first and keeps the def
 ```js
 {
   within: {
-    'dollar-variables': (defaults) => [/^\$_/u, ...defaults],
+    'sass:variables': (defaults) => [/^\$_/u, ...defaults],
   },
 }
 ```

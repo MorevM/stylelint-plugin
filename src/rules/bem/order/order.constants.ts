@@ -2,7 +2,7 @@ import type { OrderSequence, WithinSequence } from './order.types';
 
 export const DEFAULT_ROOT_ORDER: OrderSequence = [
 	[
-		'dollar-variables',
+		'sass:variables',
 		{ type: 'at-rule', name: 'function' },
 		{ type: 'at-rule', name: 'mixin' },
 		{ type: 'rule', selector: /^%/u },
@@ -19,7 +19,7 @@ export const DEFAULT_ROOT_ORDER: OrderSequence = [
 ];
 
 export const DEFAULT_ORDER: OrderSequence = [
-	'dollar-variables',
+	'sass:variables',
 	'custom-properties',
 	{ type: 'at-rule', name: 'include', hasBlock: false },
 	'declarations',

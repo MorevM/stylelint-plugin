@@ -6,7 +6,7 @@ import type { Separators } from '#modules/shared';
  * `base` positions the family's own rule; `declarations` positions property nodes inside rules.
  */
 export type OrderCategory =
-	| 'dollar-variables'
+	| 'sass:variables'
 	| 'custom-properties'
 	| 'declarations'
 	| 'at-rules'

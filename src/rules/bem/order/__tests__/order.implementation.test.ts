@@ -381,7 +381,7 @@ testRule({
 	description: 'Category overrides',
 	config: [true, {
 		within: {
-			'dollar-variables': (defaults: WithinSequence) => [/^\$_/u, ...defaults],
+			'sass:variables': (defaults: WithinSequence) => [/^\$_/u, ...defaults],
 			'at-rules': [
 				{ type: 'at-rule', name: 'include', hasBlock: false },
 				{ type: 'at-rule', name: 'include', hasBlock: true },
