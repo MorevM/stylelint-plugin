@@ -9,6 +9,9 @@ export type OrderCategory =
 	| 'sass:variables'
 	| 'sass:functions'
 	| 'sass:mixins'
+	| 'sass:includes'
+	| 'sass:include-statements'
+	| 'sass:include-blocks'
 	| 'sass:placeholders'
 	| 'css:functions'
 	| 'css:mixins'
@@ -91,7 +94,7 @@ export type OrderSortItem = Readonly<{
 
 	/**
 	 * Local family name, property name, at-rule name, or authored selector for a generic rule.
-	 * CSS and Sass definitions expose the declared name.
+	 * CSS and Sass definitions expose the declared name. Sass includes expose the called name, including its namespace.
 	 * Element families expose `title-icon`, without the block prefix or BEM separators.
 	 */
 	name: string;

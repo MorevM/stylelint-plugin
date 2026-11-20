@@ -19,7 +19,11 @@ const resolveDimension = (item: OrderSortItem) => {
 	const parsed = valueParser(value);
 	const dimensions: Array<{ value: number; unit: string }> = [];
 	let isAmbiguous = false;
-	const call = item.type === 'at-rule' && item.name === 'include'
+	const isInclude = (item.category === 'at-rules' && item.name === 'include')
+		|| item.category === 'sass:includes'
+		|| item.category === 'sass:include-statements'
+		|| item.category === 'sass:include-blocks';
+	const call = isInclude
 		? parsed.nodes.find((node) => node.type !== 'space' && node.type !== 'comment')
 		: undefined;
 

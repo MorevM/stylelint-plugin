@@ -21,7 +21,7 @@ const localRuleOverrides = defineLocalRules({
 					'css:functions',
 					'css:mixins',
 					'sass:placeholders',
-					{ type: 'at-rule', name: 'include' },
+					'sass:includes',
 					{ type: 'at-rule', name: 'extend' },
 					{ type: 'at-rule', name: 'debug' },
 					{ type: 'at-rule', name: 'warn' },
@@ -43,14 +43,14 @@ const localRuleOverrides = defineLocalRules({
 			'custom-properties',
 
 			{ type: 'at-rule', name: 'extend' },
-			{ type: 'at-rule', name: 'include', hasBlock: false },
+			'sass:include-statements',
 
 			'declarations',
 			'base',
 
 			'group:structural-pseudo-classes',
 
-			{ type: 'at-rule', name: 'include', hasBlock: true },
+			'sass:include-blocks',
 			{ type: 'at-rule', name: 'starting-style' },
 
 			'group:media',

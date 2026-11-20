@@ -368,6 +368,9 @@ const createOrderConfig = (options: SecondaryOption) => {
 			const categoryGroups: OrderCategory[][] = specificCategories
 				? [specificCategories, [node.type === 'atrule' ? 'at-rules' : 'rules']]
 				: [categories];
+			if (item.atRuleMember?.category === 'sass:includes' && node.type === 'atrule') {
+				categoryGroups.unshift([node.nodes ? 'sass:include-blocks' : 'sass:include-statements']);
+			}
 			for (const eligible of categoryGroups) {
 				let categoryMatch: ExpandedMatcher | undefined;
 				const categoryRank = order.findIndex((entries) => {
@@ -413,8 +416,11 @@ const createOrderConfig = (options: SecondaryOption) => {
 			};
 		}
 
-		// A definition can inherit the generic at-rule order until it has its own override.
-		if (item.atRuleMember && !within.has(category) && within.has('at-rules')) category = 'at-rules';
+		// Each include form can inherit the shared include order before falling back to generic at-rules.
+		if (item.atRuleMember && category !== 'at-rules' && !within.has(category)) {
+			if (within.has(item.atRuleMember.category)) category = item.atRuleMember.category;
+			else if (within.has('at-rules')) category = 'at-rules';
+		}
 		const settings = within.get(category);
 		const categoryOrder = settings?.order ?? DEFAULT_WITHIN[category] ?? REMAINDER;
 		const inner = categoryOrder.findIndex((matcher) => isWithinMatch(matcher, item, family));
