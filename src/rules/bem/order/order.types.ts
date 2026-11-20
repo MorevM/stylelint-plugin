@@ -7,6 +7,8 @@ import type { Separators } from '#modules/shared';
  */
 export type OrderCategory =
 	| 'sass:variables'
+	| 'sass:functions'
+	| 'sass:mixins'
 	| 'sass:placeholders'
 	| 'custom-properties'
 	| 'declarations'
@@ -87,6 +89,7 @@ export type OrderSortItem = Readonly<{
 
 	/**
 	 * Local family name, property name, at-rule name, or authored selector for a generic rule.
+	 * Sass function and mixin categories expose the declared member name.
 	 * Element families expose `title-icon`, without the block prefix or BEM separators.
 	 */
 	name: string;

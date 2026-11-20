@@ -1,5 +1,5 @@
 import { isAtRule } from '#modules/postcss/is-at-rule/is-at-rule';
-import type { Node } from 'postcss';
+import type { AtRule, Node } from 'postcss';
 
 /**
  * Recognizes function and mixin definition names using Sass's case-sensitive spelling.
@@ -9,6 +9,6 @@ import type { Node } from 'postcss';
  *
  * @returns        Whether the node has a Sass definition name.
  */
-export const isSassDefinition = (node: Node | undefined): boolean => {
+export const isSassDefinition = (node: Node | undefined): node is AtRule & { name: 'function' | 'mixin' } => {
 	return isAtRule(node, ['function', 'mixin']);
 };

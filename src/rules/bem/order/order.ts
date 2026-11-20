@@ -8,7 +8,7 @@ import { resolveSelectorNodes, splitSelectorCompounds } from '#modules/selectors
 import { schema } from './order.schema';
 import {
 	createContentInsertionChecker, createOrderConfig, createOrderDiagnostics, createOrderMoves, createOrderSpacing,
-	findPropertyOrderConflict, getOrderHeader, hasSassPlaceholder, isPreambleBoundary, isSassBoundary,
+	findPropertyOrderConflict, getOrderHeader, getSassDefinition, hasSassPlaceholder, isPreambleBoundary, isSassBoundary,
 	normalizeParameters, OrderSortError, resolveOrderSelector, sortOrderItems, sortSelectorList,
 } from './utils';
 import type { AtRule, ChildNode, Container, Document, Root, Rule } from 'postcss';
@@ -255,6 +255,7 @@ export default createRule({
 					node,
 					nodes: [...leading, node],
 					selector: selector ? { ...selector, path: selector.path.slice(shared) } : undefined,
+					sassDefinition: getSassDefinition(node),
 				});
 				leading.length = 0;
 			}

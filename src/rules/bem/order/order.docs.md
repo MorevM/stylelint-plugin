@@ -295,8 +295,10 @@ export default {
       groups: {
         sass: [[
           'sass:variables',
-          { type: 'at-rule', name: 'function' },
-          { type: 'at-rule', name: 'mixin' },
+          'sass:functions',
+          'sass:mixins',
+          { type: 'at-rule', name: 'function', parameter: /^--/u },
+          { type: 'at-rule', name: 'mixin', parameter: /^--/u },
           'sass:placeholders',
           { type: 'at-rule', name: 'include' },
           { type: 'at-rule', name: 'extend' },
@@ -404,11 +406,13 @@ Each category can also be used as a key in `within`.
 - `at-rules` — `@media print {}`
 - `rules` — `h2 {}`
 
-**Sass placeholder selectors**
+**Sass definitions**
 
+- `sass:functions` — `@function tone($color) { @return $color; }`
+- `sass:mixins` — `@mixin respond-to($width) {}`
 - `sass:placeholders` — `%reset:hover {}`, `%reset, %clearfix {}`
 
-Each selector in the list must contain a placeholder outside pseudo-class arguments.
+For placeholders, each selector in the list must contain a placeholder outside pseudo-class arguments.
 A mixed list like `%reset, button {}` stays in `rules` in either order.
 Inside a selector, placeholders share a rank with ordinary rules by default.
 
@@ -657,8 +661,10 @@ Media wrappers are never attached to a BEM family; there is no `groupBy` option.
 [
   [
     'sass:variables',
-    { type: 'at-rule', name: 'function' },
-    { type: 'at-rule', name: 'mixin' },
+    'sass:functions',
+    'sass:mixins',
+    { type: 'at-rule', name: 'function', parameter: /^--/u },
+    { type: 'at-rule', name: 'mixin', parameter: /^--/u },
     'sass:placeholders',
     { type: 'at-rule', name: 'include' },
     { type: 'at-rule', name: 'extend' },
@@ -675,9 +681,9 @@ Media wrappers are never attached to a BEM family; there is no `groupBy` option.
 
 :::
 
-The default places Sass variables, definitions, placeholders, calls, and diagnostics before selector families.
-These Sass constructs share an equal rank to preserve their authored order;
-for example, a function stays before a variable that calls it.
+The default puts Sass variables, definitions, placeholders, calls, and diagnostics before selector families.
+CSS definitions such as `@function --tone()` and `@mixin --theme` share this rank through at-rule matchers.
+Items at this rank keep their source order, so a function stays before a variable that calls it.
 Ordinary CSS at-rules, including media queries, follow selector families.
 At-rules of the same rank retain their first-appearance order unless shared `within['at-rules']` changes it.
 Omitting `root`, or supplying `root: {}`, uses these defaults even when `order` is customized.
@@ -756,6 +762,22 @@ within: {
   ],
 },
 ```
+
+In `sass:functions` and `sass:mixins`, strings, regular expressions, and name sorting use the declared member name.
+For example, this places private mixins first, followed by `respond-to`, then the remaining mixins.
+Names within each priority are sorted alphabetically.
+
+```js
+within: {
+  'sass:mixins': {
+    order: [/^[-_]/u, 'respond-to', '*'],
+    sort: { by: 'name' },
+  },
+},
+```
+
+The `at-rules` category covers Sass definitions when their category is omitted from the order.
+CSS functions such as `@function --tone()` and mixin calls such as `@include respond-to(40rem)` use `at-rules`.
 
 Other categories also accept literal strings and standalone regular expressions:
 
@@ -977,6 +999,8 @@ Each region and semantic level gets an independent batch in its original sibling
 Descriptions contain `type`, `name`, `category`, and `sourceIndex`.
 Families use `type: 'family'` and expose their local name (`title-icon`) and full identity in `key`.
 Other types are `rule`, `at-rule`, and `declaration`.
+In `sass:functions` and `sass:mixins`, an at-rule exposes the member name, such as `respond-to`.
+In `at-rules`, the same definition exposes the directive name, such as `mixin`.
 Where applicable, `selector`, normalized `parameter`, declaration `value`, and `hasBlock` are also provided.
 The input array and every description are frozen; no PostCSS nodes are exposed.
 

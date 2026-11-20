@@ -145,6 +145,10 @@ const isWithinMatch = (matcher: WithinSequence[number], item: OrderItem, family?
 		return !family && Boolean(item.selector && matchesSelectorSet(matcher.selectorSet, item.selector.localSelectors));
 	}
 
+	if (item.sassDefinition && (isString(matcher) || isRegExp(matcher))) {
+		return matcher === '*' || matchesValue(matcher, item.sassDefinition.name);
+	}
+
 	if (isRegExp(matcher)) {
 		if (item.node.type === 'decl') return matchesProperty(matcher, item.node.prop);
 		if (item.node.type === 'atrule') return false;
@@ -355,11 +359,15 @@ const createOrderConfig = (options: SecondaryOption) => {
 			: -1;
 		const selector = family ? undefined : item.selector;
 		const isPlaceholder = categories[0] === 'sass:placeholders';
-		const hasFallback = selector && (selector.isList || isPlaceholder);
+		const specificCategories = item.sassDefinition
+			? [item.sassDefinition.category]
+			: selector && (selector.isList || isPlaceholder) ? selector.categories : undefined;
 		let category: OrderCategory = selector?.isList && !isPlaceholder ? 'rules' : categories[0];
-		if (rank === -1 || hasFallback) {
-			// Lists and placeholder rules take their specific category even if the generic fallback appears first.
-			const categoryGroups: OrderCategory[][] = hasFallback ? [selector.categories, ['rules']] : [categories];
+		if (rank === -1 || specificCategories) {
+			// Check an explicitly configured semantic category before its generic fallback.
+			const categoryGroups: OrderCategory[][] = specificCategories
+				? [specificCategories, [node.type === 'atrule' ? 'at-rules' : 'rules']]
+				: [categories];
 			for (const eligible of categoryGroups) {
 				let categoryMatch: ExpandedMatcher | undefined;
 				const categoryRank = order.findIndex((entries) => {

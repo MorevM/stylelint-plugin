@@ -8,6 +8,7 @@ export * from './create-order-spacing/create-order-spacing';
 export * from './do-properties-overlap/do-properties-overlap';
 export * from './find-property-order-conflict/find-property-order-conflict';
 export * from './get-order-header/get-order-header';
+export * from './get-sass-definition/get-sass-definition';
 export * from './is-preamble-boundary/is-preamble-boundary';
 export * from './is-sass-boundary/is-sass-boundary';
 export * from './matches-selector-set/matches-selector-set';

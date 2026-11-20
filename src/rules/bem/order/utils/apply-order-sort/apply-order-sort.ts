@@ -53,10 +53,11 @@ const applyOrderSort = <T extends SortUnit>(
 ) => {
 	const descriptions: readonly OrderSortItem[] = Object.freeze(units.map(({ item, family, sourceIndex }) => {
 		const { node } = item;
+		const definitionName = item.sassDefinition?.category === category ? item.sassDefinition.name : undefined;
 
 		return Object.freeze({
 			type: family ? 'family' : node.type === 'atrule' ? 'at-rule' : node.type === 'decl' ? 'declaration' : 'rule',
-			name: family?.name ?? (node.type === 'atrule'
+			name: family?.name ?? definitionName ?? (node.type === 'atrule'
 				? node.name
 				: node.type === 'decl' ? node.prop : node.type === 'rule' ? node.selector : node.toString()),
 			category,
