@@ -2,6 +2,7 @@ import { isArray, isError, isPromise } from '@morev/utils';
 import * as v from 'valibot';
 import { vOrderSortPreset } from '../../order.schema';
 import { createOrderSorter } from '../create-order-sorter/create-order-sorter';
+import { getOrderSelectorText } from '../get-order-header/get-order-header';
 import { normalizeParameters } from '../normalize-parameters/normalize-parameters';
 import type { Family, OrderItem, PreparedOrderSorter } from '../../order.internal-types';
 import type { OrderCategory, OrderSortContext, OrderSortItem, OrderSortPreset } from '../../order.types';
@@ -53,17 +54,18 @@ const applyOrderSort = <T extends SortUnit>(
 ) => {
 	const descriptions: readonly OrderSortItem[] = Object.freeze(units.map(({ item, family, sourceIndex }) => {
 		const { node } = item;
-		const memberName = category === 'at-rules' ? undefined : item.atRuleMember?.name;
+		const selector = getOrderSelectorText(item);
+		const memberName = category === 'at-rules' ? undefined : item.atRuleMember?.name ?? selector;
 
 		return Object.freeze({
 			type: family ? 'family' : node.type === 'atrule' ? 'at-rule' : node.type === 'decl' ? 'declaration' : 'rule',
 			name: family?.name ?? memberName ?? (node.type === 'atrule'
 				? node.name
-				: node.type === 'decl' ? node.prop : node.type === 'rule' ? node.selector : node.toString()),
+				: node.type === 'decl' ? node.prop : selector ?? node.toString()),
 			category,
 			sourceIndex,
 			key: family?.key,
-			selector: node.type === 'rule' ? node.selector : undefined,
+			selector,
 			parameter: node.type === 'atrule' ? normalizeParameters(node.params) : undefined,
 			value: node.type === 'decl' ? node.value : undefined,
 			hasBlock: node.type === 'atrule' ? Boolean(node.nodes) : undefined,

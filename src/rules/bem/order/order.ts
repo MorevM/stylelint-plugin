@@ -4,7 +4,7 @@ import { isAtRule } from '#modules/postcss';
 import {
 	createDisabledRangeChecker, createRule, extractSeparators, hasStylelintDirective, isStylelintDirective,
 } from '#modules/rule-utils';
-import { resolveSelectorNodes, splitSelectorCompounds } from '#modules/selectors';
+import { resolveSelectorNodes, selectorNodesToString, splitSelectorCompounds } from '#modules/selectors';
 import { schema } from './order.schema';
 import {
 	createContentInsertionChecker, createOrderConfig, createOrderDiagnostics, createOrderMoves, createOrderSpacing,
@@ -54,12 +54,18 @@ export default createRule({
 	const separators = extractSeparators(secondary.separators);
 	const hasContentInsertion = createContentInsertionChecker();
 	const knownTargets = new Set<string>();
-	const selectors = new Map<Rule, SelectorOrder | null | undefined>();
+	const selectors = new Map<ChildNode, SelectorOrder | null | undefined>();
+	const selectorNodes: Array<Rule | AtRule> = [];
 
 	// Collect unambiguous BEM targets before resolving selectors with multiple possible owners.
-	root.walkRules((node) => {
+	root.walk((node) => {
+		if (node.type !== 'rule' && !isAtRule(node, ['at-root'])) return;
+		if (node.type === 'atrule' && (!node.nodes || !node.params || node.params.startsWith('('))) return;
+		selectorNodes.push(node);
 		const branches = resolveSelectorNodes({ node });
-		if (branches.length !== 1 || (node.selector.includes('%') && hasSassPlaceholder(branches[0].source))) return;
+		const authored = node.type === 'rule' ? node.selector : node.params;
+		if (branches.length !== 1 || (authored.includes('%') && hasSassPlaceholder(branches[0].source))) return;
+		if (node.type === 'atrule' && selectorNodesToString(branches[0].resolved).includes('#{')) return;
 
 		const target = splitSelectorCompounds(branches[0].resolved).at(-1);
 		if (!target) return;
@@ -69,10 +75,10 @@ export default createRule({
 	});
 
 	// Lists with a shared owner participate as whole rules, including when their local priority is unspecified.
-	root.walkRules((node) => {
+	for (const node of selectorNodes) {
 		const selector = resolveOrderSelector(node, separators, knownTargets);
-		selectors.set(node, selector);
-	});
+		if (node.type === 'rule' || selector) selectors.set(node, selector);
+	}
 
 	const isDisabled = createDisabledRangeChecker(result.stylelint, '@morev/bem/order');
 
@@ -81,9 +87,8 @@ export default createRule({
 
 	// Build the region's target order and fix plan without changing the AST.
 	const checkRegion = (
-		region: OrderItem[], container: Root | Rule | AtRule, isRoot: boolean, owner?: SelectorOrder | null,
+		items: OrderItem[], container: Root | Rule | AtRule, isRoot: boolean, owner?: SelectorOrder | null,
 	) => {
-		const items = [...region];
 		const scopes: OrderScopes = { hasIgnored: false, sequences: [], spacing: [] };
 		const sorted = sortOrderItems(items, config.getRank, {
 			isRoot, depth: 0,
@@ -208,16 +213,22 @@ export default createRule({
 			}
 		}
 
-		const own = container.type === 'rule' ? selectors.get(container) : parent;
+		const own = container.type !== 'root' && selectors.has(container) ? selectors.get(container) : parent;
 		const items: OrderItem[] = [];
 		const leading: ChildNode[] = [];
 		const spacingPlans: Array<(isSingleLine: boolean) => boolean> = [];
+		let hasHoistedQualifier = false;
+		let lastVariable = -1;
 
-		// Finish the current region before collecting nodes beyond a boundary.
-		const flush = () => {
-			const plan = checkRegion(items, container, isRoot, own);
+		// Finish a prefix while keeping any remaining siblings available to the next qualifier.
+		const planItems = (count: number) => {
+			const plan = checkRegion(items.splice(0, count), container, isRoot, own);
 			if (plan) spacingPlans.push(plan);
-			items.length = 0;
+			hasHoistedQualifier = false;
+			lastVariable = -1;
+		};
+		const flush = () => {
+			planItems(items.length);
 			leading.length = 0;
 		};
 
@@ -241,15 +252,25 @@ export default createRule({
 				continue;
 			}
 
-			const selector = node.type === 'rule' ? selectors.get(node) : undefined;
+			const selector = selectors.get(node);
+			const isHoistedQualifier = node.type === 'atrule' && Boolean(selector);
 			const atRuleMember = getAtRuleMember(node);
 			const isCssDefinition = atRuleMember?.category === 'css:functions' || atRuleMember?.category === 'css:mixins';
 			const isBoundary = selector === null || isDisabled(node) || hasStylelintDirective(node)
-				|| (!isRoot && isCssDefinition) || isSassBoundary(node, isRoot)
+				|| (!isRoot && isCssDefinition) || (!isHoistedQualifier && isSassBoundary(node, isRoot))
 				|| isPreambleBoundary(node) || hasContentInsertion(node);
 			if (isBoundary) {
 				flush();
 			} else {
+				// A hoisted selector or its body can read a variable at its current value.
+				if (isHoistedQualifier) {
+					if (lastVariable >= 0) planItems(lastVariable + 1);
+					hasHoistedQualifier = true;
+				} else if (node.type === 'decl' && node.prop.startsWith('$')) {
+					if (hasHoistedQualifier) planItems(items.length);
+					lastVariable = items.length;
+				}
+
 				// The inherited owner is already grouped; retain only the descendant family path.
 				let shared = 0;
 				while (own?.path[shared] && selector?.path[shared]?.key === own.path[shared].key) shared++;

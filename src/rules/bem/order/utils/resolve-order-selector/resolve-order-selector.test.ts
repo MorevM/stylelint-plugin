@@ -47,7 +47,7 @@ describe(resolveOrderSelector, () => {
 
 		expect(resolveOrderSelector(rule, DEFAULT_SEPARATORS, new Set(['.card']))).toMatchObject({
 			path: [{ key: '.card', category: 'rules' }],
-			categories: ['pseudo-classes', 'qualifiers:class'],
+			categories: ['pseudo-classes', 'qualifiers:class', 'qualifiers'],
 			relativeSelector: '&.button:hover',
 		});
 		expect(resolveOrderSelector(rule, DEFAULT_SEPARATORS, new Set(['.card', '.button']))).toBeNull();
@@ -123,7 +123,7 @@ describe(resolveOrderSelector, () => {
 		const selector = resolveOrderSelector(root.first as Rule, DEFAULT_SEPARATORS, new Set(['.card']));
 
 		expect(selector).toMatchObject({
-			categories: ['pseudo-classes'],
+			categories: ['pseudo-classes', 'qualifiers'],
 			isList: true,
 		});
 	});
@@ -136,10 +136,10 @@ describe(resolveOrderSelector, () => {
 		const [forward, reversed] = root.nodes as Rule[];
 
 		expect(resolveOrderSelector(forward, DEFAULT_SEPARATORS, new Set())).toMatchObject({
-			categories: ['pseudo-classes', 'qualifiers:attribute'],
+			categories: ['pseudo-classes', 'qualifiers', 'qualifiers:attribute'],
 		});
 		expect(resolveOrderSelector(reversed, DEFAULT_SEPARATORS, new Set())).toMatchObject({
-			categories: ['pseudo-classes', 'qualifiers:attribute'],
+			categories: ['pseudo-classes', 'qualifiers', 'qualifiers:attribute'],
 		});
 	});
 

@@ -1,5 +1,19 @@
 import { isEmpty } from '@morev/utils';
 import type { ChildNode } from 'postcss';
+import type { OrderItem } from '../../order.internal-types';
+
+/**
+ * Returns the authored selector for rule matchers and sorters, including inline Sass qualifiers.
+ *
+ * @param   item   Ordering unit with its resolved selector metadata.
+ *
+ * @returns        Selector text for a rule or a classified `@at-root` header.
+ */
+export const getOrderSelectorText = (item: OrderItem) => {
+	const { node, selector } = item;
+	if (node.type === 'rule') return node.selector;
+	return node.type === 'atrule' && selector ? node.params : undefined;
+};
 
 /**
  * Preserves authored header spacing and comments for diagnostics and source ranges.

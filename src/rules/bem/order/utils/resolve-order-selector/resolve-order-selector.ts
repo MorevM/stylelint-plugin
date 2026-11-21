@@ -4,7 +4,7 @@ import { resolveMostSpecificBemEntities } from '#modules/bem';
 import { isPseudoElementNode } from '#modules/postcss';
 import { resolveSelectorNodes, selectorNodesToString, splitSelectorCompounds } from '#modules/selectors';
 import { normalizeLocalSelector } from '../normalize-local-selector/normalize-local-selector';
-import type { Rule } from 'postcss';
+import type { AtRule, Rule } from 'postcss';
 import type { Separators } from '#modules/shared';
 import type { Family, SelectorOrder } from '../../order.internal-types';
 import type { OrderCategory } from '../../order.types';
@@ -103,6 +103,10 @@ const resolveBranch = (
 	if (conditions.some((part) => part.type === 'pseudo')) categories.push('pseudo-classes');
 	if (conditions.some((part) => part.type === 'class')) categories.push('qualifiers:class');
 	if (conditions.some((part) => part.type === 'attribute')) categories.push('qualifiers:attribute');
+	if (conditions.some((part) => part.type === 'tag')) categories.push('qualifiers:type');
+	if (categories.some((category) => category.startsWith('qualifiers:')) || conditions.some((part) => part.type === 'id')) {
+		categories.push('qualifiers');
+	}
 
 	// Replace parsed class nodes only; text inside attributes and functional pseudos is untouched.
 	const relative = resolved.map((part) => {
@@ -127,7 +131,7 @@ const resolveBranch = (
 /**
  * Keeps a selector list atomic within a shared BEM family, preferring categories common to every branch.
  *
- * @param   node           Authored selector rule.
+ * @param   node           Authored selector rule or selector-form Sass `@at-root`.
  * @param   separators     Configured BEM separators.
  * @param   knownTargets   Unambiguous targets declared elsewhere in the stylesheet.
  * @param   source         Optional authored branch, resolved in the original rule's context.
@@ -135,7 +139,7 @@ const resolveBranch = (
  * @returns                Semantic classification, an unsafe boundary, or a generic rule.
  */
 const resolveOrderSelector = (
-	node: Rule,
+	node: Rule | AtRule,
 	separators: Separators,
 	knownTargets: Set<string>,
 	source?: string,
@@ -143,11 +147,11 @@ const resolveOrderSelector = (
 	const branches = resolveSelectorNodes({ node, source });
 	if (branches.some(({ resolved }) => selectorNodesToString(resolved).includes('#{'))) return null;
 
-	const authored = source ?? node.selector;
+	const authored = source ?? (node.type === 'rule' ? node.selector : node.params);
 	if (authored.includes('%')) {
 		const placeholders = branches.filter((branch) => hasSassPlaceholder(branch.source));
 		if (placeholders.length) {
-			if (placeholders.length !== branches.length) return undefined;
+			if (node.type !== 'rule' || placeholders.length !== branches.length) return undefined;
 
 			return {
 				path: [],
@@ -160,6 +164,8 @@ const resolveOrderSelector = (
 	}
 
 	const selectors = branches.map(({ resolved }) => resolveBranch(resolved, separators, knownTargets));
+	// Hoisted lists can move as qualifiers only if every branch qualifies a known BEM subject.
+	if (node.type === 'atrule' && selectors.some((selector) => !selector?.categories.includes('qualifiers'))) return null;
 	if (selectors.length === 1) return selectors[0];
 
 	// Ordinary selector lists stay atomic without requiring a shared BEM owner.
@@ -169,7 +175,10 @@ const resolveOrderSelector = (
 
 	const categorySets = selectors.map((selector) => selector!.categories);
 	const commonCategories = arraysIntersection(...categorySets);
-	const categories = isEmpty(commonCategories) ? arraysUnion(...categorySets) : commonCategories;
+	// A shared umbrella still allows the configured order to choose among disjoint qualifier types.
+	const categories = commonCategories.some((category) => category !== 'qualifiers')
+		? commonCategories
+		: arraysUnion(...categorySets);
 
 	return {
 		...first,

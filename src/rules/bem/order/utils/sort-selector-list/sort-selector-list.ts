@@ -52,11 +52,15 @@ export const sortSelectorList = (
 	if (shouldInherit) {
 		const first = branches[0].selector;
 		if (!first?.path.length || first.isList) return node.selector;
-		if (branches.some(({ selector }) => !selector || selector.isList
-			|| !deepEqual(selector.path, first.path) || !deepEqual(selector.categories, first.categories))) {
+		const { category } = config.getRank(branches[0].item);
+		if (branches.some(({ selector, item }) => {
+			if (!selector || selector.isList || !deepEqual(selector.path, first.path)) return true;
+			if (category === 'qualifiers') return config.getRank(item).category !== category;
+			return !deepEqual(selector.categories, first.categories);
+		})) {
 			return node.selector;
 		}
-		order = config.getCategoryOrder(config.getRank(branches[0].item).category);
+		order = config.getCategoryOrder(category);
 	}
 
 	const ranked = branches.map((branch) => {

@@ -2,7 +2,7 @@ import { isArray, isFunction, isRegExp, isString, isUndefined, tsObject } from '
 import selectorParser from 'postcss-selector-parser';
 import { DEFAULT_CATEGORY_ORDERS, DEFAULT_ORDER, DEFAULT_ROOT_ORDER, REMAINDER } from '../../order.constants';
 import { createOrderSorter } from '../create-order-sorter/create-order-sorter';
-import { getOrderHeader } from '../get-order-header/get-order-header';
+import { getOrderHeader, getOrderSelectorText } from '../get-order-header/get-order-header';
 import { matchesSelectorSet } from '../matches-selector-set/matches-selector-set';
 import { normalizeParameters } from '../normalize-parameters/normalize-parameters';
 import { normalizeProperty } from '../normalize-property/normalize-property';
@@ -102,8 +102,9 @@ const matchesObject = (matcher: AtRuleMatcher | RuleMatcher | PropertiesGroup, i
 
 	const { node } = item;
 	if (matcher.type === 'rule') {
-		return node.type === 'rule'
-			&& matchesValue(matcher.selector, node.selector)
+		const selector = getOrderSelectorText(item);
+		return !isUndefined(selector)
+			&& matchesValue(matcher.selector, selector)
 			&& matchesValue(matcher.relativeSelector, item.selector?.relativeSelector);
 	}
 
@@ -154,13 +155,11 @@ const isCategoryMatch = (
 
 	if (isRegExp(matcher)) {
 		if (item.node.type === 'decl') return matchesProperty(matcher, item.node.prop);
-		if (item.node.type === 'atrule') return false;
-
-		const header = item.node.type === 'rule'
-			? selectorParser().processSync(item.node.selector, { lossless: false })
-			: getOrderHeader(item.node);
-
-		return matchesValue(matcher, header);
+		const selector = getOrderSelectorText(item);
+		if (!isUndefined(selector)) {
+			return matchesValue(matcher, selectorParser().processSync(selector, { lossless: false }));
+		}
+		return item.node.type !== 'atrule' && matchesValue(matcher, getOrderHeader(item.node));
 	}
 
 	if (!isString(matcher)) return 'type' in matcher && matchesObject(matcher, item);
@@ -189,7 +188,7 @@ const prepareUnspecified = (key: string, setting: UnspecifiedOrder | Unspecified
 const isQueryCategory = (category: OrderCategory) => category === 'css:media' || category === 'css:container';
 
 /**
- * Include forms can inherit from Sass includes, and specific at-rules can inherit from generic at-rules.
+ * Resolves shared settings for qualifier types, Sass include forms and specific at-rules.
  *
  * @param   category   Category selected by the outer order.
  * @param   item       Authored item with its specific at-rule category, if any.
@@ -200,7 +199,9 @@ const isQueryCategory = (category: OrderCategory) => category === 'css:media' ||
 const getConfiguredCategory = (
 	category: OrderCategory, item: OrderItem, settings: ReadonlyMap<OrderCategory, unknown>,
 ) => {
-	if (!item.atRuleMember || category === 'at-rules' || settings.has(category)) return category;
+	if (settings.has(category)) return category;
+	if (category.startsWith('qualifiers:') && settings.has('qualifiers')) return 'qualifiers';
+	if (!item.atRuleMember || category === 'at-rules') return category;
 	if (settings.has(item.atRuleMember.category)) return item.atRuleMember.category;
 	return settings.has('at-rules') ? 'at-rules' : category;
 };
@@ -331,11 +332,13 @@ const createOrderConfig = (options: SecondaryOption) => {
 	 *
 	 * @returns            Prepared priority slots for subsequent rank lookup.
 	 */
-	const expandOrder = (sequence: OrderSequence, scope: string) => sequence.flatMap((entry, index) => {
-		return isArray(entry)
+	const expandOrder = (sequence: OrderSequence, scope: string) => {
+		const slots = sequence.flatMap((entry, index) => isArray(entry)
 			? [entry.flatMap((matcher, member) => expand(matcher, `${scope}.${index}.${member}`).flat())]
-			: expand(entry as OrderMatcher, `${scope}.${index}`);
-	});
+			: expand(entry as OrderMatcher, `${scope}.${index}`));
+		const matchers = new Set(slots.flatMap((entries) => entries.map(({ matcher }) => matcher)));
+		return { slots, matchers };
+	};
 
 	const nestedOrder = expandOrder(options.order ?? DEFAULT_ORDER, 'order');
 	const rootOrder = expandOrder(options.root?.order ?? DEFAULT_ROOT_ORDER, 'root.order');
@@ -378,7 +381,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 	 * @returns                   Effective priorities with applicable sorting, spacing and diagnostic metadata.
 	 */
 	const getRank = (item: OrderItem, family?: Family, canMatchObjects = true, isRoot = false): OrderRank => {
-		const order = isRoot ? rootOrder : nestedOrder;
+		const { slots: order, matchers } = isRoot ? rootOrder : nestedOrder;
 		const { node } = item;
 		const categories: OrderCategory[] = (() => {
 			if (family) return [family.category, 'rules'];
@@ -399,9 +402,17 @@ const createOrderConfig = (options: SecondaryOption) => {
 			: -1;
 		const selector = family ? undefined : item.selector;
 		const isPlaceholder = categories[0] === 'sass:placeholders';
-		const specificCategories = item.atRuleMember
+		let specificCategories = item.atRuleMember
 			? [item.atRuleMember.category]
-			: selector && (selector.isList || isPlaceholder) ? selector.categories : undefined;
+			: selector && (node.type === 'atrule' || selector.isList || isPlaceholder) ? selector.categories : undefined;
+		if (selector?.categories.includes('qualifiers') && matchers.has('qualifiers')) {
+			const hasNarrowQualifier = selector.categories.some((candidate) => {
+				return candidate.startsWith('qualifiers:') && matchers.has(candidate);
+			});
+			specificCategories = hasNarrowQualifier
+				? selector.categories.filter((candidate) => candidate !== 'qualifiers')
+				: selector.categories;
+		}
 		let category: OrderCategory = selector?.isList && !isPlaceholder ? 'rules' : categories[0];
 		if (rank === -1 || specificCategories) {
 			// Check an explicitly configured semantic category before its generic fallback.

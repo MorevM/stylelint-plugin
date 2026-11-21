@@ -85,6 +85,21 @@ describe(createOrderConfig, () => {
 		expect(unspecified.getRank(item).category).toBe('rules');
 	});
 
+	it('Uses the first listed qualifier type for disjoint branches in either order', () => {
+		const root = scss.parse(`
+			a.card, .card[hidden] {}
+			.card[hidden], a.card {}
+		`);
+		const config = createOrderConfig({ order: ['qualifiers', 'qualifiers:type', 'qualifiers:attribute'] });
+
+		for (const node of root.nodes as Rule[]) {
+			const selector = resolveOrderSelector(node, DEFAULT_SEPARATORS, new Set());
+
+			expect(config.getRank({ node, nodes: [node], selector: selector ?? undefined }))
+				.toMatchObject({ outer: 1, category: 'qualifiers:type' });
+		}
+	});
+
 	it('Falls back to rules when shared categories are omitted instead of selecting one branch category', () => {
 		const node = scss.parse('.card:hover.foo, .card:focus[data-active] {}').first as Rule;
 		const selector = resolveOrderSelector(node, DEFAULT_SEPARATORS, new Set(['.card'])) ?? undefined;
