@@ -4,6 +4,55 @@ const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 
 testRule({
+	description: 'Default qualifier order',
+	config: [true],
+	reject: [{
+		description: 'Keeps link-specific styles before shared states and ID qualifiers before context selectors',
+		code: `
+			.button {}
+			.button:hover {}
+			a.button {}
+			a.button:hover {}
+			.button--small {}
+			.button.is-loading {}
+			.button[aria-busy] {}
+			.dialog .button {}
+			.button#checkout {}
+		`,
+		fixed: `
+			.button {}
+			a.button {}
+			a.button:hover {}
+			.button:hover {}
+			.button--small {}
+			.button.is-loading {}
+			.button[aria-busy] {}
+			.button#checkout {}
+			.dialog .button {}
+		`,
+		warnings: [
+			{ message: messages.expectedAfter('.button:hover', 'a.button:hover') },
+			{ message: messages.expectedBefore('.button#checkout', '.dialog .button') },
+		],
+	}, {
+		description: 'Moves an inline Sass link state before the shared hover state',
+		code: `
+			.button {
+				&:hover {}
+				@at-root a#{&}:hover {}
+			}
+		`,
+		fixed: `
+			.button {
+				@at-root a#{&}:hover {}
+				&:hover {}
+			}
+		`,
+		warnings: [{ message: messages.expectedBefore('@at-root a#{&}:hover', '&:hover') }],
+	}],
+});
+
+testRule({
 	description: 'Shared BEM qualifier category',
 	config: [true, {
 		order: ['base', 'qualifiers', 'pseudo-classes'],
