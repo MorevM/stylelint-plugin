@@ -1,7 +1,7 @@
 @forward './sass-only';
 
 .VPHero .name {
-	@media (min-width: 960px) {
+	@media (width >= 960px) {
 		font-size: 46px;
 	}
 }
@@ -13,5 +13,20 @@
 }
 
 .VPDoc:not(.has-aside) .content {
-	max-width: 840px !important;
+	max-inline-size: 840px !important;
+}
+
+.bem-order-page .VPDoc {
+	$outline-width: 264px;
+	$outline-gutter: 16px;
+
+	.aside {
+		max-inline-size: $outline-width + $outline-gutter;
+		padding-inline-start: $outline-gutter;
+	}
+
+	.aside-container,
+	.aside-curtain {
+		inline-size: $outline-width;
+	}
 }

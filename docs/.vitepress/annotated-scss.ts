@@ -22,6 +22,16 @@ export type CodeRegion = {
 	label: string;
 
 	/**
+	 * Enclosing annotation, if this group is inside another annotated node.
+	 */
+	parent?: number;
+
+	/**
+	 * Full selector when this annotation introduces the base of a BEM family.
+	 */
+	family?: string;
+
+	/**
 	 * Explanation of the group's position in this example.
 	 */
 	note: string;
@@ -30,6 +40,7 @@ export type CodeRegion = {
 /**
  * Renders annotated SCSS fences with VitePress's normal highlighting and copy button.
  * A standalone `// [label] note` describes subsequent siblings up to the next annotation.
+ * Use `// [label | .family] note` on a family's base selector to name it for its children.
  *
  * @param   md   The site's Markdown renderer.
  */
@@ -42,24 +53,27 @@ export const annotatedScss = (md: MarkdownRenderer) => {
 		const lines = token.content.split('\n');
 		const annotationLines = new Set<number>();
 		const regions: CodeRegion[] = [];
-		const collect = (siblings: ChildNode[]) => {
+		const collect = (siblings: ChildNode[], parent?: number) => {
 			let region: CodeRegion | undefined;
+			let owner = parent;
 			for (const node of siblings) {
 				const start = node.source!.start!.line;
 				const note = node.type === 'comment' && /^\s*\/\/ \[([^\]]+)\] (.+)$/u.exec(lines[start - 1]);
 				if (note) {
 					annotationLines.add(start);
-					region = { start: 0, end: 0, label: note[1], note: note[2] };
+					const [label, family] = note[1].split(' | ');
+					region = { start: 0, end: 0, parent, label, family, note: note[2] };
 					continue;
 				}
 				if (region) {
 					if (!region.start) {
 						region.start = start;
+						owner = regions.length;
 						regions.push(region);
 					}
 					region.end = node.source!.end!.line;
 				}
-				if ('nodes' in node && node.nodes) collect(node.nodes);
+				if ('nodes' in node && node.nodes) collect(node.nodes, owner);
 			}
 		};
 		collect(parse(token.content).nodes);

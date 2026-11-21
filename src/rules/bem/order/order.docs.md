@@ -1,3 +1,8 @@
+---
+outline: [2, 4]
+pageClass: bem-order-page
+---
+
 # @morev/bem/order
 
 Orders CSS and SCSS content while keeping BEM entities together.
@@ -188,16 +193,6 @@ It also works with SCSS nesting, including smart resolving of SASS variables:
 
 And yes, you can customize **all** of these ordering rules.
 
-::: warning Autofix changes source order
-Although I've built safeguards into autofix, static analysis can't guarantee that every fix is safe.
-Autofix keeps code in its original scope and preserves the order of
-known overlapping properties, fallbacks, and vendor-prefixed variants. It also avoids moving code across
-Sass control flow or content insertion points.
-
-If two selectors match the same element, moving one can change which style wins. \
-**Review the diff before accepting fixes in an existing stylesheet.**
-:::
-
 ## Rule options
 
 ::: info A note from the author
@@ -329,8 +324,9 @@ so items with the same priority keep their original order.
 
 ::: details SCSS component using the default order
 
-Hover over or tap the code to explore the default order.
-Use the arrow buttons to move from one region to the next. {#default-order-example}
+Hover over a line or tap it to see how it fits into the order.
+The three guides show the root entry, the current family, and the category
+inside it. Try `display: grid` to see all three. {#default-order-example}
 
 ```scss annotated
 // [Sass preamble] Load the shared mixins first. The rule keeps @use in place.
@@ -339,7 +335,7 @@ Use the arrow buttons to move from one region to the next. {#default-order-examp
 // [sass:variables] Define the default gap before using it in the card.
 $card-gap: 1rem;
 
-// [rules] The block and its variants form one family in the stylesheet.
+// [rules | .product-card] The plain card selector is the base of its family.
 .product-card {
   // [sass:variables] Save the block selector for the compact card's title.
   $b: #{&};
@@ -362,7 +358,7 @@ $card-gap: 1rem;
   // [pseudo-classes] Read the card's states before its named variants.
   &:hover {}
   &:focus-visible {}
-  // [modifiers] The compact variant belongs to the card itself.
+  // [modifiers | .product-card--compact] The compact card is a new family.
   &--compact {}
 
   // [qualifiers:class] This class changes the card on the same HTML element.
@@ -370,21 +366,21 @@ $card-gap: 1rem;
   // [qualifiers:attribute] This attribute is also on the card itself.
   &[aria-busy='true'] {}
 
-  // [pseudo-elements] Keep generated content with the card that owns it.
+  // [pseudo-elements] Keep the card's ::before and ::after together.
   &::before {}
   &::after {}
 
-  // [elements] The title is the base of a new family. The order starts again.
+  // [elements | .product-card__title] The same order starts again in the title.
   &__title {
     // [pseudo-classes] The title's own state comes before its modifier.
     &:hover {}
 
-    // [modifiers] The linked title starts its own family inside the title.
+    // [modifiers | .product-card__title--linked] The title owns this variant.
     &--linked {
       // [pseudo-classes] States come first inside the modifier too.
       &:hover {}
       &:focus-visible {}
-      // [pseudo-elements] This generated content belongs to the linked title.
+      // [pseudo-elements | .product-card__title--linked::after] For links only.
       &::after {}
     }
 
@@ -392,7 +388,7 @@ $card-gap: 1rem;
     #{$b}--compact & {}
     // [context:external] The sidebar changes the title from outside the card.
     .sidebar & {}
-    // [pseudo-elements] This generated content belongs to the title itself.
+    // [pseudo-elements | .product-card__title::after] The title owns this one.
     &::after {}
   }
 
@@ -405,10 +401,15 @@ $card-gap: 1rem;
 
 :::
 
+Want to move a whole category? Start with [`order`][order-option] inside a selector,
+or [`root`][root-option] at the top of the file. If you only want to change
+which state or breakpoint comes first, skip to [`categories`][categories-option].
+
 ::: details Highly customized configuration example
 
-This example keeps layout properties together, sorts breakpoints by width, and adds blank lines between larger groups.
-It also orders the branches of a selector list independently of the rule that contains them.
+In this setup, layout comes before colors, small rules stay compact, and
+breakpoints run from narrowest to widest within each unit. Follow `group:layout`
+or `group:responsive` from `order` down to `groups` to see how to set that up.
 
 ```js
 export default {
@@ -425,12 +426,15 @@ export default {
         'sass:variables',
         'custom-properties',
         'sass:include-statements',
+        // Keep layout and paint together before other declarations.
         'group:layout',
         { properties: ['color', /^background(?:-|$)/u] },
         'declarations',
         'base',
+        // Handle direct children before the card's own selector states.
         'group:side-effects',
         ['group:structural', 'group:functional'],
+        // This named breakpoint gets a place ahead of the responsive group.
         { type: 'at-rule', name: 'media', parameter: '(--less-tablet-small)' },
         'group:responsive',
         'pseudo-classes',
@@ -451,6 +455,7 @@ export default {
       },
 
       categories: {
+        // Put private variables first and keep the usual order for the rest.
         'sass:variables': (defaults) => [/^\$_/, ...defaults],
         declarations: {
           order: [
@@ -460,6 +465,7 @@ export default {
             },
             'opacity',
           ],
+          // Other properties go above typography and opacity.
           unspecified: 'top',
         },
         'pseudo-classes': [
@@ -467,6 +473,7 @@ export default {
           ':visited',
           ':hover',
           [':focus', ':focus-visible'],
+          // Shared states have a place of their own in either branch order.
           { selectorSet: { equals: [':hover', ':focus-visible'] } },
           { selectorSet: { includes: [':hover'], size: 2 } },
           ':active',
@@ -479,6 +486,7 @@ export default {
           '*',
         ],
         elements: {
+          // Keep the title first. Sort the other elements by name length.
           order: ['.card__title', '*'],
           sort(items, context) {
             const byName = context.sort(items, { by: 'name' });
@@ -504,6 +512,7 @@ export default {
           sort: { by: 'name' },
           blankLines: {
             between: 'never',
+            // Separate larger groups in long blocks. A comment can divide them.
             after: {
               default: 'never',
               rules: [
@@ -539,6 +548,7 @@ export default {
         ],
         responsive: {
           groupName: 'Breakpoints',
+          // Both kinds of query can now share the same width order.
           order: [[
             { type: 'at-rule', name: 'media' },
             { type: 'at-rule', name: 'container' },
@@ -581,919 +591,667 @@ export default {
 };
 ```
 
-The explicit `selectorList.order` gives list branches their own priorities. Use `order: 'inherit'` to reuse
-the category order, or set only `sort: { by: 'name' }` to sort the whole list alphabetically.
-
 :::
 
 ### `order`
 
-List categories, matchers, and [named groups][groups-option] in the order you want them inside a selector or BEM family.
-The same order applies to blocks, elements, and modifiers. Each level uses the entries that match its contents.
-Use [`within`][within-option] to order members of a category and [`unspecified`][unspecified-option] to place unmatched items.
+Where would you look for a card's hover state, above its modifiers or below them?
+Set `order` to the sequence you'd expect to read. The same convention applies
+to the card, its elements, and their modifiers.
 
-#### Defaults
+::: code-group
 
-This sequence applies inside selectors and BEM families. See [`root`][root-option] for the stylesheet order
-and [`within`][within-option] for the default order of states and pseudo-elements.
-
-```js
-[
-  'sass:variables',
-  'custom-properties',
-  { type: 'at-rule', name: 'include', hasBlock: false },
-  'declarations',
-  'base',
-  'at-rules',
-  'pseudo-classes',
-  'modifiers',
-  'qualifiers:class',
-  'qualifiers:attribute',
-  'context:internal',
-  'context:external',
-  'pseudo-elements',
-  'elements',
-  ['sass:placeholders', 'rules'],
-  '*',
-]
-```
-
-#### Selector families
-
-Ordering is applied recursively to selector families.
-A block, its modifiers, its pseudo-elements, and its elements each form a family with base styles and variants:
-
-```text
-root
-└─ family: .card
-   ├─ base: .card
-   ├─ pseudo-classes: .card:hover
-   ├─ modifiers
-   │  └─ family: .card--compact
-   │     ├─ base: .card--compact
-   │     └─ pseudo-classes: .card--compact:hover
-   ├─ pseudo-elements
-   │  └─ family: .card::before
-   │     ├─ base: .card::before
-   │     └─ pseudo-classes: .card:hover::before
-   └─ elements
-      └─ family: .card__title
-         ├─ base: .card__title
-         └─ pseudo-classes: .card__title:hover
-```
-
-- `root` is the region containing the selector families.
-- A family is the logical container where the shared ordering sequence applies again.
-- `base` is one position inside that family: its own styles without additional states or context.
-
-The tree represents logical grouping in flat CSS as well as nested SCSS.
-A family can exist without a base rule: declaring only `.card--compact:hover` still creates the modifier family.
-
-#### Built-in categories
-
-Each category can also be used as a key in `within`.
-
-**Variables and declarations**
-
-- `sass:variables` — `$gap: 1rem;`
-- `custom-properties` — `--gap: 1rem;`
-- `declarations` — `gap: 1rem;`
-
-**Fallbacks for at-rules and selector rules**
-
-- `at-rules` — `@media print {}`
-- `rules` — `h2 {}`
-
-**Sass definitions**
-
-- `sass:functions` — `@function tone($color) { @return $color; }`
-- `sass:mixins` — `@mixin respond-to($width) {}`
-- `sass:placeholders` — `%reset:hover {}`, `%reset, %clearfix {}`
-
-For placeholders, each selector in the list must contain a placeholder outside pseudo-class arguments.
-A mixed list like `%reset, button {}` stays in `rules` in either order.
-Inside a selector, placeholders share a rank with ordinary rules by default.
-
-**BEM families and their base styles**
-
-- `base` — `.card {}` (the current family's own styles)
-- `modifiers` — `.card--compact {}`
-- `pseudo-elements` — `.card::before {}`
-- `elements` — `.card__title {}`
-
-**Conditions on the target itself**
-
-- `pseudo-classes` — `.card:hover {}`
-- `qualifiers:class` — `.card__title.is-active {}`
-- `qualifiers:attribute` — `.card[hidden] {}`
-
-**Ancestor conditions** (both examples target `.card__title`)
-
-- `context:internal` — `.card:hover .card__title {}`
-- `context:external` — `.theme .card__title {}`
-
-Each ancestor compound must contain an entity from the target's block to remain internal.
-Additional classes on such an ancestor act as qualifiers:
-both `.card--compact.is-active .card__title` and `.theme.card--compact .card__title` are internal.
-A separate ancestor without an entity from that block makes the relation external,
-as in `.theme .card--compact .card__title`.
-These scopes describe the source condition's relationship to the target's block, rather than effect direction.
-
-#### Base rules and declarations
-
-`base` positions the current family's own rule without additional conditions.
-`declarations` positions individual CSS property nodes inside any rule.
-
-```scss
-.card {
-  color: black;
-}
-
-.card:hover {
-  color: red;
-}
-```
-
-Within the `.card` family, the first rule is `base` and the second is `pseudo-classes`.
-Both `color` nodes are `declarations`.
-Thus `base` before `pseudo-classes` positions the two rules,
-while `within.declarations` orders properties inside both of them.
-
-The position of `base` is configurable.
-With `order: ['context:external', 'base', 'pseudo-classes']`,
-external-context rules precede the family's own base rule:
-
-```scss
-.theme .card {
-  color: white;
-}
-
-.card {
-  color: black;
-}
-
-.card:hover {
-  color: red;
-}
-```
-
-Each family has its own optional base: `.card--compact` is the base of its modifier family,
-and `.card::before` is the base of its pseudo-element family.
-In authored nested SCSS, direct properties are `declarations`; there is no extra authored base rule to move.
-Their position relative to child rules such as `&:hover` is determined by `declarations` in `order`.
-
-#### Matchers and equal ranks
-
-In the outer `order`, string entries are reserved for built-in categories,
-`group:name` references, and the `*` remainder.
-In group definitions, string entries can only name built-in categories.
-Custom conditions use explicit objects in both scopes.
-Standalone `@media` strings, selector strings, and `RegExp` values are not accepted there,
-including inside equal-rank arrays and named groups.
-
-The only accepted `type` values are `at-rule` and `rule`.
-Built-in categories remain string entries rather than object `type` values:
-
-- `{ type: 'at-rule' }` matches at-rules.
-  Optional `name` is an exact name without `@`.
-  Optional `parameter` matches normalized parameters, excluding the name.
-  Optional `hasBlock` distinguishes statements (`false`) from block-form at-rules (`true`).
-- `{ type: 'rule' }` matches selector rules.
-  Optional `selector` matches the authored selector text.
-  Optional `relativeSelector` matches the parsed representation relative to the current family's base.
-  `selector` and `relativeSelector` are mutually exclusive; omitting both allows any selector rule.
-  Optional `name` supplies a descriptive diagnostic label.
-  The label also identifies the rule when another node must cross it.
-  It does not change matching or the highlighted source range; repeated labels include source coordinates.
-- In `parameter`, `selector`, and `relativeSelector`, strings match the complete value exactly;
-  `RegExp` objects specify patterns.
-  For example, `selector: '.card'` matches only `.card`,
-  while `selector: /\.card/` can also match `.card__title`.
-  Other fields keep their documented literal meaning.
-
-Outer assignment uses two passes after groups expand:
-
-1. Find the first matching explicit object matcher in the expanded sequence.
-1. If no object matches, use the first matching built-in category.
-
-The selected entry's original expanded position determines its ordering rank.
-This applies equally to rule, at-rule, and property-group objects; no specificity score is calculated.
-For example, `group:functional` can claim `is`, `has`, and `not` variants even when `pseudo-classes` appears earlier.
-A directly referenced group remains an ordered fragment with its sequence and equal-rank structure.
-An outer equal-rank array explicitly assigns one rank to all its members, including expanded group entries.
-Assignment and sorting operate within the current scope and never extract descendants from atomic families.
-
-`*` is an optional terminal fallback for content left unmatched by objects and categories.
-It retains first-appearance order and must be the final direct entry of its sequence.
-It cannot appear inside an equal-rank array or a group definition.
-The same terminal-only restriction applies to `within` and transformer results.
-Without `*`, unmatched content follows the configured `unspecified` policy, which defaults to `bottom`.
-
-A nested array assigns equal rank.
-Inside `within['pseudo-classes']`, `[':hover', [':focus', ':focus-visible'], ':active']`
-allows either focus variant first, between hover and active.
-Outer sequences support the same equal-rank structure using their permitted matcher forms.
-Only one level of equal-rank arrays is supported.
-An object matcher and category in the same equal-rank array keep the same outer rank,
-even though object assignment takes precedence over category fallback.
-
-Use [property groups] to place specific declarations between other entries in `order`.
-
-#### Authored and relative selectors
-
-`selector` preserves the authored-text contract.
-`relativeSelector` selects a separate parsed representation after Sass resolution and family ownership.
-In that representation, `&` denotes the resolved BEM subject, including its element and modifier parts.
-Context ancestors and pseudo-elements remain in their original structural positions.
-Both fields accept `string | RegExp` and are mutually exclusive wherever a rule matcher is used:
-in `order`, group definitions, and `within`.
-
-```js
-[
-  { type: 'rule', selector: '&:empty' },
-  { type: 'rule', relativeSelector: '&:empty' },
-  { type: 'rule', relativeSelector: /^&:(?:is|has|not)\(/ },
-]
-```
-
-The first matcher requires that authored selector text.
-The other matchers use the family-relative representation.
-For an ordinary `.card` family, the normalization is:
-
-| Authored form                                    | Relative form |
-| ------------------------------------------------ | ------------- |
-| Flat `.card:empty`                               | `&:empty`     |
-| Nested `&:empty` inside `.card`                  | `&:empty`     |
-| Flat `#{$b}:empty` when `$b` resolves to `.card` | `&:empty`     |
-
-A string matches the complete selected representation; a `RegExp` is an explicit pattern.
-Exact `&:empty` does not automatically match `&.active:empty`.
-There is no automatic mode detection from `{base}` or other text inside `selector`.
-No `selectorMode`, `pseudoClass`, or `combinator` fields are introduced.
-
-Relative matching requires an unambiguous target, but no authored base rule is required.
-The selector parser normalizes optional whitespace and preserves selector escaping.
-Only direct target class nodes are replaced; attributes and functional pseudo-class arguments remain intact.
-Unmatched or incompatible selector lists and unresolved interpolation are ordering boundaries.
-
-#### Pseudo-element variants
-
-Determine the selector family before applying its category order.
-`&:hover::before` belongs to the `::before` family, where `:hover` is a local condition.
-It stays with `&::before` even when `pseudo-classes` precedes `pseudo-elements` in `order`.
-
-For example:
-
-```js
+```js [Configuration]
 {
-  order: ['sass:variables', 'declarations', 'base', 'pseudo-classes', 'pseudo-elements'],
-  within: {
-    'pseudo-classes': [':hover', ':active', '*'],
-    'pseudo-elements': ['::before', '::after', '*'],
-  },
+  order: ['declarations', 'base', 'pseudo-classes', 'modifiers', 'elements'],
 }
 ```
 
-The resulting organization is:
-
-```scss
+```scss [Result]
 .card {
-  $b: #{&};
-
-  color: black;
-
-  &:hover {
-    color: red;
-  }
-
-  &::before {
-    content: '';
-    opacity: 0;
-  }
-
-  &:hover::before {
-    opacity: 1;
-  }
-
-  &:active::before {
-    opacity: 0.5;
-  }
-
-  &::after {
-    content: '';
-  }
-
-  &:hover::after {
-    transform: scale(1.1);
+  display: grid;
+  &:hover {}
+  &--compact {}
+  &__title {
+    &:hover {}
+    &--muted {}
   }
 }
-```
-
-`within['pseudo-elements']` orders whole pseudo-element families.
-The shared `order` then applies inside each family, with `base` before its `pseudo-classes`.
-Ordering applies at the current scope; it does not flatten those families.
-
-For a `.card::before` family, `.card:hover::before` becomes `&:hover::before`.
-The pseudo-element is retained so that conditions before and after it remain distinct.
-For example, `&:hover::before` and `&::before:hover` are never treated as equivalent relative selectors.
-
-### `root`
-
-Use `root` to order whole selector families and at-rules at the stylesheet level.
-It shares [`within`][within-option] and [`groups`][groups-option] with the rest of the stylesheet.
-
-#### `root.order`
-
-`root.order` applies at the document root and continues through stylesheet-level
-`@media`, `@supports`, `@container`, `@layer`, `@scope`, `@starting-style`, and `@document` wrappers
-(including `@-moz-document`).
-It stops at a selector body or a different kind of at-rule container, such as `@font-face` or `@mixin`.
-For example, `@layer components { @media (...) {} .card {} }` uses the document order,
-while `.card { @media (...) {} &:hover {} }` uses the main `order`.
-Within each flat BEM family, `order` still positions the base, states, modifiers, and elements.
-Media wrappers are never attached to a BEM family; there is no `groupBy` option.
-
-::: details Default stylesheet order
-
-```js
-[
-  [
-    'sass:variables',
-    'sass:functions',
-    'sass:mixins',
-    { type: 'at-rule', name: 'function', parameter: /^--/u },
-    { type: 'at-rule', name: 'mixin', parameter: /^--/u },
-    'sass:placeholders',
-    { type: 'at-rule', name: 'include' },
-    { type: 'at-rule', name: 'extend' },
-    { type: 'at-rule', name: 'debug' },
-    { type: 'at-rule', name: 'warn' },
-    { type: 'at-rule', name: 'error' },
-  ],
-  'custom-properties',
-  'rules',
-  'at-rules',
-  '*',
-]
 ```
 
 :::
 
-The default puts Sass variables, definitions, placeholders, calls, and diagnostics before selector families.
-CSS definitions such as `@function --tone()` and `@mixin --theme` share this rank through at-rule matchers.
-Items at this rank keep their source order, so a function stays before a variable that calls it.
-Ordinary CSS at-rules, including media queries, follow selector families.
-At-rules of the same rank retain their first-appearance order unless shared `within['at-rules']` changes it.
-Omitting `root`, or supplying `root: {}`, uses these defaults even when `order` is customized.
+#### Default order {#defaults}
 
-For example, a shared `media` group can order breakpoints after all selector families:
+If you only want `:focus-visible` before `:hover`, leave `order` alone.
+Both already belong to `pseudo-classes`. Change [the order inside that category][categories-option].
+Replace `order` when you want to move **all** pseudo-classes relative to modifiers,
+queries, or other content. Anything you leave out follows [`unspecified`][unspecified-option].
+
+#### Selector families {#selector-families}
+
+You can write the same card in flat CSS. The rule still treats `.card` and its
+variants as one family. When you move the title, its hover state goes with it.
+
+```scss
+.card {}
+.card:hover {}
+.card--compact {}
+.card--compact:hover {}
+.card__title {}
+.card__title:hover {}
+```
+
+Each family follows `order` again. That's why `.card--compact:hover` sits next to
+`.card--compact` even though hover comes before modifiers on the card itself.
+You can write just the hover state if the compact card has no base styles of its own.
+
+#### Built-in categories {#built-in-categories}
+
+**What lives inside a rule?**
+
+- `sass:variables` matches `$gap: 1rem;`, `custom-properties` matches `--gap: 1rem;`,
+  and `declarations` matches ordinary properties like `gap: 1rem;`.
+- `css:media` and `css:container` give `@media` and `@container` their own places.
+  Use `at-rules` for other directives such as `@supports`.
+- `rules` gives other selectors, such as `> img`, a place too.
+
+**Which part of the block are you styling?**
+
+- `base` is the family's plain selector, such as `.card`. Put its `pseudo-classes`
+  (`.card:hover`) and `modifiers` (`.card--compact`) where you'd look for them.
+- `qualifiers:class` and `qualifiers:attribute` add conditions on the same node,
+  such as `.card.is-selected` and `.card[aria-busy]`.
+- `context:internal` and `context:external` both describe an ancestor.
+  In `.card--compact .card__title` the card changes its own title.
+  In `.sidebar .card__title` the sidebar changes it from outside.
+- `pseudo-elements` such as `.card::before` and `elements` such as `.card__title`
+  each bring their own states with them.
+
+An extra class on the card itself still counts as internal context
+(`.card--compact.is-selected .card__title`). A separate ancestor from outside
+the block makes it external (`.is-selected .card--compact .card__title`).
+
+**Working with Sass or CSS definitions?**
+
+- `sass:functions` and `sass:mixins` match definitions such as `@function tone()`
+  and `@mixin surface`. CSS definitions use dashed names, such as
+  `@function --tone()` and `@mixin --surface`, and have their own categories,
+  `css:functions` and `css:mixins`.
+- `sass:include-statements` matches calls like `@include surface;`.
+  `sass:include-blocks` matches calls with a body, like `@include tablet {}`.
+  Use `sass:includes` to give both forms one place.
+- `sass:diagnostics` covers `@debug`, `@warn`, and `@error`.
+- `sass:placeholders` matches `%surface`, its variants, and lists like `%surface, %panel`.
+  Every branch needs a placeholder outside pseudo-class arguments.
+  A mixed list like `%surface, button` goes in `rules`.
+
+#### Base and declarations {#base-rules-and-declarations}
+
+In `.card { --gap: 1rem; }` the opening `.card` naturally appears before `--gap`.
+They belong to different levels. `base` places the **whole rule** among the card's
+other selectors. Inside its braces, `custom-properties` places `--gap` and
+`declarations` places ordinary properties.
+
+```scss
+.card { color: black; }
+.card:hover { color: red; }
+```
+
+Here `'base'` before `'pseudo-classes'` puts the plain card first. In nested SCSS,
+with `color: black;` and `&:hover {}` inside the same braces, it's
+`'declarations'` before `'pseudo-classes'` that puts the color first.
+
+#### Matcher priority {#matchers-and-equal-ranks}
+
+Suppose the print stylesheet should come after every other media query.
+Keep `css:media` for the usual queries and describe the exception once.
 
 ```js
 {
-  root: {
-    order: ['rules', 'group:media', 'at-rules'],
-  },
-  groups: {
-    media: [
-      { type: 'at-rule', name: 'media', parameter: '(--tablet)' },
-      { type: 'at-rule', name: 'media' },
-    ],
-  },
-}
-```
-
-#### `root.unspecified`
-
-Sets the placement of unmatched items at the stylesheet level. It inherits [`unspecified`][unspecified-option]
-unless you set it here. Both options accept the same values.
-
-### `within`
-
-`within` changes the inner order of a category, preserving its outer position and membership.
-Its entries use ordinary first-match ordering, without the outer object-before-category assignment pass.
-An optional `*` must be the final direct entry.
-
-- An omitted entry uses the built-in category order.
-- An array fully replaces that category's order.
-- A transformer receives its readonly defaults and returns a replacement sequence.
-
-An object can set `order`, `sort`, and `unspecified` for a single category.
-For example, this puts Sass variables starting with `$_` first and keeps the default order for the rest:
-
-```js
-{
-  within: {
-    'sass:variables': (defaults) => [/^\$_/u, ...defaults],
-  },
-}
-```
-
-Nested equal-rank arrays remain intact when defaults are composed.
-A transformer operates on configuration data, not CSS nodes; node-matching predicates are not part of this API.
-
-Transformers run once per stylesheet and receive a readonly copy of the defaults.
-Invalid transformer results produce a configuration warning.
-Unknown group references, group composition, non-terminal remainder markers, and conflicting selector fields are rejected.
-
-The default pseudo-class order is `:link`, `:visited`, `:hover`, equal-rank `:focus` / `:focus-visible`, `:active`, then `*`.
-Pseudo-element families use `['::before', '::after', '*']`; other categories use `['*']`.
-Property order is unchanged unless a property group or `within.declarations` supplies an ordering policy.
-Property matching uses [canonical comparison names]. You can give a set of declarations its own order using [property groups].
-
-Groups of blocks, elements, and modifiers keep their first-appearance order by default.
-To put a specific element first, for example, set `within.elements` to `['.card__title', '*']`.
-
-#### Category matchers
-
-`within['at-rules']` accepts at-rule matcher objects and the terminal `'*'` remainder marker.
-The same constraints apply to equal-rank arrays and sequences returned by transformers.
-Use `name` for the at-rule name, `parameter` for exact normalized parameters or a pattern,
-and `hasBlock` to distinguish statements from block-form calls:
-
-```js
-within: {
-  'at-rules': [
-    { type: 'at-rule', name: 'include', hasBlock: false },
-    { type: 'at-rule', name: 'include', hasBlock: true },
-    { type: 'at-rule', name: 'media', parameter: /^\(min-width:/ },
-    '*',
+  order: [
+    'declarations',
+    'css:media',
+    { type: 'at-rule', name: 'media', parameter: 'print' },
   ],
-},
+}
 ```
 
-In `sass:functions` and `sass:mixins`, strings, regular expressions, and name sorting use the declared member name.
-For example, this places private mixins first, followed by `respond-to`, then the remaining mixins.
-Names within each priority are sorted alphabetically.
+The rule looks for an explicit matcher first. That's why the `print` entry
+still catches `@media print` even though `css:media` appears above it.
+If two explicit matchers fit, the **first** wins. The winner's position in the
+list is where the item goes.
 
-```js
-within: {
-  'sass:mixins': {
-    order: [/^[-_]/u, 'respond-to', '*'],
-    sort: { by: 'name' },
-  },
-},
-```
+When either order reads equally well, put the entries in one nested array.
+For example, `['pseudo-classes', ['modifiers', 'elements']]` puts states first
+and lets modifiers and elements keep their order of first appearance.
+You can use the same pattern [within a category][categories-option].
 
-The `at-rules` category covers Sass definitions when their category is omitted from the order.
-CSS functions such as `@function --tone()` and mixin calls such as `@include respond-to(40rem)` use `at-rules`.
+::: details What can I match in order and root.order?
 
-Other categories also accept literal strings and standalone regular expressions:
+- An at-rule matcher takes an exact `name` without `@`, `parameter` for the text
+  after the directive, and `hasBlock` to distinguish statements from blocks.
+  You can omit any of the three.
+- A rule matcher takes `selector` or `relativeSelector`. Omit both to match
+  any selector rule. An optional `name` gives the matcher a label in lint messages.
+- Strings in those selector and parameter fields match the whole value.
+  Use a regular expression for a pattern. An at-rule's parameters are normalized
+  before comparison.
+- [Property groups][property groups] match selected declarations. [Named groups][groups-option]
+  expand in place. The first matching object across all these entries wins.
+  A matcher only sees items at the current level of the family.
+- If no object matches, the rule looks at the categories you listed.
+  A specific query, definition, diagnostic or include category takes precedence over
+  `at-rules`. For `@include`, the matching statement or block category takes
+  precedence over `sass:includes`. Eligible selector lists and placeholders
+  likewise use their specific categories before `rules`.
+- Strings in the outer sequence name categories or `group:name`. To match all
+  remaining content, add `'*'` as the last entry. Patterns and literal selectors
+  belong in matcher objects here. Equal-priority arrays can be nested one level deep.
 
-- `:focus` matches that local pseudo-class, without also matching `:focus-visible`.
-- `::before` matches the pseudo-element family, including its variants.
-- Property or variable names, such as `display`, are literals within their category.
-  Ordinary property names use the [canonical comparison names].
-- A `RegExp` matches a property name or normalized selector header, excluding block content.
-- Explicit matcher objects are also accepted and use the same fields as [outer matchers][outer-matchers].
+:::
 
-In these categories, a bare string is literal or semantic shorthand; it is not implicitly a regular expression.
-Strings in explicit objects follow the same principle: they are never compiled as regular expressions.
+#### Relative selectors {#authored-and-relative-selectors}
 
-#### Selector sets
-
-Inside `within`, `selectorSet` matches an unordered set of complete local selector branches.
-It can be mixed with ordinary strings and equal-rank arrays:
+If some files say `.card:empty` and others say `&:empty`, one matcher can cover both.
 
 ```js
 {
-  within: {
+  order: [
+    { type: 'rule', relativeSelector: '&:empty', name: 'Empty state' },
+    'pseudo-classes',
+  ],
+}
+```
+
+`relativeSelector` uses `&` for the BEM selector the rule resolves, including its
+element or modifier. It works with a Sass reference like `#{$b}:empty` when
+`$b` resolves to that block. Use `selector: '&:empty'` if the spelling in
+the source matters. Pick one of the two fields.
+
+An exact `'&:empty'` matches that state alone. For several functional
+pseudo-classes, try `relativeSelector: /^&:(?:is|has|not)\(/u`.
+Ancestors, pseudo-elements, attributes, and the arguments of pseudo-classes
+retain their place in the selector.
+
+#### Pseudo-element variants {#pseudo-element-variants}
+
+If you're looking for the hover effect on a card's `::before`, you'll find it
+next to the `::before` it changes. Here's how that looks with the defaults.
+
+```scss
+.card {
+  &:hover {}
+  &::before {}
+  &:hover::before {}
+  &::after {}
+  &:hover::after {}
+}
+```
+
+Set `categories['pseudo-elements']` to move a whole pseudo-element family.
+Set `categories['pseudo-classes']` to order states inside it. The position of
+the pseudo-element matters. `&:hover::before` and `&::before:hover` describe
+different conditions.
+
+### `root`
+
+At the top of a stylesheet you might want all the block styles together,
+followed by the media queries that override them. Inside a card you might want
+media queries *before* its states. The two orders are independent.
+
+#### `root.order` {#root-order}
+
+::: code-group
+
+```js [Configuration]
+{
+  root: { order: ['rules', 'css:media', 'at-rules'] },
+  categories: { 'css:media': ['(--tablet)', '*'] },
+}
+```
+
+```scss [Result]
+.card {}
+.card:hover {}
+@media (--tablet) {}
+@media print {}
+@supports (display: grid) {}
+```
+
+:::
+
+`root.order` puts the card family and the query wrappers in place.
+`order` still puts `.card` before `.card:hover`. A wrapper stays whole,
+even if the selectors inside it belong to different blocks.
+
+Stylesheet-level `@media`, `@supports`, `@container`, `@layer`, `@scope`,
+`@starting-style`, and `@document` (including `@-moz-document`) use `root.order`
+for their contents too. Once you enter a selector, its children use `order`.
+Bodies such as `@font-face` or `@mixin` also use the nested order.
+
+Leaving `root` out keeps the default stylesheet order, even when you replace `order`.
+By default, definitions, Sass calls, and diagnostics share the first position so
+they can keep their source order. Custom properties follow, then selector families,
+media queries, container queries, and the remaining at-rules.
+
+#### `root.unspecified` {#root-unspecified}
+
+If you only want to order some top-level items, set `root.unspecified: 'ignore'`.
+For example, `root: { order: ['rules', 'css:media'], unspecified: 'ignore' }`
+keeps an unlisted `@supports` in its slot while the selectors and media queries
+are ordered around it. The root and nested [`unspecified`][unspecified-option]
+settings each default to `'bottom'` and can be changed independently.
+
+### `categories`
+
+Say you like where the states appear, but you always look for `:focus-visible`
+before `:hover`. You only need to change one category.
+
+::: code-group
+
+```js [Configuration]
+{
+  categories: {
+    'pseudo-classes': [':focus-visible', ':hover', '*'],
+  },
+}
+```
+
+```scss [Result]
+.card {
+  &:focus-visible {}
+  &:hover {}
+  &:active {}
+}
+```
+
+:::
+
+An array replaces the order inside that category wherever it's used, including
+at the root. The first matching entry wins. Here the final `'*'` matches any
+other states. Use an equal-priority pair like `[':focus', ':focus-visible']`
+when their relative order doesn't matter.
+
+To **keep the defaults** and add one new priority, use a function. For example,
+`'pseudo-classes': (defaults) => [':disabled', ...defaults]` puts disabled states
+first and keeps the existing order for links, hover, focus, and active states.
+The function receives the default list, including its nested arrays, once per
+stylesheet. Return a new list with any `'*'` still at the end.
+
+Use the object form when you also want to [sort ties][sorting-presets],
+[place unmatched items][unspecified-option], or [add blank lines][group spacing].
+For example, this adds one gap before a run of container queries, with no empty
+lines between them. Setting only `blankLines` keeps the existing query order.
+
+```js
+{
+  categories: {
+    'css:container': { blankLines: { before: 'always', between: 'never' } },
+  },
+}
+```
+
+#### Category matchers {#category-matchers}
+
+For breakpoints, you usually know the condition you care about. For a mixin,
+you know the name you call. The matcher follows that distinction.
+
+```js
+{
+  categories: {
+    // The phone query first, then compound queries that also mention it.
+    'css:media': ['(--phone)', /\(--phone\)/u, '*'],
+    // Includes both size and style queries on the sidebar container.
+    'css:container': [/^sidebar\s/u, '*'],
+    // Calls from the layout module go before calls from other modules.
+    'sass:include-blocks': [/^layout\./u, '*'],
+  },
+}
+```
+
+For `css:media` and `css:container`, a string matches the full normalized text
+after the directive. A regular expression can match part of it. For containers
+the text includes the container name, when present. Include each category in
+`order` or `root.order` where you want to use it.
+
+::: details Which name or selector should I use?
+
+- For CSS and Sass definitions, use the declared name, such as `'--tone'` or
+  `'respond-to'`. For `@include layout.respond-to(40rem)`, use `'layout.respond-to'`.
+  For `@warn`, use `'warn'`.
+- If you split includes into statements and blocks, you can give them different
+  settings. A form with no settings of its own uses `sass:includes`, then
+  `at-rules`. Specific CSS queries, definitions, and Sass diagnostics can also
+  use the shared `at-rules` settings. A spacing-only override keeps that order.
+- In `at-rules`, use an explicit [at-rule matcher][outer-matchers],
+  such as `{ type: 'at-rule', name: 'supports' }`. Add a final `'*'` to match
+  everything else. Put a pattern in `parameter` to match part of a condition.
+- For a BEM family, use its key, such as `'.card__title'`. Use `':focus'` for
+  a local state or `'::before'` for a pseudo-element family. A selector pattern
+  sees the normalized selector without the contents of its block. You can also
+  use a rule matcher to choose between authored and relative selectors.
+- For a variable or property, use its name. Ordinary properties use
+  [comparison names][canonical comparison names]. Custom properties and Sass
+  variables keep their case and their leading dashes or dollar sign.
+
+:::
+
+#### Selector sets {#selector-sets}
+
+A button might have one hover rule, one focus rule, and a third rule for styles
+the two states share. Give that third rule its own position with `selectorSet`.
+
+::: code-group
+
+```js [Configuration]
+{
+  categories: {
     'pseudo-classes': [
-      ':link',
-      ':visited',
       ':hover',
       ':focus-visible',
-
-      // Exactly these two branches, in either order.
-      // .card:hover, .card:focus-visible {}
-      // .card:focus-visible, .card:hover {}
-      {
-        selectorSet: {
-          equals: [':hover', ':focus-visible'],
-        },
-      },
-
-      // Hover and exactly one other distinct branch.
-      // .card:hover, .card:active {}
-      // .card:disabled, .card:hover {}
-      {
-        selectorSet: {
-          includes: [':hover'],
-          size: 2,
-        },
-      },
-
-      // Any set containing a complete hover branch.
-      // .card:hover, .card:active, .card:focus-visible {}
-      // .card:disabled, .card:hover, .card:focus {}
-      {
-        selectorSet: {
-          includes: [':hover'],
-        },
-      },
-
-      ':active',
+      { selectorSet: { equals: [':hover', ':focus-visible'] } },
+      { selectorSet: { includes: [':hover'], size: 2 } },
       '*',
     ],
   },
 }
 ```
 
-The same matchers apply to nested `&:hover, &:focus-visible` inside `.card`.
-`equals` requires exactly the listed branches; `includes` requires every listed branch and allows extras.
-`size` counts distinct normalized branches, including those required by `includes`.
-Repeated authored branches do not increase that count.
-`selectorSet` controls whole-rule placement; it does not rewrite the selector list itself.
-Configuration branches must be distinct; use either `equals` or `includes`, with `size` available only for `includes`.
-
-The first matching entry wins, so place exact sets before broader inclusive sets.
-An inclusive set also matches a single selector such as `.card:hover`;
-in this example the earlier `':hover'` string takes precedence for that single rule.
-Simple strings do not claim an entire selector list just because one of its branches contains that state.
-Arrays such as `[':focus', ':focus-visible']` still assign equal rank to independent rules.
-
-Matching uses complete local branches: `:hover:focus-visible` is one compound, not a standalone `:hover` branch.
-Condition order within a compound does not affect matching: `.foo:hover` and `:hover.foo` are equivalent.
-Repeated conditions retain their specificity, and functional pseudo-class arguments are not reordered.
-Pseudo-elements separate conditions on different subjects: `:hover::before` and `::before:hover` remain distinct.
-The authored selector spelling is preserved when the whole rule moves.
-Commas inside `:is(...)`, `:not(...)`, or quoted attribute values do not split the outer set.
-All branches must have the same resolved BEM family path; different owners or family paths remain boundaries.
-For example, `.card:hover, .button:focus-visible` cannot be assigned to either family.
-Lists with a shared family participate as whole rules without requiring a `selectorSet` match.
-Their category is selected independently of branch order:
-
-1. Find categories shared by every branch and choose the first configured one in the outer `order`.
-1. If no categories are shared, consider the union of the branches' categories in the outer `order`.
-1. If no eligible specific category is configured, fall back to `rules`.
-
-For example, `.card:hover.foo, .card:focus` shares `pseudo-classes` despite the additional class in one branch.
-For `.card:hover, .card[data-active]`, the outer order chooses between `pseudo-classes` and `qualifiers:attribute`.
-Reversing the branches does not change that choice, and explicit whole-rule matchers retain their priority.
-Eligible specific categories are checked before the generic `rules` fallback, even if `rules` appears earlier.
-
-The `selectorSet` matcher must belong to the selected category.
-An unmatched list follows that category's `unspecified` policy: `bottom` by default, `top`, or `ignore`.
-With `ignore`, the list keeps its slot while other rules can sort across it; it does not split the sorting region.
-A terminal `*` explicitly selects unmatched lists into the last priority, including its configured sorter.
-Lists whose branches all lack a BEM subject, such as `h1, h2`, are ordinary atomic rules.
-They can be ordered by `rules` or authored selector matchers without a `selectorSet`.
-
-#### Sorting presets
-
-Presets use the same category and named-group scopes as custom sorting:
-
-```js
-{
-  within: {
-    elements: { sort: { by: 'name' } },
-    'custom-properties': { sort: { by: 'name', direction: 'desc' } },
-  },
-  groups: {
-    responsive: {
-      order: [
-        { type: 'at-rule', name: 'media' },
-        { type: 'at-rule', name: 'container' },
-        { type: 'at-rule', name: 'include' },
-      ],
-      sort: {
-        by: 'dimension',
-        units: ['rem', 'px'],
-        direction: 'asc',
-        unresolved: 'ignore',
-      },
-    },
-  },
-  root: { order: ['rules', 'group:responsive', '*'] },
+```scss [Result]
+.button {
+  &:hover {}
+  &:focus-visible {}
+  &:focus-visible, &:hover {}
+  &:hover, &:active {}
 }
 ```
 
-For `by: 'name'`, `direction` defaults to `asc`; use `desc` for reverse name ordering.
-Names use a fixed case-sensitive comparison, independent of the machine's locale.
-For BEM elements, the compared name excludes the block prefix.
-Equal names or numeric keys retain their original relative order.
+:::
 
-For `by: 'dimension'`, omitting `units` or supplying `units: []` sorts values separately for each unit.
-This preset compares numeric values with units, including lengths, durations, angles, and resolutions.
-Each unit retains its existing slots; values in different units are never compared or converted.
-Unit matching ignores case, so `rem` and `REM` share the same slots.
+`equals` matches exactly the listed branches in either order. `includes` allows
+others. Here `size: 2` asks for hover and one other distinct branch. Leave out
+`size` to accept any number, including a single hover branch. Put exact matches
+first. A plain `':hover'` matches the standalone state without claiming every
+list that mentions it.
 
-```text
-Input: 40px, 2rem, 16px, 1rem
-asc:   16px, 1rem, 40px, 2rem
-desc:  40px, 2rem, 16px, 1rem
+This moves the **whole rule**. To change the order on either side of the comma,
+use [`selectorList`][selector-list].
+
+::: details Which selector lists can move together?
+
+The branches must have the same BEM owner and family path. `.card:hover, .button:focus`
+stays in place. A list with only ordinary selectors, like `h1, h2`, can move as
+one rule in `rules`.
+
+For compatible branches the rule first looks for a category they all share.
+For example, `.card:hover.is-selected, .card:focus` shares `pseudo-classes`.
+If the branches have different kinds of conditions, as in `.card:hover, .card[hidden]`,
+the first eligible category in `order` wins. A specific category takes precedence
+over `rules` in either branch order. Put the `selectorSet` in the winning category.
+Compatible lists can still move without a matching set, according to that
+category's `'*'` or `unspecified` setting.
+
+A set compares complete branches. `:hover:focus` is a single branch. Commas
+inside `:is(...)` or a quoted attribute stay inside it. Within a compound,
+`.selected:hover` and `:hover.selected` match the same condition. Repetition,
+pseudo-element positions, and the arguments to functions still matter.
+List each branch once in the configuration. Duplicates in the stylesheet count
+once toward `size` and keep their original spelling.
+
+:::
+
+#### Sorting presets {#sorting-presets}
+
+Alphabetize element names with `elements: { sort: { by: 'name' } }`.
+For `.card__title-icon`, the name being compared is `title-icon`.
+Set `direction: 'desc'` for reverse order. Name comparison is case-sensitive
+and gives the same result regardless of the machine's language settings.
+
+For mobile-first styles, sort media queries by their numeric breakpoint.
+This example leaves `print` in place while sorting the widths around it.
+
+::: code-group
+
+```js [Configuration]
+{
+  categories: {
+    'css:media': { sort: { by: 'dimension' } },
+  },
+}
 ```
 
-A non-empty `units` list supplies distinct unit names in priority order.
-Units outside that list are unresolved.
-`direction` defaults to `asc` and changes numeric order within each unit, never the explicit unit priorities:
-
-```text
-Input: 40px, 2rem, 16px, 1rem
-asc:   1rem, 2rem, 16px, 40px
-desc:  2rem, 1rem, 40px, 16px
+```scss [Before]
+@media (min-width: 60rem) {}
+@media print {}
+@media (min-width: 40rem) {}
 ```
 
-Extraction uses at-rule parameters or declaration values and requires one unambiguous numeric dimension.
-Additional nonnumeric conditions are allowed; the rule does not evaluate boolean expressions or infer breakpoint intent.
-A direct Sass mixin call can supply a literal argument, such as `@include respond(40rem)`.
-Nested function calls and calculations are not evaluated.
+```scss [After]
+@media (min-width: 40rem) {}
+@media print {}
+@media (min-width: 60rem) {}
+```
 
-| Input                                         | Result                                 |
-| --------------------------------------------- | -------------------------------------- |
-| `(width >= 40rem) and (hover: hover)`         | Sort by `40rem`                        |
-| `sidebar (width >= 40rem)`                    | Sort by `40rem`                        |
-| `respond(40rem)` in `@include`                | Sort by `40rem`                        |
-| `(20rem <= width < 60rem)`                    | Unresolved: two numeric bounds         |
-| `(width >= 40rem) and (height >= 20rem)`      | Unresolved: two sizes                  |
-| `(width >= 40rem), (hover: hover)`            | Unresolved: alternative queries        |
-| `(width >= 40rem) or (hover: hover)`          | Unresolved: a disjunction              |
-| `(width >= calc(20rem + 2px))`                | Unresolved: a calculation              |
-| `(min-width: $tablet)` or `(--tablet)`        | Unresolved: a variable or custom query |
-| `(hover: hover)`                              | Unresolved: no numeric size            |
-| `(width >= 40em)` with `units: ['rem', 'px']` | Unresolved: an unlisted unit           |
+:::
 
-Unitless numbers, additional numeric literals, and negated conditions also remain unresolved.
-Declaration dependencies retain their source precedence.
-Without unit priorities, a batch stays unchanged if preserving those dependencies would displace a unit's reserved slot.
-For these cases, `unresolved` defaults to `ignore`: their sibling slots are preserved,
-and they do not receive a diagnostic from the size comparison.
-Recognized sizes sort through the remaining slots.
-`top` and `bottom` place unresolved items before or after recognized items, retaining their relative order.
-This policy applies only inside the current sorting batch; explicit outer and category-local ranks still apply.
-Use a custom callback when the project has a defined way to resolve variables, choose a range bound, or convert units.
+The sorter compares values with the same unit. It never assumes a conversion
+between `rem` and `px`. Without `units`, each unit keeps its slots, so
+`40px, 2rem, 16px, 1rem` becomes `16px, 1rem, 40px, 2rem`.
+To group all `rem` values before all `px` values, set `units: ['rem', 'px']`.
+The same input then becomes `1rem, 2rem, 16px, 40px`. Descending order reverses
+the numbers within each unit. Ties keep their source order.
 
-#### Custom sorting
+::: details Which values can the dimension sorter read?
 
-`within.<category>.sort` receives a readonly sequence of equal-rank sibling descriptions.
-It must return the same objects exactly once in the desired order.
-Families remain atomic: sorting elements also moves their states and modifiers with them.
+It looks for **one literal number with a unit** in an at-rule's parameters or a
+declaration's value. That can be a width, duration, angle, or resolution.
+`(width >= 40rem) and (hover: hover)`, `sidebar (width >= 40rem)`, and
+`@include respond(40rem)` each have a single value it can use.
 
-For example, group related element names by first appearance, then by the number of hyphen-separated parts:
+A range with two bounds, alternative or negated queries, an extra numeric
+literal, a unitless number, or a value inside `calc()` gives no single size
+to sort by. The rule also leaves Sass variables and custom media names
+unresolved. With an explicit `units` list, unlisted units are unresolved too.
+Unit names are case-insensitive. An empty `units` list works like omitting it.
+
+`unresolved` defaults to `'ignore'`, which keeps those items in their slots.
+Choose `'top'` or `'bottom'` to collect them at either end of the **current
+priority**. To put `print` in a specific place, give it an entry in `order`.
+For declarations, [cascade dependencies][canonical comparison names] still apply.
+If keeping a dependency would displace a unit from its slots, the rule can
+leave the whole batch in source order.
+
+:::
+
+#### Custom sorters {#custom-sorting}
+
+Suppose short element names should come first, then names of the same length
+should appear alphabetically. Use the built-in name comparison for the tie
+and add just the comparison that's specific to your project.
 
 ```js
 {
-  within: {
+  categories: {
     elements: {
-      sort(items) {
-        const groups = new Map();
-        const rows = items.map((item) => {
-          const parts = item.name.split('-');
-          const group = parts[0];
-          if (!groups.has(group)) groups.set(group, groups.size);
-          return { item, group: groups.get(group), depth: parts.length };
-        });
-        return rows
-          .toSorted((a, b) => a.group - b.group || a.depth - b.depth)
-          .map(({ item }) => item);
+      sort(items, context) {
+        const byName = context.sort(items, { by: 'name' });
+        return byName.toSorted((a, b) => a.name.length - b.name.length);
       },
     },
   },
 }
 ```
 
-This turns `title, element, title-icon, element-icon` into `title, title-icon, element, element-icon`.
-Each region and semantic level gets an independent batch in its original sibling order.
+For `.card__title`, `.card__icon`, and `.card__body`, this gives `body`, `icon`,
+then `title`. Each element moves with its own states and modifiers.
+The callback runs on siblings with equal priority. It can't move a title out
+of its card or reorder entries that you gave different priorities.
 
-Descriptions contain `type`, `name`, `category`, and `sourceIndex`.
-Families use `type: 'family'` and expose their local name (`title-icon`) and full identity in `key`.
-Other types are `rule`, `at-rule`, and `declaration`.
-In `sass:functions` and `sass:mixins`, an at-rule exposes the member name, such as `respond-to`.
-In `at-rules`, the same definition exposes the directive name, such as `mixin`.
-Where applicable, `selector`, normalized `parameter`, declaration `value`, and `hasBlock` are also provided.
-The input array and every description are frozen; no PostCSS nodes are exposed.
+::: details What does the callback receive?
 
-The second argument, `context`, is frozen and contains:
+- `items` contains read-only descriptions in source order. Each has `type`,
+  `name`, `category`, and `sourceIndex`. A family also has its full `key`.
+  Depending on the type, you can read `selector`, `parameter`, `hasBlock`,
+  or a declaration's `value`. In the generic `at-rules` category the name is
+  the directive, such as `include`. In `sass:includes` it's the called mixin.
+- `context.container` describes the actual root, selector, or at-rule.
+  `context.family` gives the BEM owner path, even in flat CSS. `context.category`
+  and, for a named group, `context.group` tell you what's being sorted.
+- `context.sort(items, preset)` applies a built-in sorter. You can pass a
+  subset if your project needs a separate comparison for some items.
 
-- `container`: the authored root, selector rule, or at-rule, with its selector or normalized parameters;
-- `family`: the complete semantic owner path, separate from physical nesting;
-- `category` and optional named `group`;
-- `sort(items, preset)`: a typed helper applying any built-in preset to the original descriptions or a subset.
+Return each original item exactly once. Keep the callback synchronous and
+make sure a second sort produces the same order. The inputs are frozen.
+If a callback throws or returns an invalid result, the rule reports a
+configuration warning before applying any fixes to the stylesheet.
 
-For example, supply project-specific ratio handling and delegate ordinary media dimensions:
+For a TypeScript config, the package exports `OrderSorter`, `OrderSortContext`,
+`OrderSortItem`, and `OrderSortPreset`.
 
-```ts
-import type { OrderSorter } from '@morev/stylelint-plugin';
-
-const sortMedia: OrderSorter = (items, context) => {
-  const ratios = items.filter((item) => item.parameter?.includes('aspect-ratio'));
-  const dimensions = items.filter((item) => !ratios.includes(item));
-  return [
-    ...context.sort(dimensions, { by: 'dimension', units: ['rem', 'px'] }),
-    ...ratios.toSorted(compareAspectRatios),
-  ];
-};
-```
-
-Here `compareAspectRatios` is the project's comparator.
-The helper preserves item identities and known declaration dependencies within its input.
-Its generic return type retains the input descriptor subtype.
-It accepts only distinct original descriptions from the current callback batch and a valid built-in preset.
-The final callback result still undergoes permutation and declaration-dependency validation.
-`OrderSortItem`, `OrderSortContext`, `OrderSortPreset`, and `OrderSorter` are exported package types.
-
-Callbacks must be synchronous, deterministic, and stable when run again on their own result.
-Returning missing, duplicate, or replacement objects produces a configuration warning.
-Thrown exceptions, including errors caused by mutating frozen input, produce the same warning.
-All callbacks are validated before this rule emits ordering diagnostics or applies any fixes.
-An invalid callback therefore leaves the entire stylesheet unchanged by this rule.
-
-The same presets and callbacks can also [sort a named group][named-group-sorting].
+:::
 
 ### `groups`
 
-Define a named sequence once and use `group:name` in `order` or `root.order`.
-
-Definitions may contain built-in categories, explicit custom matcher objects, and equal-rank arrays.
-The expanded definition `{ order: [...], sort: (items) => ... }` adds custom sorting to a named group.
-Group references and the `*` remainder marker are forbidden inside definitions, including equal-rank arrays.
-Group references are also forbidden in `within`, including sequences returned by transformers.
-The reserved `group:` prefix in category-local strings is checked at runtime.
-Group references require a non-empty name, checked by the schema at runtime.
-
-A group can also be a [property group][property groups]. Use `blankLines` for [group spacing].
-
-#### Named group sorting
-
-Named groups accept a [custom sorting callback][custom-sorting] in an expanded definition:
+Suppose you use a `@include layout.from(...)` mixin alongside plain `@media`
+queries. You want both in the same part of a file, and the same convention
+inside each component. Give that set a name and list it in both orders.
 
 ```js
 {
-  root: { order: ['rules', 'group:responsive'] },
+  root: { order: ['rules', 'group:breakpoints'] },
+  order: ['declarations', 'pseudo-classes', 'group:breakpoints'],
   groups: {
-    responsive: {
-      order: [
+    breakpoints: [
+      { type: 'at-rule', name: 'include', parameter: /^layout\.from\(/u },
+      { type: 'at-rule', name: 'media' },
+    ],
+  },
+}
+```
+
+Here the breakpoint mixins come first, then the media queries. A group keeps
+the order you wrote inside it. You can use categories, matcher objects, and
+equal-priority arrays in its definition. Reference it from `order` or `root.order`.
+Keep each definition self-contained. Group references and a standalone `'*'`
+belong in the outer order.
+
+#### Group sorting {#named-group-sorting}
+
+What if `@include layout.from(60rem)` should come *after* `@media (width >= 40rem)`?
+Put both matchers in the same nested array and give the group a dimension sorter.
+
+::: code-group
+
+```js [Configuration]
+{
+  order: ['declarations', 'group:breakpoints'],
+  groups: {
+    breakpoints: {
+      order: [[
+        { type: 'at-rule', name: 'include', parameter: /^layout\.from\(/u },
         { type: 'at-rule', name: 'media' },
-        { type: 'at-rule', name: 'container' },
-      ],
-      sort: (items) => items.toSorted((a, b) => a.parameter.localeCompare(b.parameter)),
+      ]],
+      sort: { by: 'dimension' },
     },
   },
 }
 ```
 
-Here media and container rules are sorted in separate batches and retain their explicit relative priority.
-Placing their matchers in one nested array intentionally gives them the same rank and permits mixing.
-An outer sequence such as `root.order: [['group:responsive']]` also explicitly merges the group's ranks.
-Callbacks never cross category slots or different outer or category-local ranks.
-A group's callback takes precedence over the category callback for members assigned to that group.
-Unmatched units are excluded from sorting.
-See [`unspecified`][unspecified-option] for the effect of an explicit `*`.
+```scss [Result]
+.card {
+  display: grid;
+  @media (width >= 40rem) {}
+  @include layout.from(60rem) {}
+}
+```
 
-#### Property groups
+:::
 
-Use `{ properties: [...] }` directly in `order` or `root.order` to interleave selected properties with at-rules:
+With separate entries the sorter works **within** each priority, so all matching
+includes still come before all media queries. You can also give a whole group
+one priority where you use it, with `['group:breakpoints']` nested in the outer
+order. A group's `sort` takes precedence over the category's sorter for the
+members it matches. It accepts the same [presets][sorting-presets] and
+[callbacks][custom-sorting].
 
-```js
+#### Property groups {#property-groups}
+
+A typography mixin often sets defaults you want to override. To keep layout
+above the mixin and typography below it, put a property group on either side.
+
+::: code-group
+
+```js [Configuration]
 {
   order: [
-    { properties: ['display', 'position', ['width', 'height']], sort: { by: 'name' } },
+    { properties: ['display', ['width', 'height']] },
     { type: 'at-rule', name: 'include', parameter: 'typography' },
-    { properties: ['font-family', 'font-size', 'line-height', 'color'] },
+    { properties: ['font-size', 'line-height', 'color'] },
     'declarations',
-    'at-rules',
-    '*',
   ],
 }
 ```
 
-The `properties` list selects ordinary CSS declarations and defines their internal priorities.
-Strings match canonical property names; regular expressions match either authored or canonical names.
-Nested arrays assign equal priority, so the example sorts `height` before `width` alphabetically.
-A group's `sort` affects only equal-priority members; it cannot override the explicit sequence.
-The group owns its local order and sorter, independently of `within.declarations`.
-Remaining declarations still use that shared category configuration.
-When property groups share an outer or category-local rank, each sorts only its own members' slots.
-CSS custom properties and Sass variables are excluded from property groups.
-
-The same object can define a named group or appear inside `within.declarations.order`:
-
-```js
-{
-  order: ['group:layout', 'declarations', '*'],
-  groups: {
-    layout: { properties: ['display', 'position'] },
-  },
-  within: {
-    declarations: {
-      order: [
-        { properties: ['font-family', 'font-size', 'line-height'], blankLines: { between: 'never' } },
-        { properties: ['*'], sort: { by: 'name' }, blankLines: { before: 'always' } },
-      ],
-    },
-  },
+```scss [Result]
+.card {
+  display: grid;
+  height: 100%;
+  width: 20rem;
+  @include typography;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: navy;
 }
 ```
 
-A terminal `*` inside `properties` selects remaining ordinary properties.
-Property groups inside other `within` categories are rejected.
-An outer group reference is still unavailable inside `within`; use the property object there directly.
-Explicitly interleaving mixins is a structural policy: the rule does not inspect what a mixin emits.
+:::
 
-#### Group spacing
+`display` goes first. `width` and `height` can appear in either order.
+Give the group `sort: { by: 'name' }` if you also want to alphabetize ties.
+The rule follows the order you chose around the mixin. It can't see which
+properties the mixin will emit.
 
-Property groups and expanded named groups accept `blankLines` and an optional diagnostic label, `groupName`:
+A property group matches ordinary CSS properties. Strings match
+[comparison names][canonical comparison names]. A pattern such as `/^grid-/u`
+matches the authored or comparison name. A final `'*'` inside `properties`
+matches the remaining ordinary properties. Custom properties and Sass
+variables have their own categories.
 
-```js
-{
-  within: {
-    declarations: {
-      order: [
-        {
-          properties: ['display', 'position'],
-          groupName: 'Layout',
-          blankLines: { between: 'never', after: 'always' },
-        },
-        {
-          properties: ['color', 'background'],
-          blankLines: {
-            before: {
-              default: 'always',
-              rules: [
-                { when: 'inside-single-line-block', mode: 'ignore' },
-                { when: 'first-nested', mode: 'never' },
-              ],
-            },
-          },
-        },
-      ],
-      unspecified: {
-        position: 'bottom',
-        blankLines: {
-          before: {
-            default: 'never',
-            rules: [{ when: { minItems: 5, scope: 'container' }, mode: 'always' }],
-          },
-        },
-      },
-    },
-  },
-}
-```
+Use a property group directly in `order` or `root.order`, or name it in `groups`
+and refer to it as `group:layout`. If all properties should stay together,
+put the property group directly in `categories.declarations.order`.
+Each group controls its own order and sorter. Other declarations still follow
+the shared `declarations` settings.
 
-| Field     | Boundary                                                                    |
-| --------- | --------------------------------------------------------------------------- |
-| `before`  | Before the first member of a consecutive group.                             |
-| `after`   | After the last member, including before a nested container's closing brace. |
-| `between` | Between consecutive members of the same group.                              |
+#### Group spacing {#group-spacing}
 
-Each field accepts `'always'`, `'never'`, `'ignore'`, or a policy with conditional `rules` and an optional `default`.
-`always` requires at least one empty line and preserves larger gaps.
-`never` removes empty lines while retaining an existing ordinary line break.
-An explicit `ignore` preserves the existing whitespace and takes precedence over the preceding group's `after`.
-An omitted `before` lets the preceding group's `after` govern the boundary.
+A few related custom properties read well together. When a palette grows,
+a gap can make the first property that *uses* it easier to spot. This example
+adds the gap only when there are at least two custom properties above `color`.
 
-List conditional rules in priority order using `{ when, mode }`. The first matching rule chooses the mode.
-If none match, the policy uses `default`, which is `'ignore'` when omitted.
-The `rules` list and the lists in `any` and `all` each contain at least one entry.
+::: code-group
 
-| Condition                  | Matches when                                                                     |
-| -------------------------- | -------------------------------------------------------------------------------- |
-| `first-nested`             | The policy's member is first in the final nested container.                      |
-| `last-nested`              | The policy's member is last in the final nested container.                       |
-| `inside-single-line-block` | The containing rule or at-rule remains on one line after all planned formatting. |
-| `separated-by-comment`     | A leading comment on the next member occupies its own line in the final order.   |
-| `{ minItems: 5 }`          | The selected scope contains at least five items.                                 |
-| `{ maxItems: 4 }`          | The selected scope contains at most four items.                                  |
-| `{ any: [...] }`           | At least one nested condition matches.                                           |
-| `{ all: [...] }`           | Every nested condition matches.                                                  |
-| `{ not: condition }`       | The nested condition does not match.                                             |
-
-Item thresholds are inclusive and take nonnegative integers. The optional `scope` defaults to `'group'`.
-Each declaration, custom property, Sass variable, at-rule or nested rule counts as one item.
-The count skips comments and the contents of nested rules and at-rules.
-
-- `container` counts all direct items in the authored container, including those across sorting boundaries.
-- `group` counts the direct items in the consecutive group that owns the policy.
-- `previous-group` and `next-group` count the immediately adjacent groups relative to the owner.
-  At a `before` boundary, the group across the gap is `previous-group`. At an `after` boundary it is `next-group`.
-  An absent neighbor makes the count condition false, including for `maxItems`.
-
-Group counts use the final order within the same sortable region and grouping level.
-Consecutive members of a category or of the `unspecified` group count together, regardless of existing empty lines.
-Omitting `unspecified`, using `'bottom'`, and using `{ position: 'bottom' }` give the same count.
-An explicit property group in `within.declarations` defines a narrower group.
-For example, if `width`, `height`, and `color` follow `display` in the `declarations` category,
-the next group contains three properties. With `{ properties: ['width', 'height'] }` in `within.declarations`,
-the next group contains two.
-
-To separate a component's palette from the declaration that uses it, require a blank line before `color`
-when the preceding group contains at least two custom properties. With a single custom property, existing spacing is preserved.
-
-```js
+```js [Configuration]
 {
   order: [
     'custom-properties',
     {
       properties: ['color'],
       blankLines: {
-        before: { rules: [{ when: { minItems: 2, scope: 'previous-group' }, mode: 'always' }] },
+        before: {
+          rules: [{
+            when: { minItems: 2, scope: 'previous-group' },
+            mode: 'always',
+          }],
+        },
       },
     },
   ],
 }
 ```
 
-```scss
+```scss [Result]
 .badge {
   --text: red;
   color: var(--text);
@@ -1507,116 +1265,126 @@ when the preceding group contains at least two custom properties. With a single 
 }
 ```
 
-Use this policy as `before` to keep blocks of up to five items compact.
-In longer blocks it separates groups when either side has at least three items.
+:::
+
+For an unconditional gap, just use `blankLines: { before: 'always' }`.
+Use `after` for the end of a consecutive group and `between` for its members.
+`'always'` requires at least one empty line, `'never'` removes empty lines,
+and `'ignore'` keeps the existing gap. These policies also apply when everything
+is already in order.
+
+You can set `blankLines` on a category, a property group, a named group with
+an `order`, or [unmatched items][unspecified-option]. Set `groupName` on a named
+or property group if you'd like the lint message to use a label such as `Layout`.
+
+::: details Keep small blocks compact or let a comment separate groups
+
+Use `{ rules, default }` for any of the three gaps. The first matching rule wins.
+When none matches, the default is `'ignore'` unless you set it explicitly.
+For example, this policy leaves a small block alone, accepts a standalone
+comment as a separator, and otherwise requires a blank line.
 
 ```js
 {
-  default: 'never',
-  rules: [{
-    when: {
-      all: [
-        { not: 'first-nested' },
-        { minItems: 6, scope: 'container' },
-        {
-          any: [
-            { minItems: 3 },
-            { minItems: 3, scope: 'previous-group' },
-          ],
-        },
-      ],
-    },
-    mode: 'always',
-  }],
+  before: {
+    default: 'always',
+    rules: [
+      { when: 'first-nested', mode: 'never' },
+      { when: { maxItems: 4, scope: 'container' }, mode: 'ignore' },
+      { when: 'separated-by-comment', mode: 'ignore' },
+    ],
+  },
 }
 ```
 
-If a gap expands a single-line block, all policies in that block evaluate against the multiline layout.
-Expansion inside a descendant also makes its ancestors multiline for condition evaluation.
-When the single-line plan requires a gap but the multiline plan supplies none, the rule reports an invalid option.
-Adding a gap in that case would immediately invalidate its own condition.
+- `first-nested` and `last-nested` test the item's position inside the
+  final block. `inside-single-line-block` checks whether the whole block
+  still fits on one line after the rule applies its changes.
+- `separated-by-comment` matches a leading comment on its own line.
+  A comment at the end of a declaration stays with that declaration.
+  A comment directly above the next one follows it. Any required gap goes
+  between those two, so it doesn't detach either comment.
+- `minItems` and `maxItems` include the stated count. The default `scope` is
+  `'group'`. Use `'container'` for all direct items, or `'previous-group'` and
+  `'next-group'` for the neighboring runs in the final order. Counts skip
+  comments and the contents of nested blocks. An absent neighbor never matches,
+  even for `maxItems`.
+- Combine conditions with `{ any: [...] }`, `{ all: [...] }`, or
+  `{ not: condition }`. Counts take nonnegative integers. Give each `rules`,
+  `any`, or `all` list at least one entry.
 
-For distinct groups, an explicit `before` on the next group takes precedence over `after` on the previous one,
-including when that `before` resolves to `ignore`. Between members of the same group, only `between` applies.
-At a boundary between BEM families, the parent grouping owns the gap; inner group policies apply inside their family.
-These priorities are independent of the current whitespace, so repeated fixes remain stable.
+:::
 
-Expanded `unspecified: { position: 'top' | 'bottom', blankLines: ... }` is also available
-at the shared level and in `root`. It formats unmatched content without adding it to a matched sorting batch.
-An explicit `*` selects matched remainder content, so `unspecified.blankLines` does not apply to it.
-Selector-list placement and dimension-sort `unresolved` retain their simple string forms.
+::: details When two settings describe the same gap
 
-Spacing is checked even when no nodes need to move.
-An inline comment stays with the preceding declaration. A comment directly above a declaration stays with that declaration.
-The blank line between groups goes after the previous group's trailing comment and before the next group's leading comment.
-This policy accepts either a blank line or a standalone comment for `before`, `after`, or `between`.
+Between two groups, `before` on the following group wins over `after` on the
+preceding one. This also applies when `before` resolves to `'ignore'`.
+Leave `before` out to let the preceding group decide. Inside one group, use
+`between`. At the start or end of a nested block, `before` and `after` can
+control the gap next to the brace. File-leading and file-trailing whitespace
+stays as written.
 
-```js
-{
-  default: 'always',
-  rules: [{ when: 'separated-by-comment', mode: 'ignore' }],
-}
-```
+A category's settings cover a run of its members even if they have different
+priorities. A more specific named group, property group, or `unspecified`
+spacing policy can decide the gap. Between whole BEM families, the parent
+decides. Each family's own settings control gaps inside it.
 
-With `ignore`, an existing blank line before the comment can stay. Use `never` to remove it.
-Block comments (including multiline comments) and Sass `//` comments can serve as separators.
-An inline comment sharing a line with either declaration still requires the usual blank line under this policy.
-If a leading comment shares the opening brace line, a single newline can put it on its own line and satisfy the policy.
+Group counts use consecutive members at that level, regardless of existing
+blank lines. For example, `width`, `height`, and `color` can count as three
+declarations. Giving just `width` and `height` a property group makes that
+group count as two. A container count includes its direct items on both
+sides of a sorting boundary.
 
-Section comments, disabled regions, and other movement boundaries are not crossed by spacing fixes.
-File-leading and file-trailing padding are preserved; nested opening and closing whitespace can be configured explicitly.
-Existing indentation and newline style are retained.
+If a gap expands a nested block, that block and its ancestors count as
+multiline. A policy that requires a gap *only* while the block is on one line
+can invalidate its own result. The rule reports that configuration.
 
-#### Property names and cascade
+:::
 
-Matching and name presets lowercase ordinary CSS property names and remove known vendor prefixes
-(`-webkit-`, `-moz-`, `-ms-`, `-o-`, `-khtml-`, `-epub-`).
-The following aliases share a comparison name:
+#### Property dependencies {#property-names-and-cascade}
 
-| Authored alias    | Comparison name |
-| ----------------- | --------------- |
-| `grid-gap`        | `gap`           |
-| `grid-row-gap`    | `row-gap`       |
-| `grid-column-gap` | `column-gap`    |
-| `word-wrap`       | `overflow-wrap` |
-| `font-stretch`    | `font-width`    |
-
-Source names and values are never rewritten. Custom properties and Sass variables remain case-sensitive.
-Prefixed declarations are not forced before unprefixed ones: their authored precedence is preserved.
-Legacy properties with value translations, such as `page-break-before`, remain separate comparison names.
-
-Built-in presets retain the source order of dependent declarations while sorting independent ones.
-Dependencies include repeated properties and fallbacks, aliases, vendor variants,
-known shorthand/longhand pairs, reset-only effects such as `border` resetting `border-image`,
-and possible logical/physical overlap under an unknown writing mode.
-`all` also constrains ordinary declarations, except `direction` and `unicode-bidi`.
-
-Shorthands are not automatically placed before longhands: their relative order follows the source.
-Both sequences below retain their order, even when a sorting preset would prefer to reverse them:
+The order of `margin` and `margin-top` can change what you see on screen.
+An alphabetical sorter keeps their relative order in both of these rules.
 
 ```scss
-.shorthand-first {
-  margin: 40px;
-  margin-top: 16px;
+.card {
+  margin: 2rem;
+  margin-top: 1rem;
 }
 
-.longhand-first {
-  margin-top: 40px;
-  margin: 16px;
+.badge {
+  margin-top: 1rem;
+  margin: 2rem;
 }
 ```
 
-Independent declarations can still move around these dependencies.
+Other independent properties can still move around the pair. If explicit
+priorities or a callback require the pair to switch places, the rule reports
+the conflict and skips the ordering and spacing fixes in that region.
+Other regions can still be fixed.
 
-If explicit ranks or a custom callback reverse a dependent pair, the rule reports the conflict
-without applying the region's node or spacing fixes. Independent regions can still be fixed.
-This protection concerns declarations in the same authored container;
-it does not evaluate mixin output, variable expressions, or interactions between different selector rules.
-The private relationship registry is based on Stylelint and MDN property data,
-with explicit modern reset relationships; it has no runtime dependency on their internal modules.
+::: details Which property names and relationships does the rule recognize?
 
-::: warning Known limitation: cascade across nested rules
-Declarations interleaved with nested rules targeting the same element are a known edge case:
+Ordinary property names are compared in lowercase, without known vendor
+prefixes (`-webkit-`, `-moz-`, `-ms-`, `-o-`, `-khtml-`, and `-epub-`).
+A group for `gap` also matches `grid-gap`. The other recognized aliases are
+`grid-row-gap` for `row-gap`, `grid-column-gap` for `column-gap`,
+`word-wrap` for `overflow-wrap`, and `font-stretch` for `font-width`.
+Legacy properties that need a value translation, such as `page-break-before`,
+keep their own names. The rule preserves the authored names and values.
+
+Known dependencies include repeated properties, fallbacks, prefixed variants,
+shorthands and their longhands, and resets such as `border` resetting
+`border-image`. Logical and physical properties can overlap depending on the
+writing mode. `all` also constrains ordinary properties except `direction`
+and `unicode-bidi`. The rule preserves the source order of dependent pairs,
+including a prefixed and an unprefixed version of the same property.
+
+:::
+
+::: warning Review changes across nested selectors
+These checks compare declarations inside the same container. A nested `&` can
+target the same card from a second container.
 
 ```scss
 .card {
@@ -1626,33 +1394,26 @@ Declarations interleaved with nested rules targeting the same element are a know
 }
 ```
 
-Moving `color: green` before the nested `&` changes the winning color from green to blue.
-The rule can still apply this move: its dependency checks compare sibling declarations,
-without analyzing declarations inside the nested rule.
-Repeated names, identical values, and `!important` are also outside this cross-container analysis.
-More detailed diagnostic labels distinguish source nodes; they do not establish that a move preserves the cascade.
-
-Handling these interactions would require a substantial extension of the dependency model,
-including selector overlap, specificity, importance, and nesting context.
-This analysis is currently deferred because these interleaved patterns are considered very uncommon edge cases.
-Support can be revisited on request with a representative real-world example.
+The card is green as written. Moving the last declaration above `&` makes it
+blue. Autofix can make that move. Review the diff when nested selectors style
+the same element, or when a mixin supplies styles that a later rule overrides.
 :::
 
 ### `unspecified`
 
-`unspecified` controls units that do not match an entry in the relevant sequence:
+Suppose you only care that `display` comes before `position`. What should
+happen to a `color` declaration between them? You have three choices.
 
-- `bottom` preserves their relative order after matched units and is the default.
-- `top` preserves their relative order before matched units.
-- `ignore` preserves their sibling slots while ordering matched units through the remaining slots.
+- `'bottom'` (the default) collects unlisted items below the ones you named.
+- `'top'` collects them above. In both cases they keep their relative order.
+- `'ignore'` leaves each unlisted item in its slot. Listed items can still
+  switch places around it.
 
-The document order inherits this policy unless `root.unspecified` overrides it.
-At either level, use `{ position, blankLines }` to set spacing for unmatched items. See [group spacing].
-Category-local policies use the expanded `within` form:
+::: code-group
 
-```js
+```js [Configuration]
 {
-  within: {
+  categories: {
     declarations: {
       order: ['display', 'position'],
       unspecified: 'ignore',
@@ -1661,20 +1422,38 @@ Category-local policies use the expanded `within` form:
 }
 ```
 
-Here `position; color; display` becomes `display; color; position`.
-The ignored `color` is not a boundary and does not receive a property-order diagnostic.
-The outer `declarations` rank still applies to all three properties.
-The object form also accepts an order transformer; an omitted `order` uses the category defaults.
-An explicit `*` matches remaining units before `unspecified` is consulted.
+```scss [Before]
+.card {
+  position: relative;
+  color: navy;
+  display: grid;
+}
+```
 
-::: tip Sorting the remainder
-`unspecified: 'top'` and `unspecified: 'bottom'` control placement while preserving relative order.
-Unmatched units do not receive the category's `sort`, whether it is a preset or a callback.
-Add a terminal `*` to make the remainder an explicitly matched priority that receives sorting too:
+```scss [After]
+.card {
+  display: grid;
+  color: navy;
+  position: relative;
+}
+```
+
+:::
+
+Choose the level where you want this to happen. Top-level `unspecified` applies
+inside selectors and BEM families, `root.unspecified` applies at the stylesheet
+level, and `categories.declarations.unspecified` applies among declarations.
+Each defaults independently to `'bottom'`. A family can move as one item even
+when some of the properties inside it keep their slots. Ignoring a family at
+its parent level still lets the rule gather and order its members.
+
+**Should the rest be sorted too?** Add `'*'` as the **last** entry in the list.
+That gives the remaining items an explicit priority, so they can use the category's
+sorter. Without the star, `unspecified` places them and keeps their source order.
 
 ```js
 {
-  within: {
+  categories: {
     'custom-properties': {
       order: [/^--size-/u, '--theme', '*'],
       sort: { by: 'name' },
@@ -1683,131 +1462,168 @@ Add a terminal `*` to make the remainder an explicitly matched priority that rec
 }
 ```
 
-This sorts `--size-*` first, keeps `--theme` next, and sorts all remaining names in a separate final batch.
-For an authored remainder `--zeta; --free; --alpha`, the result is `--alpha; --free; --zeta`.
-Without `*`, those names retain their authored order after `--theme`.
-:::
-
-Slots belong to sibling units: an entire semantic family occupies one slot at its parent level.
-Ignoring that family does not disable its internal ordering or the grouping of its scattered members.
-Likewise, ignoring a property within its category does not prevent its enclosing family from moving.
+Here the size variables are alphabetical. After `--theme`, the remaining
+variables are alphabetical too. To keep those in source order with a blank
+line before them, drop the star and set
+`unspecified: { position: 'bottom', blankLines: { before: 'always' } }`.
+You can use this object form for `'top'` or `'bottom'` at any of the three levels.
 
 ### `selectorList`
 
-`selectorList` independently opts into ordering comma-separated authored branches.
-It defaults to `false`; whole-rule placement follows the [selector set rules][selector-sets].
+By default the rule moves a comma-separated list as a whole and leaves the
+selector text alone. If you'd also like the branches to follow your usual
+state order, turn on `selectorList`.
 
-```js
+::: code-group
+
+```js [Configuration]
 {
   selectorList: { order: 'inherit' },
-  within: {
-    'pseudo-classes': [':hover', [':focus', ':focus-visible'], ':active', '*'],
-  },
+  categories: { 'pseudo-classes': [':hover', ':focus-visible', '*'] },
 }
 ```
 
-This can change `.button:focus, .button:hover` into `.button:hover, .button:focus`.
-Inherited priorities require every branch to have the same unambiguous BEM family and category.
-Branches expanded into several semantic owners by nesting remain unchanged in inherited mode.
-`{}` is shorthand for `{ order: 'inherit' }`.
+```scss [Before]
+.button:focus-visible, .button:hover {}
+```
 
-Explicit branch priorities and alphabetical tie breaking are also available:
+```scss [After]
+.button:hover, .button:focus-visible {}
+```
+
+:::
+
+`'inherit'` reuses category priorities when every branch resolves to the same
+BEM family and category. If nesting gives a branch several owners, its list
+stays as written. `selectorList: {}` is shorthand for inherited order.
+The default for the option itself is `false`.
+
+To alphabetize whole lists, including selectors like `h2, h1`, set just
+`selectorList: { sort: { by: 'name' } }`. You can also give the list priorities of its own.
 
 ```js
 {
   selectorList: {
-    order: [':hover', [':focus-visible', ':focus'], '*'],
+    order: [':hover', [':focus', ':focus-visible'], '*'],
     sort: { by: 'name' },
     unspecified: 'ignore',
   },
 }
 ```
 
-Strings match complete normalized authored branches or local semantic conditions.
-Regular expressions and `{ type: 'rule', selector: ... }` / `relativeSelector` matchers are accepted.
-`unspecified` supports `top`, `bottom`, and `ignore` (the default), preserving ignored branch slots.
-`sort: { by: 'name' }` only breaks ties when priorities are supplied.
-With no `order`, `{ sort: { by: 'name' } }` sorts the complete list, including ordinary non-BEM selectors.
-Set `direction: 'desc'` inside `sort` to reverse name comparison while retaining explicit priority ranks.
+With explicit priorities, `sort` only breaks ties. `direction: 'desc'` reverses
+name comparison. Strings match a complete normalized branch or a local
+condition. Regular expressions and rule matchers with `selector` or
+`relativeSelector` work too. Here `'*'` also ranks the remaining branches.
+Omit it to let `unspecified` keep their slots (`'ignore'`, the default), or
+choose `'top'` or `'bottom'`.
 
-Only complete top-level branches move. Their spelling, comments, duplicates, and slot whitespace are retained.
-Simple selectors inside compounds and lists inside `:is()`, `:not()`, or other functions are never reordered.
-Unresolved interpolation, disabled selectors, keyframes, and function bodies remain untouched.
+Only complete branches move. Comments, duplicate selectors, and the spacing
+of the list are preserved. The rule leaves compounds and commas inside
+functions like `:is(...)` alone. [Selector sets][selector-sets] control where
+the whole rule goes.
 
 ### `separators`
 
-Set the separators used to recognize BEM selector families. The defaults are `__` for elements,
-`--` for modifiers, and `--` between a modifier and its value. You can override each one independently.
+If your project writes `.card_size_small` for the small card, tell the rule
+how to recognize it. The element separator can keep its default.
 
-For example, with `separators: { modifier: '_', modifierValue: '_' }`,
-`.card_size_small` belongs to the `.card` family and `.card__title` is still its element.
+```js
+{
+  separators: { modifier: '_', modifierValue: '_' },
+}
+```
 
-## Regions and autofix boundaries
+Now `.card_size_small` and `.card__title` both belong to `.card`.
+The default separators are `__` for `element`, `--` for `modifier`, and `--`
+for `modifierValue`. Set only the ones your project changes.
 
-Ownership follows the rightmost compound's most specific BEM entity.
-If multiple candidates remain, exactly one must have an unambiguous declaration elsewhere in the stylesheet.
-Otherwise the selector is a boundary; its position is preserved.
-Classes inside functional pseudo-classes never become owners.
+## Autofix boundaries {#regions-and-autofix-boundaries}
 
-Each authored container is checked independently.
-Conditional at-rules remain whole wrappers; their contents are sorted within their own region.
+::: warning Autofix changes source order
+Although I've built safeguards into autofix, static analysis can't guarantee that every fix is safe.
+Autofix keeps code in its original scope and preserves the order of
+known overlapping properties, fallbacks, and vendor-prefixed variants. It also avoids moving code across
+Sass control flow or content insertion points.
 
-`@charset`, `@import`, `@namespace`, and statement-form `@layer` declarations are fixed boundaries,
-regardless of configured ranks or at-rule name casing.
-Their authored positions and relative order are preserved, and no nodes move across them.
-This protects an existing valid preamble; misplaced directives are not automatically repaired.
-See the [namespace placement requirements](https://www.w3.org/TR/css-namespaces-3/#syntax)
-and [layer statement rules](https://www.w3.org/TR/css-cascade-5/#layer-statements).
+If two selectors match the same element, moving one can change which style wins. \
+**Review the diff before accepting fixes in an existing stylesheet.**
+:::
 
-Document-level `@function` and `@mixin` definitions can move as whole nodes.
-Inside selectors or other non-document containers they remain boundaries.
-Sass control-flow, imports, and `@at-root` are boundaries in their parent container.
-Mixin and control-flow contents may still be checked.
-The contents of Sass and CSS `@function` blocks, including their nested containers, are never sorted.
-Keyframe contents are also left unchanged.
-Sass `@content` and CSS `@contents` insertion points are silent boundaries.
-An enclosing wrapper containing an insertion point is also a boundary in its parent region.
-This protection stops at the nearest mixin or function definition, which can still move as a whole node.
-Independent regions on either side of an insertion point are still checked.
-Unmatched BEM lists, lists mixing BEM and ordinary subjects, incompatible BEM lists, unresolved interpolation, disabled ranges,
-and nodes containing Stylelint directives are also boundaries.
-No rule is moved across one of these boundaries or into a different authored container.
 
-Same-line comments travel with the preceding node.
-Comments immediately preceding a node travel with that node; a blank line after a comment makes it a section boundary.
-The rule preserves existing whitespace unless group spacing is explicitly configured.
-For the stable target order, the rule first minimizes the number of authored nodes that must move.
-Among equally minimal plans, it minimizes the number of moved runs.
-A run contains nodes that are consecutive in both the source and target sequences, in the same direction.
-Without ignored units, each moved run produces one short diagnostic on its first node; retained nodes produce none.
-The diagnostic references a retained node that the run must actually cross.
-Repeated declaration names include their values; labels that still coincide include source coordinates.
-Diagnostic labels preserve authored header spacing and comments; matcher normalization does not alter their display.
-Long labels are shortened without changing the highlighted source range.
-With `ignore`, diagnostics compare only units managed by the relevant ordering level.
-They can therefore differ from the physical relocation plan that also restores ignored slots.
-Family continuity and descendant ordering remain active checks.
-Equally good plans prefer the sequence ending earlier in the source.
-Autofix applies the shared region plan once, moves only the selected runs with their comments,
-preserves equal ranks, and is stable on subsequent runs.
+Autofix keeps each rule inside the braces where you wrote it. A media query can
+move as a whole. Its contents can also change order, but a selector inside it
+stays inside it. A standalone section comment works like a divider, too.
+
+```scss
+.card {
+  &:hover {}
+  &:focus-visible {}
+
+  // Print styles
+
+  @media print {}
+}
+```
+
+The blank line **after** the comment makes it a section divider. Remove that
+line and the comment belongs to the media query and travels with it. A comment
+at the end of a line follows the preceding item. Existing gaps are otherwise
+preserved unless you set [`blankLines`][group spacing].
+
+::: details Why did this rule stay in place?
+
+- **Stylesheet directives.** `@charset`, `@import`, `@namespace`, and
+  statement-form `@layer` declarations stay where they were written, even if
+  `order` would put them elsewhere. Keep the [namespace][namespace-placement]
+  and [layer][layer-statements] declarations in the order the stylesheet needs.
+- **Sass execution.** Module directives such as `@use` and `@forward`,
+  control flow such as `@if`, and `@at-root` divide the enclosing block.
+  Content on either side can still be checked. Mixin and control-flow bodies
+  can have their own sortable contents.
+- **Definitions and insertion points.** A stylesheet-level `@function` or
+  `@mixin` can move as a whole. A nested definition is a boundary.
+  The rule leaves function bodies and keyframe contents alone.
+  `@content` and `@contents` stay in place, as do wrappers around them up to
+  the nearest definition. The definition itself can still move at stylesheet level.
+- **Ambiguous selectors.** The most specific BEM entity in the rightmost
+  compound identifies the owner. If several are possible, the rule looks for
+  a single one with an unambiguous declaration elsewhere in the stylesheet.
+  Classes inside function arguments never supply the owner. If the owner
+  remains unclear, interpolation can't be resolved, or list branches mix
+  incompatible BEM families or BEM and ordinary selectors, the rule stays put.
+- **Stylelint directives.** Disabled ranges and nodes containing a Stylelint
+  directive divide the file into regions. Neither ordering nor spacing fixes
+  cross these boundaries.
+
+:::
+
+A warning points to the first item in a consecutive run that needs to move.
+For example, three adjacent states that belong above a modifier can move
+together, so one message can cover all three. The rule aims to move as few
+source items as possible, then as few runs as possible. Repeated labels can
+include a value or source location to help you find the right item.
+With `unspecified: 'ignore'`, messages describe the items you've asked to order.
 
 ## Acknowledgments
 
-References that informed this rule:
-
-- [`order/order`][stylelint-order]
-  for the object matcher shapes.
-- [Stylelint](https://github.com/stylelint/stylelint) for the property relationship data used in cascade checks.
+The matcher objects follow the conventions of [`order/order`][stylelint-order].
+The checks for overlapping properties draw on [Stylelint][stylelint] property data.
 
 [canonical comparison names]: #property-names-and-cascade
+[categories-option]: #categories
 [custom-sorting]: #custom-sorting
 [group spacing]: #group-spacing
 [groups-option]: #groups
-[named-group-sorting]: #named-group-sorting
+[layer-statements]: https://www.w3.org/TR/css-cascade-5/#layer-statements
+[namespace-placement]: https://www.w3.org/TR/css-namespaces-3/#syntax
+[order-option]: #order
 [outer-matchers]: #matchers-and-equal-ranks
 [property groups]: #property-groups
 [root-option]: #root
+[selector-list]: #selectorlist
 [selector-sets]: #selector-sets
+[sorting-presets]: #sorting-presets
 [stylelint-order]: https://github.com/hudochenkov/stylelint-order/blob/master/rules/order/README.md
+[stylelint]: https://github.com/stylelint/stylelint
 [unspecified-option]: #unspecified
-[within-option]: #within
