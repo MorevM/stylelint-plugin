@@ -1,5 +1,5 @@
 ---
-outline: [2, 4]
+outline: [2, 5]
 pageClass: bem-order-page
 ---
 
@@ -273,7 +273,9 @@ An `order` array replaces the default sequence for its scope.
       'css:container',
       // Keep the remaining at-rules together before selector states.
       'at-rules',
-      // Start with states like :hover and :focus...
+      // Keep styles for a specific tag together, including its states.
+      'qualifiers:type',
+      // List shared states like :hover and :focus...
       'pseudo-classes',
       // ...then show the variants named by BEM modifiers.
       'modifiers',
@@ -281,6 +283,8 @@ An `order` array replaces the default sequence for its scope.
       'qualifiers:class',
       // ...then attributes like [aria-busy].
       'qualifiers:attribute',
+      // Put remaining qualifiers, such as an ID, after classes and attributes.
+      'qualifiers',
       // Read overrides from ancestors in the same block first...
       'context:internal',
       // ...then those that depend on an ancestor outside the block.
@@ -355,9 +359,13 @@ $card-gap: 1rem;
   // [css:container] Adapt the card to the space its container gives it.
   @container (width > 30rem) {}
 
-  // [pseudo-classes] Read the card's states before its named variants.
+  // [qualifiers:type] Keep link cards and their hover styles together.
+  @at-root a#{$b} {}
+
+  // [pseudo-classes] These states apply to cards of any HTML element type.
   &:hover {}
   &:focus-visible {}
+
   // [modifiers | .product-card--compact] The compact card is a new family.
   &--compact {}
 
@@ -401,378 +409,535 @@ $card-gap: 1rem;
 
 :::
 
-Want to move a whole category? Start with [`order`][order-option] inside a selector,
-or [`root`][root-option] at the top of the file. If you only want to change
-which state or breakpoint comes first, skip to [`categories`][categories-option].
-
-::: details Highly customized configuration example
-
-In this setup, layout comes before colors, small rules stay compact, and
-breakpoints run from narrowest to widest within each unit. Follow `group:layout`
-or `group:responsive` from `order` down to `groups` to see how to set that up.
-
-```js
-export default {
-  plugins: ['@morev/stylelint-plugin'],
-  rules: {
-    '@morev/bem/order': [true, {
-      root: {
-        order: ['group:sass', 'custom-properties', 'rules', 'group:responsive'],
-        // Other top-level at-rules keep their original positions.
-        unspecified: 'ignore',
-      },
-
-      order: [
-        'sass:variables',
-        'custom-properties',
-        'sass:include-statements',
-        // Keep layout and paint together before other declarations.
-        'group:layout',
-        { properties: ['color', /^background(?:-|$)/u] },
-        'declarations',
-        'base',
-        // Handle direct children before the card's own selector states.
-        'group:side-effects',
-        ['group:structural', 'group:functional'],
-        // This named breakpoint gets a place ahead of the responsive group.
-        { type: 'at-rule', name: 'media', parameter: '(--less-tablet-small)' },
-        'group:responsive',
-        'pseudo-classes',
-        'modifiers',
-        'qualifiers:class',
-        'qualifiers:attribute',
-        'context:internal',
-        'context:external',
-        'pseudo-elements',
-        'elements',
-        'sass:include-blocks',
-        'at-rules',
-      ],
-
-      unspecified: {
-        position: 'bottom',
-        blankLines: { before: 'always' },
-      },
-
-      categories: {
-        // Put private variables first and keep the usual order for the rest.
-        'sass:variables': (defaults) => [/^\$_/, ...defaults],
-        declarations: {
-          order: [
-            {
-              groupName: 'Typography',
-              properties: ['font-family', ['font-size', 'line-height']],
-            },
-            'opacity',
-          ],
-          // Other properties go above typography and opacity.
-          unspecified: 'top',
-        },
-        'pseudo-classes': [
-          ':link',
-          ':visited',
-          ':hover',
-          [':focus', ':focus-visible'],
-          // Shared states have a place of their own in either branch order.
-          { selectorSet: { equals: [':hover', ':focus-visible'] } },
-          { selectorSet: { includes: [':hover'], size: 2 } },
-          ':active',
-          '*',
-        ],
-        'pseudo-elements': ['::marker', '::before', '::after', '*'],
-        'at-rules': [
-          { type: 'at-rule', name: 'media', parameter: /^\(--less-/u },
-          { type: 'at-rule', name: 'supports' },
-          '*',
-        ],
-        elements: {
-          // Keep the title first. Sort the other elements by name length.
-          order: ['.card__title', '*'],
-          sort(items, context) {
-            const byName = context.sort(items, { by: 'name' });
-            return byName.toSorted((a, b) => a.name.length - b.name.length);
-          },
-        },
-      },
-
-      groups: {
-        sass: [[
-          'sass:variables',
-          'sass:functions',
-          'sass:mixins',
-          'css:functions',
-          'css:mixins',
-          'sass:placeholders',
-          'sass:includes',
-          'sass:diagnostics',
-        ]],
-        layout: {
-          groupName: 'Layout',
-          properties: ['display', 'position', ['width', 'height'], /^grid-/u],
-          sort: { by: 'name' },
-          blankLines: {
-            between: 'never',
-            // Separate larger groups in long blocks. A comment can divide them.
-            after: {
-              default: 'never',
-              rules: [
-                { when: 'separated-by-comment', mode: 'ignore' },
-                {
-                  when: {
-                    all: [
-                      { not: 'last-nested' },
-                      { minItems: 6, scope: 'container' },
-                      {
-                        any: [
-                          { minItems: 3, scope: 'group' },
-                          { minItems: 3, scope: 'next-group' },
-                        ],
-                      },
-                    ],
-                  },
-                  mode: 'always',
-                },
-              ],
-            },
-          },
-        },
-        'side-effects': [
-          { type: 'rule', selector: '> *', name: 'Direct children' },
-        ],
-        structural: [
-          { type: 'rule', relativeSelector: '&:empty' },
-          { type: 'rule', relativeSelector: '&:only-child' },
-        ],
-        functional: [
-          { type: 'rule', relativeSelector: /^&:(?:is|has|not)\(/u },
-        ],
-        responsive: {
-          groupName: 'Breakpoints',
-          // Both kinds of query can now share the same width order.
-          order: [[
-            { type: 'at-rule', name: 'media' },
-            { type: 'at-rule', name: 'container' },
-          ]],
-          sort: {
-            by: 'dimension',
-            units: ['rem', 'px'],
-            direction: 'asc',
-            unresolved: 'bottom',
-          },
-          blankLines: {
-            before: {
-              default: 'always',
-              rules: [
-                { when: 'first-nested', mode: 'never' },
-                { when: 'inside-single-line-block', mode: 'never' },
-                {
-                  when: { maxItems: 1, scope: 'previous-group' },
-                  mode: 'never',
-                },
-              ],
-            },
-          },
-        },
-      },
-
-      selectorList: {
-        order: [':hover', [':focus', ':focus-visible'], ':active'],
-        unspecified: 'bottom',
-        sort: { by: 'name', direction: 'asc' },
-      },
-
-      separators: {
-        element: '__',
-        modifier: '_',
-        modifierValue: '_',
-      },
-    }],
-  },
-};
-```
-
-:::
+---
 
 ### `order`
 
-Where would you look for a card's hover state, above its modifiers or below them?
-Set `order` to the sequence you'd expect to read. The same convention applies
-to the card, its elements, and their modifiers.
+Use `order` to choose what comes first inside a selector or a BEM family. \
+The rule only sorts items at the same level, but the same order applies inside each family.
 
-::: code-group
-
-```js [Configuration]
-{
-  order: ['declarations', 'base', 'pseudo-classes', 'modifiers', 'elements'],
-}
-```
-
-```scss [Result]
-.card {
-  display: grid;
-  &:hover {}
-  &--compact {}
-  &__title {
-    &:hover {}
-    &--muted {}
-  }
-}
-```
-
-:::
-
-#### Default order {#defaults}
-
-If you only want `:focus-visible` before `:hover`, leave `order` alone.
-Both already belong to `pseudo-classes`. Change [the order inside that category][categories-option].
-Replace `order` when you want to move **all** pseudo-classes relative to modifiers,
-queries, or other content. Anything you leave out follows [`unspecified`][unspecified-option].
-
-#### Selector families {#selector-families}
-
-You can write the same card in flat CSS. The rule still treats `.card` and its
-variants as one family. When you move the title, its hover state goes with it.
+A **BEM family** is a group of selectors for the same block, element, or modifier.
 
 ```scss
-.card {}
-.card:hover {}
-.card--compact {}
-.card--compact:hover {}
-.card__title {}
-.card__title:hover {}
+.card {}               // The card family.
+.card:hover {}         // This state belongs to the card.
+
+.card__title {}        // The title has its own family within the card family.
+.card__title:hover {}  // This state stays with the title.
 ```
 
-Each family follows `order` again. That's why `.card--compact:hover` sits next to
-`.card--compact` even though hover comes before modifiers on the card itself.
-You can write just the hover state if the compact card has no base styles of its own.
 
-#### Built-in categories {#built-in-categories}
+<!-- TODO: Не забыть вставить ссылки, уточнить полный ли список -->
 
-**What lives inside a rule?**
+Inside `order`, you can reference built-in categories, your custom groups, or a plain rules via an object form.
 
-- `sass:variables` matches `$gap: 1rem;`, `custom-properties` matches `--gap: 1rem;`,
-  and `declarations` matches ordinary properties like `gap: 1rem;`.
-- `css:media` and `css:container` give `@media` and `@container` their own places.
-  Use `at-rules` for other directives such as `@supports`.
-- `rules` gives other selectors, such as `> img`, a place too.
+---
 
-**Which part of the block are you styling?**
+#### How ordering works
 
-- `base` is the family's plain selector, such as `.card`. Put its `pseudo-classes`
-  (`.card:hover`) and `modifiers` (`.card--compact`) where you'd look for them.
-- `qualifiers:class` and `qualifiers:attribute` add conditions on the same node,
-  such as `.card.is-selected` and `.card[aria-busy]`.
-- `context:internal` and `context:external` both describe an ancestor.
-  In `.card--compact .card__title` the card changes its own title.
-  In `.sidebar .card__title` the sidebar changes it from outside.
-- `pseudo-elements` such as `.card::before` and `elements` such as `.card__title`
-  each bring their own states with them.
-
-An extra class on the card itself still counts as internal context
-(`.card--compact.is-selected .card__title`). A separate ancestor from outside
-the block makes it external (`.is-selected .card--compact .card__title`).
-
-**Working with Sass or CSS definitions?**
-
-- `sass:functions` and `sass:mixins` match definitions such as `@function tone()`
-  and `@mixin surface`. CSS definitions use dashed names, such as
-  `@function --tone()` and `@mixin --surface`, and have their own categories,
-  `css:functions` and `css:mixins`.
-- `sass:include-statements` matches calls like `@include surface;`.
-  `sass:include-blocks` matches calls with a body, like `@include tablet {}`.
-  Use `sass:includes` to give both forms one place.
-- `sass:diagnostics` covers `@debug`, `@warn`, and `@error`.
-- `sass:placeholders` matches `%surface`, its variants, and lists like `%surface, %panel`.
-  Every branch needs a placeholder outside pseudo-class arguments.
-  A mixed list like `%surface, button` goes in `rules`.
-
-#### Base and declarations {#base-rules-and-declarations}
-
-In `.card { --gap: 1rem; }` the opening `.card` naturally appears before `--gap`.
-They belong to different levels. `base` places the **whole rule** among the card's
-other selectors. Inside its braces, `custom-properties` places `--gap` and
-`declarations` places ordinary properties.
-
-```scss
-.card { color: black; }
-.card:hover { color: red; }
-```
-
-Here `'base'` before `'pseudo-classes'` puts the plain card first. In nested SCSS,
-with `color: black;` and `&:hover {}` inside the same braces, it's
-`'declarations'` before `'pseudo-classes'` that puts the color first.
-
-#### Matcher priority {#matchers-and-equal-ranks}
-
-Suppose the print stylesheet should come after every other media query.
-Keep `css:media` for the usual queries and describe the exception once.
+**Configuration**
 
 ```js
 {
   order: [
     'declarations',
+    'base',
+    'pseudo-classes',
+    'modifiers',
+    'elements',
+  ],
+}
+```
+
+**Result**
+
+```scss
+// At the document level, this example has no `declarations` or `modifiers`.
+// So, `.card` falls into the `base` category.
+.card {
+  // Nesting creates a new context where the same order applies.
+  // Here we see `declarations`.
+  display: grid;
+
+  // According to the configuration, `base` comes after `declarations`.
+  // A second `base` for this family would have to refer to the same entity.
+  // Technically, we could write `& { color: red; }` as another `base`,
+  // but there's no point in doing that here.
+
+  // Next come the `pseudo-classes`.
+  &:hover {}
+
+  // Then come the `modifiers`.
+  &--compact {}
+
+  // The configuration places `elements` next.
+  &__title {
+    // The hierarchy repeats inside each new entity (a "BEM family").
+    // Categories that are missing or don't apply to the entity are skipped.
+    // For example, the `modifiers` category is skipped inside `&--compact`.
+    &:hover {}
+
+    &--muted {}
+  }
+}
+```
+
+You can write the same card in flat CSS. \
+The rule still treats `.card` and its variants as one family. When you move the title, its hover state goes with it.
+
+```scss
+.card {}
+.card:hover {}
+
+// This modifier belongs to the `modifiers` category in the `.card` family.
+// It also forms its own family, where `.card--compact` is the `base` rule.
+.card--compact {}
+// The configuration puts `base` before `pseudo-classes` within each family.
+// That's why `:hover` comes right after the modifier's base rule here.
+// Reversing those two entries would put `:hover` before `.card--compact`.
+.card--compact:hover {}
+
+// The same applies to elements. A family can exist without a `base` rule.
+// Here the rule recognizes the `.card__title` family from its hover selector.
+.card__title:hover {}
+```
+
+---
+
+#### Built-in categories {#built-in-categories}
+
+Built-in categories are the simplest way to refer to parts of a stylesheet by name.
+
+<!-- eslint-disable markdown/no-html -- Keep examples and notes on separate lines in each cell. -->
+
+<table class="bem-order-categories">
+  <thead>
+    <tr>
+      <th>Value</th>
+      <th>Example</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>sass:variables</code></td>
+      <td>
+        <code>$gap: 16px;</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>sass:functions</code></td>
+      <td>
+        <code>@function tone() {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>sass:mixins</code></td>
+      <td>
+        <code>@mixin surface {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>sass:include-statements</code></td>
+      <td>
+        <code>@include surface;</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>sass:include-blocks</code></td>
+      <td>
+        <code>@include tablet {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>sass:includes</code></td>
+      <td>
+        Both <code>@include surface;</code> and <code>@include tablet {}</code> <br />
+        <small>
+          If you list a separate category for statements or blocks, it takes priority for that form.
+          See <a href="#matchers-and-equal-ranks">Matcher priority</a> below.
+        </small>
+      </td>
+    </tr>
+    <tr>
+      <td><code>sass:diagnostics</code></td>
+      <td>
+        <code>@debug $gap;</code><br />
+        <code>@warn 'Missing size';</code><br />
+        <code>@error 'Invalid size';</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>sass:placeholders</code></td>
+      <td>
+        <code>%surface {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>custom-properties</code></td>
+      <td>
+        <code>--gap: 16px;</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>declarations</code></td>
+      <td>
+        <code>gap: 16px;</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>css:media</code></td>
+      <td>
+        <code>@media (hover: hover) {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>css:container</code></td>
+      <td>
+        <code>@container (width &gt; 480px) {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>at-rules</code></td>
+      <td>
+        <code>@supports (display: grid) {}</code> <br />
+        <small>
+          If you list a more specific category, such as <code>css:media</code> for <code>@media</code>,
+          it takes priority for those at-rules.
+          See <a href="#matchers-and-equal-ranks">Matcher priority</a> below.
+        </small>
+      </td>
+    </tr>
+    <tr>
+      <td><code>rules</code></td>
+      <td>
+        <code>img {}</code><br />
+        <code>&gt; img {}</code><br />
+        <code>.another-block {}</code><br />
+        <small>Here all three selectors are nested inside <code>.card</code>.</small>
+      </td>
+    </tr>
+    <tr>
+      <td><code>base</code></td>
+      <td>
+        <code>.card {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>pseudo-classes</code></td>
+      <td>
+        <code>.card:hover {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>modifiers</code></td>
+      <td>
+        <code>.card--compact {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>qualifiers</code></td>
+      <td>
+        <code>.card.is-selected {}</code>, <code>.card[aria-busy] {}</code>,
+        <code>article.card {}</code>, <code>.card#featured {}</code><br />
+        <small>
+          An extra class, attribute, type or ID on the same element.
+          If you list a more specific qualifier category, it takes priority.
+          See <a href="#matchers-and-equal-ranks">Matcher priority</a> below.
+        </small>
+      </td>
+    </tr>
+    <tr>
+      <td><code>qualifiers:class</code></td>
+      <td>
+        <code>.card.is-selected {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>qualifiers:attribute</code></td>
+      <td>
+        <code>.card[aria-busy] {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>qualifiers:type</code></td>
+      <td>
+        <code>a.button {}</code>, <code>button.button {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>context:internal</code></td>
+      <td>
+        <code>.card--compact .card__title {}</code><br />
+        <small>
+          The styles of a BEM entity can depend on another entity in the same block. <br />
+          Here, the title looks different when the card is compact.
+        </small>
+      </td>
+    </tr>
+    <tr>
+      <td><code>context:external</code></td>
+      <td>
+        <code>.sidebar .card__title {}</code><br />
+        <small>
+          The styles of a BEM entity can depend on an element outside its block. <br />
+          Here, the title looks different when the card is in a sidebar.
+        </small>
+      </td>
+    </tr>
+    <tr>
+      <td><code>pseudo-elements</code></td>
+      <td>
+        <code>.card::before {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>elements</code></td>
+      <td>
+        <code>.card__title {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>css:functions</code></td>
+      <td>
+        <code>@function --tone() { result: red; }</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>css:mixins</code></td>
+      <td>
+        <code>@mixin --surface {}</code>
+      </td>
+    </tr>
+
+</tbody>
+</table>
+
+<!-- eslint-enable markdown/no-html -->
+
+::: info Attention
+The categories in `order` define the overall structure of your styles.
+Move `pseudo-classes` in `order` to place the whole category before modifiers or after queries.
+To put `:focus-visible` before `:hover` within that category, use [`categories`][categories-option].
+Items left out of `order` follow [`unspecified`][unspecified-option].
+Use [`blankLines`][group spacing] to control blank lines around a group and between its items.
+:::
+
+---
+
+#### Custom categories
+
+You can define a named group when you want related rules to have their own place in `order`.
+For example, you might keep native and class-based validation states together,
+or group breakpoint mixins with media queries.
+
+::: code-group
+
+```js [Validation states]
+{
+  // Explicit matchers take priority even when
+  // a built-in category comes first in `order`.
+  order: ['pseudo-classes', 'qualifiers:class', 'group:validation'],
+  groups: {
+    validation: [
+      // `&:invalid` goes here. `&:hover` stays in `pseudo-classes`.
+      { type: 'rule', relativeSelector: '&:invalid' },
+      // `&.is-invalid` goes here. `&.is-active` stays in `qualifiers:class`.
+      { type: 'rule', relativeSelector: '&.is-invalid' },
+    ],
+  },
+}
+```
+
+```js [Breakpoints]
+{
+  // Block includes like `@include theme.dark {}` stay in `sass:include-blocks`.
+  // Calls to `layout.from(...)` are the exception.
+  order: ['sass:include-blocks', 'declarations', 'group:breakpoints'],
+  groups: {
+    breakpoints: [
+      // `@include layout.from(768px) {}` goes here, after `declarations`.
+      { type: 'at-rule', name: 'include', parameter: /^layout\.from\(/u },
+      // All `@media` queries follow those calls in `group:breakpoints`.
+      'css:media',
+    ],
+  },
+}
+```
+
+:::
+
+See [`groups`][groups-option] for more ways to define and reuse a group.
+
+---
+
+#### Object matchers
+
+If you need an exception in just one place, put the matcher directly in `order`
+or `root.order`. You can give a selector, an at-rule, or a few CSS properties
+their own position in the list.
+
+```js
+{
+  order: [
+    // Put `display` and `gap` before the other declarations.
+    // The object matcher takes precedence,
+    // so `declarations` excludes these properties.
+    { properties: ['display', 'gap'] },
+    'declarations',
+
+    // Match this selector exactly as written.
+    { type: 'rule', selector: '.card:focus-visible' },
+    // Match this state on any BEM entity, including nested `&:focus-visible`.
+    { type: 'rule', relativeSelector: '&:focus-visible' },
+    'pseudo-classes',
+
+    // Put `@media print` after the other media queries.
     'css:media',
     { type: 'at-rule', name: 'media', parameter: 'print' },
   ],
 }
 ```
 
-The rule looks for an explicit matcher first. That's why the `print` entry
-still catches `@media print` even though `css:media` appears above it.
-If two explicit matchers fit, the **first** wins. The winner's position in the
-list is where the item goes.
+<!-- TODO: Nested перенести ниже -->
 
-When either order reads equally well, put the entries in one nested array.
+You can nest entries one level deep to give them equal priority.
 For example, `['pseudo-classes', ['modifiers', 'elements']]` puts states first
 and lets modifiers and elements keep their order of first appearance.
 You can use the same pattern [within a category][categories-option].
 
-::: details What can I match in order and root.order?
+---
 
-- An at-rule matcher takes an exact `name` without `@`, `parameter` for the text
-  after the directive, and `hasBlock` to distinguish statements from blocks.
-  You can omit any of the three.
-- A rule matcher takes `selector` or `relativeSelector`. Omit both to match
-  any selector rule. An optional `name` gives the matcher a label in lint messages.
-- Strings in those selector and parameter fields match the whole value.
-  Use a regular expression for a pattern. An at-rule's parameters are normalized
-  before comparison.
-- [Property groups][property groups] match selected declarations. [Named groups][groups-option]
-  expand in place. The first matching object across all these entries wins.
-  A matcher only sees items at the current level of the family.
-- If no object matches, the rule looks at the categories you listed.
-  A specific query, definition, diagnostic or include category takes precedence over
-  `at-rules`. For `@include`, the matching statement or block category takes
-  precedence over `sass:includes`. Eligible selector lists and placeholders
-  likewise use their specific categories before `rules`.
-- Strings in the outer sequence name categories or `group:name`. To match all
-  remaining content, add `'*'` as the last entry. Patterns and literal selectors
-  belong in matcher objects here. Equal-priority arrays can be nested one level deep.
+##### Properties {#property-groups}
+
+Use `properties` matcher when a few declarations should appear together.
+
+- The position of the object in `order` sets where the group goes.
+- Within the group, properties follow the order you list them in.
+
+::: code-group
+
+```js [Plain property names]
+{
+  order: [
+    {
+      properties: [
+        'display',           // First.
+        'gap',               // Second.
+        ['width', 'height'], // Both follow gap, in any order.
+      ],
+    },
+    'declarations', // All other ordinary properties come last.
+  ],
+}
+```
+
+```js [Regular expression with sorting]
+{
+  order: [
+    {
+      // Keep all grid-* properties between display and gap.
+      properties: ['display', /^grid-/u, 'gap'],
+      // Alphabetize the matches, e.g. grid-auto-flow before grid-template-rows.
+      sort: { by: 'name' },
+    },
+    'declarations',
+  ],
+}
+```
 
 :::
 
-#### Relative selectors {#authored-and-relative-selectors}
+The second tab shows how to sort properties by name. \
+For more ways to sort, see
+[Sorting presets][sorting-presets] and [Custom sorters][custom-sorting] below.
 
-If some files say `.card:empty` and others say `&:empty`, one matcher can cover both.
+---
+
+##### Relative selectors {#authored-and-relative-selectors}
+
+Use `relativeSelector` to give a state the same position across blocks, elements,
+and modifiers. The rule resolves nesting, then replaces the BEM entity's class
+with `&`.
 
 ```js
 {
   order: [
-    { type: 'rule', relativeSelector: '&:empty', name: 'Empty state' },
+    // This matcher puts `:focus` before other pseudo-classes,
+    // regardless of nesting or spelling.
+    { type: 'rule', relativeSelector: '&:focus' },
+
+    // Match relative selectors starting with `&:is(`, `&:has(`, or `&:not(`.
+    // For example, `.card:has(img)` becomes `&:has(img)`.
+    { type: 'rule', relativeSelector: /^&:(?:is|has|not)\(/u },
     'pseudo-classes',
   ],
 }
 ```
 
-`relativeSelector` uses `&` for the BEM selector the rule resolves, including its
-element or modifier. It works with a Sass reference like `#{$b}:empty` when
-`$b` resolves to that block. Use `selector: '&:empty'` if the spelling in
-the source matters. Pick one of the two fields.
+```scss{14,17,21}
+// In the matcher, `&` stands for the modifier class `.card--compact`.
+// The full selector `.card--compact:focus` therefore matches `&:focus`.
+.card--compact:focus {}
 
-An exact `'&:empty'` matches that state alone. For several functional
-pseudo-classes, try `relativeSelector: /^&:(?:is|has|not)\(/u`.
-Ancestors, pseudo-elements, attributes, and the arguments of pseudo-classes
-retain their place in the selector.
+// All the focus rules below match `&:focus`.
+// For each match, `&` in the config represents
+// the BEM class that owns the focus state.
+.card:focus {}
+.card__title:focus {}
+
+.card {
+  $b: #{&};
+
+  &:focus {}
+
+  &__title {
+    &:focus {}
+  }
+
+  @at-root {
+    #{$b}:focus {} // Resolves to .card:focus.
+  }
+}
+```
+
+---
+
+##### Authored selectors
+
+Use `selector` when the spelling in the file matters. \
+The rule **matches the
+selector exactly as written**, before resolving nesting.
+
+```js
+{
+  order: [
+    // Put states written exactly as `&:focus` first in any component.
+    { type: 'rule', selector: '&:focus' },
+
+    // Then match the remaining selectors that start with a literal `&:`.
+    { type: 'rule', selector: /^&:/u },
+    'pseudo-classes',
+  ],
+}
+```
+
+```scss{7,8}
+// Neither matcher applies here. `selector` reads the text as written.
+// Both flat rules stay in `pseudo-classes`.
+.card:hover {} // [!code error]
+.card:focus {} // [!code error]
+
+.card {
+  &:focus {} // The exact `&:focus` matcher puts this state first.
+  &:hover {} // The `/^&:/u` matcher puts this state second.
+}
+```
+
+- Choose either `selector` or `relativeSelector` in each rule matcher.
+- `{ type: 'rule' }` matches any selector rule.
+
+---
+
 
 #### Pseudo-element variants {#pseudo-element-variants}
 
@@ -931,6 +1096,9 @@ the text includes the container name, when present. Include each category in
   a local state or `'::before'` for a pseudo-element family. A selector pattern
   sees the normalized selector without the contents of its block. You can also
   use a rule matcher to choose between authored and relative selectors.
+- Within `qualifiers`, use the extra selector itself, such as `'.is-selected'`,
+  `'[aria-busy]'`, `'button'`, or `'#featured'`. Specific qualifier categories
+  inherit the shared order and spacing unless you give them their own.
 - For a variable or property, use its name. Ordinary properties use
   [comparison names][canonical comparison names]. Custom properties and Sass
   variables keep their case and their leading dashes or dollar sign.
@@ -1577,10 +1745,15 @@ preserved unless you set [`blankLines`][group spacing].
   statement-form `@layer` declarations stay where they were written, even if
   `order` would put them elsewhere. Keep the [namespace][namespace-placement]
   and [layer][layer-statements] declarations in the order the stylesheet needs.
-- **Sass execution.** Module directives such as `@use` and `@forward`,
-  control flow such as `@if`, and `@at-root` divide the enclosing block.
-  Content on either side can still be checked. Mixin and control-flow bodies
-  can have their own sortable contents.
+- **Sass execution.** Module directives such as `@use` and `@forward` divide
+  the enclosing block, as do control-flow directives such as `@if`. The rule
+  can still sort content on either side and inside mixins and control-flow blocks.
+- **Sass `@at-root`.** Inline qualifiers follow the same order as sibling
+  selectors. For example, if `$b` is `.button`, `@at-root a#{$b} {}` matches
+  `qualifiers:type` and `@at-root #{$b}.is-loading {}` matches `qualifiers:class`.
+  Sass variable assignments keep their position relative to these directives.
+  Other forms, including `@at-root { ... }` and `@at-root (without: media)`,
+  divide the enclosing block. Their contents can still be sorted.
 - **Definitions and insertion points.** A stylesheet-level `@function` or
   `@mixin` can move as a whole. A nested definition is a boundary.
   The rule leaves function bodies and keyframe contents alone.
