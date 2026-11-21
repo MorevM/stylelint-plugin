@@ -13,7 +13,9 @@ export const DEFAULT_ROOT_ORDER: OrderSequence = [
 	],
 	'custom-properties',
 	'rules',
-	['css:media', 'css:container', 'at-rules'],
+	'css:media',
+	'css:container',
+	'at-rules',
 ];
 
 export const DEFAULT_ORDER: OrderSequence = [
@@ -22,7 +24,10 @@ export const DEFAULT_ORDER: OrderSequence = [
 	'sass:include-statements',
 	'declarations',
 	'base',
-	['sass:include-blocks', 'css:media', 'css:container', 'at-rules'],
+	'sass:include-blocks',
+	'css:media',
+	'css:container',
+	'at-rules',
 	'pseudo-classes',
 	'modifiers',
 	'qualifiers:class',

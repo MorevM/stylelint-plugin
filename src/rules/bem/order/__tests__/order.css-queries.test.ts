@@ -5,6 +5,25 @@ const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName });
 
 testRule({
+	description: 'Default stylesheet query order',
+	config: [true],
+	reject: [{
+		description: 'Groups media queries before container queries and preserves the order of media conditions',
+		code: `
+			@media print {}
+			@container (width > 30rem) {}
+			@media (hover: hover) {}
+		`,
+		fixed: `
+			@media print {}
+			@media (hover: hover) {}
+			@container (width > 30rem) {}
+		`,
+		warnings: [{ message: messages.expectedBefore('@media (hover: hover)', '@container (width > 30rem)') }],
+	}],
+});
+
+testRule({
 	description: 'CSS queries at the stylesheet level',
 	config: [true, {
 		root: {
@@ -76,7 +95,7 @@ testRule({
 		},
 	} satisfies SecondaryOption],
 	reject: [{
-		description: 'Sorts container widths in their slots and uses the generic order for media',
+		description: 'Orders media first, then sorts container queries by width',
 		code: `
 			.card {
 				@media screen {}
@@ -88,15 +107,14 @@ testRule({
 		fixed: `
 			.card {
 				@media print {}
-				@container sidebar (min-width: 30rem) {}
 				@media screen {}
+				@container sidebar (min-width: 30rem) {}
 				@container sidebar (min-width: 50rem) {}
 			}
 		`,
-		warnings: [{
-			message: messages.expectedGroupBefore(
-				'at-rules "@media print", "@container sidebar (min-width: 30rem)"', '@media screen',
-			),
-		}],
+		warnings: [
+			{ message: messages.expectedBefore('@media print', '@media screen') },
+			{ message: messages.expectedBefore('@container sidebar (min-width: 30rem)', '@container sidebar (min-width: 50rem)') },
+		],
 	}],
 });

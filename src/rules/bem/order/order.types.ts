@@ -644,7 +644,7 @@ export type SecondaryOption = {
 		 * Positions whole selector families and at-rule wrappers.
 		 * Does not replace the main order inside a semantic family.
 		 *
-		 * @default Sass constructs, custom properties, selector families, then other at-rules.
+		 * @default Sass constructs, custom properties, selector families, media queries, container queries, then other at-rules.
 		 */
 		order?: OrderSequence;
 
