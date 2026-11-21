@@ -166,12 +166,13 @@ export type OrderItem = {
 	 */
 	atRuleMember?: {
 		/**
-		 * Semantic category for this definition, call, or diagnostic statement.
+		 * Semantic category for this definition, query, call, or diagnostic statement.
 		 */
-		category: 'sass:functions' | 'sass:mixins' | 'sass:includes' | 'sass:diagnostics' | 'css:functions' | 'css:mixins';
+		category: 'sass:functions' | 'sass:mixins' | 'sass:includes' | 'sass:diagnostics'
+			| 'css:functions' | 'css:mixins' | 'css:media' | 'css:container';
 
 		/**
-		 * Declared name, called name with its namespace, or diagnostic directive name.
+		 * Declared name, qualified call name, or directive name for queries and diagnostics.
 		 */
 		name: string;
 	};

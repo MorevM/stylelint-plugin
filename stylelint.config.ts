@@ -26,8 +26,8 @@ const localRuleOverrides = defineLocalRules({
 				],
 				'custom-properties',
 				'rules',
-				'group:media',
-				{ type: 'at-rule', name: 'container' },
+				'css:media',
+				'css:container',
 				'at-rules',
 			],
 			unspecified: 'bottom',
@@ -50,8 +50,8 @@ const localRuleOverrides = defineLocalRules({
 			'sass:include-blocks',
 			{ type: 'at-rule', name: 'starting-style' },
 
-			'group:media',
-			{ type: 'at-rule', name: 'container' },
+			'css:media',
+			'css:container',
 
 			'pseudo-classes',
 
@@ -75,6 +75,37 @@ const localRuleOverrides = defineLocalRules({
 		],
 
 		within: {
+			'css:media': [
+				/\(--less-phone-small\)/u,
+				/\(--phone-small\)/u,
+				/\(--less-phone-medium\)/u,
+				/\(--phone-medium\)/u,
+				/\(--less-phone-large\)/u,
+				/\(--phone-large\)/u,
+
+				/\(--less-tablet-small\)/u,
+				/\(--tablet-small\)/u,
+				/\(--less-tablet-medium\)/u,
+				/\(--tablet-medium\)/u,
+				/\(--less-tablet-large\)/u,
+				/\(--tablet-large\)/u,
+
+				/\(--less-laptop-small\)/u,
+				/\(--laptop-small\)/u,
+				/\(--less-laptop-medium\)/u,
+				/\(--laptop-medium\)/u,
+				/\(--less-laptop-large\)/u,
+				/\(--laptop-large\)/u,
+
+				/\(--less-desktop\)/u,
+				/\(--desktop\)/u,
+				/\(--less-desktop-2k\)/u,
+				/\(--desktop-2k\)/u,
+				/\(--less-desktop-4k\)/u,
+				/\(--desktop-4k\)/u,
+
+				'*',
+			],
 			'pseudo-classes': [
 				':link',
 				':visited',
@@ -106,38 +137,6 @@ const localRuleOverrides = defineLocalRules({
 
 				{ type: 'rule', relativeSelector: /^&:nth-of-type(?![\w-])/u },
 				{ type: 'rule', relativeSelector: /^&:nth-last-of-type(?![\w-])/u },
-			],
-
-			'media': [
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-phone-small\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--phone-small\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-phone-medium\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--phone-medium\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-phone-large\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--phone-large\)/u },
-
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-tablet-small\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--tablet-small\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-tablet-medium\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--tablet-medium\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-tablet-large\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--tablet-large\)/u },
-
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-laptop-small\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--laptop-small\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-laptop-medium\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--laptop-medium\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-laptop-large\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--laptop-large\)/u },
-
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-desktop\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--desktop\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-desktop-2k\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--desktop-2k\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--less-desktop-4k\)/u },
-				{ type: 'at-rule', name: 'media', parameter: /\(--desktop-4k\)/u },
-
-				{ type: 'at-rule', name: 'media' },
 			],
 
 			'functional-pseudo-classes': [

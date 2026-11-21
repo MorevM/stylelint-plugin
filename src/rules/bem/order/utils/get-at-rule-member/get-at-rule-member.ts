@@ -21,7 +21,7 @@ const readIdentifier = (source: string) => {
 };
 
 /**
- * Identifies CSS and Sass definitions, Sass mixin calls, and Sass diagnostics.
+ * Identifies CSS queries and definitions, Sass definitions, mixin calls, and diagnostics.
  *
  * @param   node   Authored node being classified.
  *
@@ -34,6 +34,10 @@ export const getAtRuleMember = (node: ChildNode): OrderItem['atRuleMember'] => {
 	}
 
 	const directive = node.name.toLowerCase();
+	if (node.nodes && (directive === 'media' || directive === 'container')) {
+		return { category: `css:${directive}`, name: node.name };
+	}
+
 	const isInclude = node.name === 'include';
 	if (!isInclude && (!node.nodes || (directive !== 'function' && directive !== 'mixin'))) return undefined;
 

@@ -20,6 +20,7 @@ import type {
 	PrimaryOption,
 	PropertiesGroup,
 	PropertiesSequence,
+	QueryWithinMatcher,
 	RuleMatcher,
 	SecondaryOption,
 	SelectorListOrder,
@@ -43,6 +44,8 @@ const vOrderCategory = v.picklist([
 	'sass:placeholders',
 	'css:functions',
 	'css:mixins',
+	'css:media',
+	'css:container',
 	'custom-properties',
 	'declarations',
 	'at-rules',
@@ -232,6 +235,9 @@ const createWithinOrderSchema = <Matcher extends WithinMatcher>(matcher: v.Gener
 
 const vWithinOrder = createWithinOrderSchema(vWithinMatcher);
 const vAtRuleWithinOrder = createWithinOrderSchema<AtRuleWithinMatcher>(v.union([vAtRuleMatcher, v.literal('*')]));
+const vQueryWithinOrder = createWithinOrderSchema<QueryWithinMatcher>(
+	v.union([vWithinString, v.instance(RegExp), vAtRuleMatcher]),
+);
 const vOptionalWithinOrder = v.optional(vWithinOrder);
 const withinEntries: Record<OrderCategory, typeof vOptionalWithinOrder> = tsObject.fromEntries(
 	vOrderCategory.options.map((category) => [category, vOptionalWithinOrder] as const),
@@ -239,6 +245,8 @@ const withinEntries: Record<OrderCategory, typeof vOptionalWithinOrder> = tsObje
 const vWithin = vReadonly(v.strictObject({
 	...withinEntries,
 	'at-rules': v.optional(vAtRuleWithinOrder),
+	'css:media': v.optional(vQueryWithinOrder),
+	'css:container': v.optional(vQueryWithinOrder),
 }));
 
 const vSelectorListMatcher = v.union([vWithinString, v.instance(RegExp), vRuleMatcher]);

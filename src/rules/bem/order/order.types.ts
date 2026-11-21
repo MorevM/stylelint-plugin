@@ -16,6 +16,8 @@ export type OrderCategory =
 	| 'sass:placeholders'
 	| 'css:functions'
 	| 'css:mixins'
+	| 'css:media'
+	| 'css:container'
 	| 'custom-properties'
 	| 'declarations'
 	| 'at-rules'
@@ -520,7 +522,7 @@ export type GroupOrder = GroupSequence | PropertiesGroup | OrderGroupSpacing & {
 
 /**
  * Category-local matcher for property names, selector tokens, patterns and structured constraints.
- * At-rule categories require structured matchers; group references are rejected at runtime.
+ * The generic at-rule category requires structured matchers. Query categories also accept conditions.
  */
 export type WithinMatcher = string | RegExp | AtRuleMatcher | RuleMatcher | SelectorSetMatcher | PropertiesGroup;
 
@@ -528,6 +530,11 @@ export type WithinMatcher = string | RegExp | AtRuleMatcher | RuleMatcher | Sele
  * At-rule constraints use explicit fields, with a wildcard for the remaining at-rules.
  */
 export type AtRuleWithinMatcher = AtRuleMatcher | '*';
+
+/**
+ * Exact query parameters, a pattern over them, or an explicit at-rule constraint.
+ */
+export type QueryWithinMatcher = string | RegExp | AtRuleMatcher;
 
 /**
  * Category-local sequence whose nested arrays assign equal rank.
@@ -656,7 +663,8 @@ export type SecondaryOption = {
 	 */
 	within?: {
 		readonly [Category in OrderCategory]?: WithinOrder<
-			Category extends 'at-rules' ? AtRuleWithinMatcher : WithinMatcher
+			Category extends 'at-rules' ? AtRuleWithinMatcher
+				: Category extends 'css:media' | 'css:container' ? QueryWithinMatcher : WithinMatcher
 		>;
 	};
 

@@ -132,21 +132,24 @@ const getUnspecifiedRank = (policy: UnspecifiedOrder, length: number) => {
 /**
  * Matches category-local priorities against authored units or semantic families.
  *
- * @param   matcher   Category-local matcher or equal-rank matcher list.
- * @param   item      Authored unit and its selector metadata.
- * @param   family    Semantic sibling family, when matching a grouped unit.
+ * @param   matcher     Category-local matcher or equal-rank matcher list.
+ * @param   item        Authored unit and its selector metadata.
+ * @param   family      Semantic sibling family, when matching a grouped unit.
+ * @param   matchText   Name or normalized query parameters used by the selected category.
  *
- * @returns           Whether the unit or family belongs to this priority slot.
+ * @returns             Whether the unit or family belongs to this priority slot.
  */
-const isWithinMatch = (matcher: WithinSequence[number], item: OrderItem, family?: Family): boolean => {
-	if (isArray(matcher)) return matcher.some((entry) => isWithinMatch(entry, item, family));
+const isWithinMatch = (
+	matcher: WithinSequence[number], item: OrderItem, family?: Family, matchText = item.atRuleMember?.name,
+): boolean => {
+	if (isArray(matcher)) return matcher.some((entry) => isWithinMatch(entry, item, family, matchText));
 	if (!isString(matcher) && 'properties' in matcher) return getPropertyRank(matcher, item) !== -1;
 	if (!isString(matcher) && 'selectorSet' in matcher) {
 		return !family && Boolean(item.selector && matchesSelectorSet(matcher.selectorSet, item.selector.localSelectors));
 	}
 
-	if (item.atRuleMember && (isString(matcher) || isRegExp(matcher))) {
-		return matcher === '*' || matchesValue(matcher, item.atRuleMember.name);
+	if (!isUndefined(matchText) && (isString(matcher) || isRegExp(matcher))) {
+		return matcher === '*' || matchesValue(matcher, matchText);
 	}
 
 	if (isRegExp(matcher)) {
@@ -183,19 +186,23 @@ const prepareUnspecified = (key: string, setting: UnspecifiedOrder | Unspecified
 	spacing: { key, blankLines: isString(setting) ? undefined : setting.blankLines },
 });
 
+const isQueryCategory = (category: OrderCategory) => category === 'css:media' || category === 'css:container';
+
 /**
  * Resolves a category override using defaults compatible with its matcher contract.
  *
- * @param   override   Optional sequence, transformer or expanded category settings.
- * @param   defaults   Built-in matchers accepted by the same category.
- * @param   category   Category that owns the local groups.
+ * @param   override    Optional sequence, transformer or expanded category settings.
+ * @param   defaults    Built-in matchers accepted by the same category.
+ * @param   category    Category that owns the local groups.
+ * @param   normalize   Optional normalization for exact string matchers in the configured order.
  *
- * @returns            Prepared matchers and policies, or undefined for omitted categories.
+ * @returns             Prepared matchers and policies, or undefined for omitted categories.
  */
 const prepareWithinOrder = <Matcher extends WithinMatcher>(
 	override: WithinOrder<Matcher> | undefined,
 	defaults: WithinSequence<Matcher>,
 	category: OrderCategory,
+	normalize?: (value: string) => string,
 ) => {
 	if (isUndefined(override)) return undefined;
 
@@ -205,8 +212,14 @@ const prepareWithinOrder = <Matcher extends WithinMatcher>(
 	const sequence = settings.order ?? defaults;
 	const order = isFunction(sequence) ? sequence(defaults) : sequence;
 
+	const normalizeMatcher = <T>(matcher: T) => (normalize && isString(matcher) ? normalize(matcher) : matcher);
 	return {
-		order,
+		order: normalize && order !== defaults
+			? order.map((entry) => {
+				if (isArray<Matcher>(entry)) return entry.map((matcher) => normalizeMatcher(matcher));
+				return normalizeMatcher(entry);
+			})
+			: order,
 		unspecified: prepareUnspecified(`within.${category}.unspecified`, settings.unspecified),
 		sort: isUndefined(settings.sort) ? undefined : createOrderSorter(settings.sort),
 	};
@@ -317,7 +330,9 @@ const createOrderConfig = (options: SecondaryOption) => {
 	for (const category of tsObject.keys(overrides)) {
 		const prepared = category === 'at-rules'
 			? prepareWithinOrder(overrides[category], REMAINDER, category)
-			: prepareWithinOrder(overrides[category], DEFAULT_WITHIN[category] ?? REMAINDER, category);
+			: isQueryCategory(category)
+				? prepareWithinOrder(overrides[category], REMAINDER, category, normalizeParameters)
+				: prepareWithinOrder(overrides[category], DEFAULT_WITHIN[category] ?? REMAINDER, category);
 		if (isUndefined(prepared)) continue;
 
 		if (category !== 'declarations' && prepared.order.flat().some((entry) => !isString(entry) && 'properties' in entry)) {
@@ -423,9 +438,13 @@ const createOrderConfig = (options: SecondaryOption) => {
 		}
 		const settings = within.get(category);
 		const categoryOrder = settings?.order ?? DEFAULT_WITHIN[category] ?? REMAINDER;
-		const inner = categoryOrder.findIndex((matcher) => isWithinMatch(matcher, item, family));
+		const matchText = isQueryCategory(category) && node.type === 'atrule' && categoryOrder !== REMAINDER
+			? normalizeParameters(node.params)
+			: item.atRuleMember?.name;
+		const inner = categoryOrder.findIndex((matcher) => isWithinMatch(matcher, item, family, matchText));
 		const matches = isArray(categoryOrder[inner]) ? categoryOrder[inner] : [categoryOrder[inner]];
-		const matchIndex = matches.findIndex((entry) => !isUndefined(entry) && isWithinMatch(entry, item, family));
+		const matchIndex = matches.findIndex((entry) => !isUndefined(entry)
+			&& isWithinMatch(entry, item, family, matchText));
 		const match = matches[matchIndex];
 
 		const outerMatcher = selected.matcher;

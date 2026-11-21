@@ -1,0 +1,102 @@
+import rule from '../order';
+import type { SecondaryOption } from '../order.types';
+
+const { ruleName, messages } = rule;
+const testRule = createTestRule({ ruleName });
+
+testRule({
+	description: 'CSS queries at the stylesheet level',
+	config: [true, {
+		root: {
+			order: ['at-rules', 'rules', 'css:media', 'css:container', { type: 'at-rule', name: 'media', parameter: 'print' }],
+		},
+		within: {
+			'css:media': ['(  --phone )', /\(--phone\)/u, '*'],
+			'css:container': ['sidebar ( width > 30rem )', /^sidebar /u, '*'],
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Selects query categories before generic at-rules and lets an explicit matcher claim print',
+		code: `
+			@media print {}
+			@supports (display: grid) {}
+			.card {}
+			@MEDIA screen {}
+			@CONTAINER (width > 30rem) {}
+		`,
+		fixed: `
+			@supports (display: grid) {}
+			.card {}
+			@MEDIA screen {}
+			@CONTAINER (width > 30rem) {}
+			@media print {}
+		`,
+		warnings: [{ message: messages.expectedAfter('@media print', '@CONTAINER (width > 30rem)') }],
+	}, {
+		description: 'Matches an exact media condition before a pattern that also matches compound queries',
+		code: `
+			@media (color) {}
+			@media screen and ( --phone ) {}
+			@media (--phone) {}
+		`,
+		fixed: `
+			@media (--phone) {}
+			@media screen and ( --phone ) {}
+			@media (color) {}
+		`,
+		warnings: [
+			{ message: messages.expectedBefore('@media (--phone)', '@media (color)') },
+			{ message: messages.expectedBefore('@media screen and ( --phone )', '@media (color)') },
+		],
+	}, {
+		description: 'Includes the container name in exact and pattern matches',
+		code: `
+			@container (width > 30rem) {}
+			@container sidebar style(--dense: true) {}
+			@container sidebar (width   > 30rem) {}
+		`,
+		fixed: `
+			@container sidebar (width   > 30rem) {}
+			@container sidebar style(--dense: true) {}
+			@container (width > 30rem) {}
+		`,
+		warnings: [
+			{ message: messages.expectedBefore('@container sidebar (width   > 30rem)', '@container (width > 30rem)') },
+			{ message: messages.expectedBefore('@container sidebar style(--dense: true)', '@container (width > 30rem)') },
+		],
+	}],
+});
+
+testRule({
+	description: 'Query sorting with the default nested order',
+	config: [true, {
+		within: {
+			'css:container': { sort: { by: 'dimension' } },
+			'at-rules': [{ type: 'at-rule', name: 'media', parameter: 'print' }, '*'],
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Sorts container widths in their slots and uses the generic order for media',
+		code: `
+			.card {
+				@media screen {}
+				@container sidebar (min-width: 50rem) {}
+				@media print {}
+				@container sidebar (min-width: 30rem) {}
+			}
+		`,
+		fixed: `
+			.card {
+				@media print {}
+				@container sidebar (min-width: 30rem) {}
+				@media screen {}
+				@container sidebar (min-width: 50rem) {}
+			}
+		`,
+		warnings: [{
+			message: messages.expectedGroupBefore(
+				'at-rules "@media print", "@container sidebar (min-width: 30rem)"', '@media screen',
+			),
+		}],
+	}],
+});
