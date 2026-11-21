@@ -74,7 +74,7 @@ const localRuleOverrides = defineLocalRules({
 			'group:specificity-increases',
 		],
 
-		within: {
+		categories: {
 			'css:media': [
 				/\(--less-phone-small\)/u,
 				/\(--phone-small\)/u,

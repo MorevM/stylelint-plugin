@@ -9,7 +9,7 @@ testRule({
 	config: [true, {
 		root: { order: ['at-rules', 'sass:diagnostics'] },
 		order: ['sass:diagnostics', 'declarations', { type: 'at-rule', name: 'error' }],
-		within: { 'sass:diagnostics': ['debug', '*'] },
+		categories: { 'sass:diagnostics': ['debug', '*'] },
 	} satisfies SecondaryOption],
 	reject: [{
 		description: 'Places generic at-rules before all three Sass diagnostics at the root',

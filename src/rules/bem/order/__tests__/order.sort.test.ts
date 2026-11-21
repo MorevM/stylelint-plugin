@@ -9,7 +9,7 @@ const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 testRule({
 	description: 'Custom element sorting',
 	config: [true, {
-		within: {
+		categories: {
 			elements: {
 				sort: ((items) => {
 					expect(Object.isFrozen(items)).toBe(true);
@@ -146,7 +146,7 @@ testRule({
 testRule({
 	description: 'Custom sorting with ignored members',
 	config: [true, {
-		within: {
+		categories: {
 			'custom-properties': {
 				order: [/^--size-/u, '--theme'],
 				unspecified: 'ignore',
@@ -183,7 +183,7 @@ testRule({
 testRule({
 	description: 'Custom sorting with unspecified members',
 	config: [true, {
-		within: {
+		categories: {
 			'custom-properties': {
 				order: [/^--size-/u, '--theme'],
 				sort: ((items) => items.toSorted((a, b) => a.name.localeCompare(b.name))) satisfies OrderSorter,
@@ -227,7 +227,7 @@ testRule({
 testRule({
 	description: 'Custom sorting with an explicit remainder',
 	config: [true, {
-		within: {
+		categories: {
 			'custom-properties': {
 				order: [/^--size-/u, '--theme', '*'],
 				sort: ((items) => items.toSorted((a, b) => a.name.localeCompare(b.name))) satisfies OrderSorter,
@@ -288,7 +288,7 @@ describe('Custom sorter validation', () => {
 				plugins: [stylelint.createPlugin(ruleName, rule)],
 				rules: {
 					[ruleName]: [true, {
-						within: { elements: { sort: ((items) => [items[0], items[0]]) satisfies OrderSorter } },
+						categories: { elements: { sort: ((items) => [items[0], items[0]]) satisfies OrderSorter } },
 					}],
 				},
 			},
@@ -297,6 +297,8 @@ describe('Custom sorter validation', () => {
 		expect(result.code).toBe(code);
 		expect(result.results[0].warnings).toStrictEqual([]);
 		expect(result.results[0].invalidOptionWarnings).toHaveLength(1);
-		expect(result.results[0].invalidOptionWarnings[0].text).toContain('within.elements.sort: Return every original item exactly once');
+		expect(result.results[0].invalidOptionWarnings[0].text).toContain(
+			'categories.elements.sort: Return every original item exactly once',
+		);
 	});
 });

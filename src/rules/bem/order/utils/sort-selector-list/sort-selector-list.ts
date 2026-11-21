@@ -1,11 +1,11 @@
 import { deepEqual, isArray, isString } from '@morev/utils';
 import parser from 'postcss-selector-parser';
-import { isWithinMatch } from '../create-order-config/create-order-config';
+import { isCategoryMatch } from '../create-order-config/create-order-config';
 import { resolveOrderSelector } from '../resolve-order-selector/resolve-order-selector';
 import type { Rule } from 'postcss';
 import type { Separators } from '#modules/shared';
 import type { OrderItem } from '../../order.internal-types';
-import type { SelectorListOrder, WithinSequence } from '../../order.types';
+import type { CategorySequence, SelectorListOrder } from '../../order.types';
 import type { createOrderConfig } from '../create-order-config/create-order-config';
 
 /**
@@ -47,7 +47,7 @@ export const sortSelectorList = (
 
 	const shouldInherit = options.order === 'inherit'
 		|| (options.order === undefined && options.sort === undefined);
-	let order: WithinSequence = options.order && options.order !== 'inherit' ? options.order : ['*'];
+	let order: CategorySequence = options.order && options.order !== 'inherit' ? options.order : ['*'];
 
 	if (shouldInherit) {
 		const first = branches[0].selector;
@@ -61,7 +61,7 @@ export const sortSelectorList = (
 
 	const ranked = branches.map((branch) => {
 		const rank = order.findIndex((entry) => (isArray(entry) ? entry : [entry]).some((matcher) => {
-			return (isString(matcher) && matcher === branch.name) || isWithinMatch(matcher, branch.item);
+			return (isString(matcher) && matcher === branch.name) || isCategoryMatch(matcher, branch.item);
 		}));
 
 		return {

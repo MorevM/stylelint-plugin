@@ -192,11 +192,11 @@ testRule({
 	config: [true, {
 		root: { order: ['group:conditions', 'rules'] },
 		order: ['declarations', 'base', 'pseudo-classes', 'at-rules', 'rules'],
-		within: { 'pseudo-classes': [':active', ':hover', '*'] },
+		categories: { 'pseudo-classes': [':active', ':hover', '*'] },
 		groups: { conditions: [{ type: 'at-rule', name: 'media' }] },
 	}],
 	reject: [{
-		description: 'Shares groups and within while preserving the separate order inside families and selectors',
+		description: 'Shares groups and category settings while preserving the separate order inside families and selectors',
 		code: `
 			// 📌 Local priorities keep active before hover and media after states.
 			.card {
@@ -233,7 +233,7 @@ testRule({
 	description: 'Protected stylesheet preamble',
 	config: [true, {
 		root: { order: ['rules', 'at-rules'] },
-		within: { 'at-rules': [
+		categories: { 'at-rules': [
 			{ type: 'at-rule', name: 'namespace' },
 			{ type: 'at-rule', name: 'charset' },
 			{ type: 'at-rule', name: 'layer' },

@@ -25,7 +25,7 @@ testRule({
 testRule({
 	description: 'Category-local equal-rank property groups',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [equalRankGroups, '*'],
 		},
 	} satisfies SecondaryOption],
@@ -52,7 +52,7 @@ testRule({
 				properties: ['font-size', 'color'],
 			},
 		},
-		within: {
+		categories: {
 			declarations: [
 				'color',
 				// 📌 Already selected by the later text group.
@@ -107,7 +107,7 @@ testRule({
 		// grid-gap, gap                  -> gap
 		// font-stretch, font-width       -> font-width
 		// word-wrap                      -> overflow-wrap
-		within: {
+		categories: {
 			declarations: {
 				order: [
 					{ properties: ['gap', /^appearance$/u] },
@@ -153,7 +153,7 @@ testRule({
 testRule({
 	description: 'Cascade constraints under built-in sorting',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: {
 				sort: { by: 'name' },
 			},
@@ -204,7 +204,7 @@ testRule({
 testRule({
 	description: 'Conflicting explicit priorities',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: ['margin', 'margin-top', 'display', '*'],
 		},
 	} satisfies SecondaryOption],
@@ -222,7 +222,7 @@ testRule({
 testRule({
 	description: 'Conflicting custom sorting',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: {
 				sort: (items) => items.toReversed(),
 			},

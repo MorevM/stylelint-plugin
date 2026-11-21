@@ -9,7 +9,7 @@ for (const preset of [
 ] as const) {
 	testRule({
 		description: preset.description,
-		config: [true, { within: { 'at-rules': { sort: preset.sort } } }],
+		config: [true, { categories: { 'at-rules': { sort: preset.sort } } }],
 		reject: [{
 			description: 'Sorts each unit numerically within its existing slots',
 			code: `
@@ -35,7 +35,7 @@ for (const preset of [
 
 testRule({
 	description: 'Implicit descending unit groups',
-	config: [true, { within: { 'at-rules': { sort: { by: 'dimension', direction: 'desc' } } } }],
+	config: [true, { categories: { 'at-rules': { sort: { by: 'dimension', direction: 'desc' } } } }],
 	reject: [{
 		description: 'Accepts new units, compares unit names without case and leaves unresolved slots fixed',
 		code: `
@@ -62,7 +62,7 @@ testRule({
 
 testRule({
 	description: 'Cascade constraints with implicit units',
-	config: [true, { within: { declarations: { sort: { by: 'dimension' } } } }],
+	config: [true, { categories: { declarations: { sort: { by: 'dimension' } } } }],
 	accept: [{
 		description: 'Preserves repeated-property fallbacks',
 		code: `
@@ -88,7 +88,7 @@ testRule({
 
 testRule({
 	description: 'Name sorting preset',
-	config: [true, { within: { elements: { sort: { by: 'name' } } } }],
+	config: [true, { categories: { elements: { sort: { by: 'name' } } } }],
 	reject: [{
 		description: 'Sorts local element names while keeping their states attached',
 		code: `
@@ -108,7 +108,7 @@ testRule({
 testRule({
 	description: 'Dimension unit priorities',
 	config: [true, {
-		within: { 'at-rules': { sort: { by: 'dimension', units: ['rem', 'px'] } } },
+		categories: { 'at-rules': { sort: { by: 'dimension', units: ['rem', 'px'] } } },
 	}],
 	reject: [{
 		description: 'Orders units before magnitudes and accepts a compound condition with one literal size',
@@ -137,7 +137,7 @@ testRule({
 testRule({
 	description: 'Unresolved dimension values',
 	config: [true, {
-		within: { 'at-rules': { sort: { by: 'dimension', units: ['rem'] } } },
+		categories: { 'at-rules': { sort: { by: 'dimension', units: ['rem'] } } },
 	}],
 	reject: [{
 		description: 'Preserves unresolved slots and excludes them from diagnostics',

@@ -1,6 +1,6 @@
 import { isArray, isFunction, isRegExp, isString, isUndefined, tsObject } from '@morev/utils';
 import selectorParser from 'postcss-selector-parser';
-import { DEFAULT_ORDER, DEFAULT_ROOT_ORDER, DEFAULT_WITHIN, REMAINDER } from '../../order.constants';
+import { DEFAULT_CATEGORY_ORDERS, DEFAULT_ORDER, DEFAULT_ROOT_ORDER, REMAINDER } from '../../order.constants';
 import { createOrderSorter } from '../create-order-sorter/create-order-sorter';
 import { getOrderHeader } from '../get-order-header/get-order-header';
 import { matchesSelectorSet } from '../matches-selector-set/matches-selector-set';
@@ -8,9 +8,9 @@ import { normalizeParameters } from '../normalize-parameters/normalize-parameter
 import { normalizeProperty } from '../normalize-property/normalize-property';
 import type { Family, OrderItem, OrderRank, PreparedOrderSorter, PreparedOrderSpacing } from '../../order.internal-types';
 import type {
-	AtRuleMatcher, OrderCategory, OrderGroupSpacing, OrderMatcher, OrderSequence,
-	PropertiesGroup, RuleMatcher, SecondaryOption,
-	UnspecifiedOrder, UnspecifiedOrderOptions, WithinMatcher, WithinOrder, WithinOrderOptions, WithinSequence,
+	AtRuleMatcher, CategoryMatcher, CategoryOrder, CategoryOrderOptions, CategorySequence,
+	OrderCategory, OrderGroupSpacing, OrderMatcher, OrderSequence, PropertiesGroup, RuleMatcher,
+	SecondaryOption, UnspecifiedOrder, UnspecifiedOrderOptions,
 } from '../../order.types';
 
 /**
@@ -139,10 +139,10 @@ const getUnspecifiedRank = (policy: UnspecifiedOrder, length: number) => {
  *
  * @returns             Whether the unit or family belongs to this priority slot.
  */
-const isWithinMatch = (
-	matcher: WithinSequence[number], item: OrderItem, family?: Family, matchText = item.atRuleMember?.name,
+const isCategoryMatch = (
+	matcher: CategorySequence[number], item: OrderItem, family?: Family, matchText = item.atRuleMember?.name,
 ): boolean => {
-	if (isArray(matcher)) return matcher.some((entry) => isWithinMatch(entry, item, family, matchText));
+	if (isArray(matcher)) return matcher.some((entry) => isCategoryMatch(entry, item, family, matchText));
 	if (!isString(matcher) && 'properties' in matcher) return getPropertyRank(matcher, item) !== -1;
 	if (!isString(matcher) && 'selectorSet' in matcher) {
 		return !family && Boolean(item.selector && matchesSelectorSet(matcher.selectorSet, item.selector.localSelectors));
@@ -197,7 +197,9 @@ const isQueryCategory = (category: OrderCategory) => category === 'css:media' ||
  *
  * @returns            Category supplying the applicable override.
  */
-const getWithinCategory = (category: OrderCategory, item: OrderItem, settings: ReadonlyMap<OrderCategory, unknown>) => {
+const getConfiguredCategory = (
+	category: OrderCategory, item: OrderItem, settings: ReadonlyMap<OrderCategory, unknown>,
+) => {
 	if (!item.atRuleMember || category === 'at-rules' || settings.has(category)) return category;
 	if (settings.has(item.atRuleMember.category)) return item.atRuleMember.category;
 	return settings.has('at-rules') ? 'at-rules' : category;
@@ -213,17 +215,17 @@ const getWithinCategory = (category: OrderCategory, item: OrderItem, settings: R
  *
  * @returns             Prepared matchers and policies, or undefined for omitted categories.
  */
-const prepareWithinOrder = <Matcher extends WithinMatcher>(
-	override: WithinOrder<Matcher> | undefined,
-	defaults: WithinSequence<Matcher>,
+const prepareCategoryOrder = <Matcher extends CategoryMatcher>(
+	override: CategoryOrder<Matcher> | undefined,
+	defaults: CategorySequence<Matcher>,
 	category: OrderCategory,
 	normalize?: (value: string) => string,
 ) => {
 	if (isUndefined(override)) return undefined;
 
-	const settings: WithinOrderOptions<Matcher> = isArray(override) || isFunction(override)
+	const settings: CategoryOrderOptions<Matcher> = isArray(override) || isFunction(override)
 		? { order: override }
-		: override as WithinOrderOptions<Matcher>;
+		: override as CategoryOrderOptions<Matcher>;
 	const sequence = settings.order ?? defaults;
 	const order = isFunction(sequence) ? sequence(defaults) : sequence;
 
@@ -235,7 +237,7 @@ const prepareWithinOrder = <Matcher extends WithinMatcher>(
 				return normalizeMatcher(entry);
 			})
 			: order,
-		unspecified: prepareUnspecified(`within.${category}.unspecified`, settings.unspecified),
+		unspecified: prepareUnspecified(`categories.${category}.unspecified`, settings.unspecified),
 		sort: isUndefined(settings.sort) ? undefined : createOrderSorter(settings.sort),
 	};
 };
@@ -340,29 +342,29 @@ const createOrderConfig = (options: SecondaryOption) => {
 	const nestedUnspecified = prepareUnspecified('unspecified', options.unspecified);
 	const rootUnspecified = prepareUnspecified('root.unspecified', options.root?.unspecified);
 
-	const within = new Map<OrderCategory, NonNullable<ReturnType<typeof prepareWithinOrder>>>();
+	const categoryOrders = new Map<OrderCategory, NonNullable<ReturnType<typeof prepareCategoryOrder>>>();
 	const categorySpacing = new Map<OrderCategory, PreparedOrderSpacing>();
-	const overrides = options.within ?? {};
+	const overrides = options.categories ?? {};
 	for (const category of tsObject.keys(overrides)) {
 		const override = overrides[category];
 		if (override && 'blankLines' in override && !isUndefined(override.blankLines)) {
-			categorySpacing.set(category, { key: `within.${category}`, blankLines: override.blankLines });
+			categorySpacing.set(category, { key: `categories.${category}`, blankLines: override.blankLines });
 			// Formatting alone leaves an inherited at-rule order in effect.
 			if (isUndefined(override.order) && isUndefined(override.sort) && isUndefined(override.unspecified)) continue;
 		}
 
 		const prepared = category === 'at-rules'
-			? prepareWithinOrder(overrides[category], REMAINDER, category)
+			? prepareCategoryOrder(overrides[category], REMAINDER, category)
 			: isQueryCategory(category)
-				? prepareWithinOrder(overrides[category], REMAINDER, category, normalizeParameters)
-				: prepareWithinOrder(overrides[category], DEFAULT_WITHIN[category] ?? REMAINDER, category);
+				? prepareCategoryOrder(overrides[category], REMAINDER, category, normalizeParameters)
+				: prepareCategoryOrder(overrides[category], DEFAULT_CATEGORY_ORDERS[category] ?? REMAINDER, category);
 		if (isUndefined(prepared)) continue;
 
 		if (category !== 'declarations' && prepared.order.flat().some((entry) => !isString(entry) && 'properties' in entry)) {
 			throw new Error('Property groups are only supported within declarations');
 		}
 
-		within.set(category, prepared);
+		categoryOrders.set(category, prepared);
 	}
 
 	/**
@@ -446,7 +448,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 
 		const outerSpacing = selected.spacing;
 		const categoryPolicy = categorySpacing.size
-			? categorySpacing.get(getWithinCategory(category, item, categorySpacing))
+			? categorySpacing.get(getConfiguredCategory(category, item, categorySpacing))
 			: undefined;
 		if (!isString(selected.matcher) && 'properties' in selected.matcher) {
 			return {
@@ -457,16 +459,16 @@ const createOrderConfig = (options: SecondaryOption) => {
 			};
 		}
 
-		category = getWithinCategory(category, item, within);
-		const settings = within.get(category);
-		const categoryOrder = settings?.order ?? DEFAULT_WITHIN[category] ?? REMAINDER;
+		category = getConfiguredCategory(category, item, categoryOrders);
+		const settings = categoryOrders.get(category);
+		const categoryOrder = settings?.order ?? DEFAULT_CATEGORY_ORDERS[category] ?? REMAINDER;
 		const matchText = isQueryCategory(category) && node.type === 'atrule' && categoryOrder !== REMAINDER
 			? normalizeParameters(node.params)
 			: item.atRuleMember?.name;
-		const inner = categoryOrder.findIndex((matcher) => isWithinMatch(matcher, item, family, matchText));
+		const inner = categoryOrder.findIndex((matcher) => isCategoryMatch(matcher, item, family, matchText));
 		const matches = isArray(categoryOrder[inner]) ? categoryOrder[inner] : [categoryOrder[inner]];
 		const matchIndex = matches.findIndex((entry) => !isUndefined(entry)
-			&& isWithinMatch(entry, item, family, matchText));
+			&& isCategoryMatch(entry, item, family, matchText));
 		const match = matches[matchIndex];
 
 		const outerMatcher = selected.matcher;
@@ -480,7 +482,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 			: undefined;
 
 		const property = match && !isString(match) && 'properties' in match ? match : undefined;
-		const scope = `within.${category}.order.${inner}.${matchIndex}`;
+		const scope = `categories.${category}.order.${inner}.${matchIndex}`;
 		if (property) {
 			return {
 				outer: rank, inner, member: getPropertyRank(property, item), category,
@@ -501,7 +503,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 			inner: inner === -1 ? getUnspecifiedRank(settings?.unspecified.position ?? 'bottom', categoryOrder.length) : inner,
 			member: 0, category,
 			sort,
-			sortScope: sort ? (selected.sort ? `${selected.scope}.sort` : `within.${category}.sort`) : undefined,
+			sortScope: sort ? (selected.sort ? `${selected.scope}.sort` : `categories.${category}.sort`) : undefined,
 			group: selected.group,
 			label: innerLabel ?? outerLabel,
 			spacing: useUnmatchedSpacing ? unmatchedSpacing : outerSpacing,
@@ -517,10 +519,10 @@ const createOrderConfig = (options: SecondaryOption) => {
 	 * @returns            Configured sequence, built-in defaults, or the remainder matcher.
 	 */
 	const getCategoryOrder = (category: OrderCategory) => {
-		return within.get(category)?.order ?? DEFAULT_WITHIN[category] ?? REMAINDER;
+		return categoryOrders.get(category)?.order ?? DEFAULT_CATEGORY_ORDERS[category] ?? REMAINDER;
 	};
 
 	return { getRank, getCategoryOrder };
 };
 
-export { createOrderConfig, isWithinMatch };
+export { createOrderConfig, isCategoryMatch };

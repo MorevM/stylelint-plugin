@@ -34,7 +34,7 @@ testRule({
 	description: 'Custom Sass placeholder order',
 	config: [true, {
 		order: ['rules', 'sass:placeholders'],
-		within: { 'sass:placeholders': ['%reset', '*'] },
+		categories: { 'sass:placeholders': ['%reset', '*'] },
 	}],
 	reject: [{
 		description: 'Orders nested placeholders after ordinary rules and applies their local priorities',

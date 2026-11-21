@@ -1,5 +1,5 @@
 import rule from '../order';
-import type { WithinSequence } from '../order.types';
+import type { CategorySequence } from '../order.types';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
@@ -12,11 +12,11 @@ const states = [
 	{ selectorSet: { includes: [':hover'] } },
 	':active',
 	'*',
-] as const satisfies WithinSequence;
+] as const satisfies CategorySequence;
 
 testRule({
 	description: 'Selector sets alongside simple states',
-	config: [true, { within: { 'pseudo-classes': states } }],
+	config: [true, { categories: { 'pseudo-classes': states } }],
 	reject: [{
 		description: 'Matches reversed and repeated branches in flat and nested rules without rewriting them',
 		code: `
@@ -45,7 +45,7 @@ testRule({
 
 testRule({
 	description: 'Inclusive selector sets',
-	config: [true, { within: { 'pseudo-classes': () => states } }],
+	config: [true, { categories: { 'pseudo-classes': () => states } }],
 	reject: [{
 		description: 'Distinguishes exact size, arbitrary extra branches, and compound pseudo-classes',
 		code: `
@@ -130,7 +130,7 @@ testRule({
 	description: 'Exact selector sets with reordered conditions',
 	config: [true, {
 		order: ['base', 'pseudo-classes', 'qualifiers:class'],
-		within: {
+		categories: {
 			'pseudo-classes': [
 				':hover',
 				{ selectorSet: { equals: [':hover.foo', '.foo:focus'] } },
@@ -199,7 +199,7 @@ testRule({
 	description: 'Inclusive selector sets with reordered conditions',
 	config: [true, {
 		order: ['base', 'pseudo-classes', 'qualifiers:class'],
-		within: {
+		categories: {
 			'pseudo-classes': [
 				':hover',
 				{ selectorSet: { includes: [':hover.foo'], size: 2 } },
@@ -266,7 +266,7 @@ testRule({
 	description: 'Selector-set category assignment',
 	config: [true, {
 		order: ['base', 'pseudo-classes', 'qualifiers:class'],
-		within: {
+		categories: {
 			'qualifiers:class': [{ selectorSet: { equals: [':hover.foo', ':focus.foo'] } }],
 		},
 	}],

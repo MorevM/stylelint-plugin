@@ -29,7 +29,7 @@ testRule({
 		root: {
 			order: ['at-rules', 'rules', 'css:media', 'css:container', { type: 'at-rule', name: 'media', parameter: 'print' }],
 		},
-		within: {
+		categories: {
 			'css:media': ['(  --phone )', /\(--phone\)/u, '*'],
 			'css:container': ['sidebar ( width > 30rem )', /^sidebar /u, '*'],
 		},
@@ -91,7 +91,7 @@ testRule({
 	config: [true, {
 		root: { order: ['rules', 'group:queries'] },
 		groups: { queries: { order: ['css:media'], blankLines: { between: 'never' } } },
-		within: {
+		categories: {
 			'at-rules': [{ type: 'at-rule', name: 'media', parameter: 'print' }, '*'],
 			'css:media': { blankLines: { before: 'always', between: 'always' } },
 		},
@@ -119,7 +119,7 @@ testRule({
 testRule({
 	description: 'Query sorting with the default nested order',
 	config: [true, {
-		within: {
+		categories: {
 			'css:container': { sort: { by: 'dimension' } },
 			'at-rules': [{ type: 'at-rule', name: 'media', parameter: 'print' }, '*'],
 		},

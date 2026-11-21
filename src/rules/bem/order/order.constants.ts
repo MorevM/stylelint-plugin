@@ -1,4 +1,4 @@
-import type { OrderSequence, WithinSequence } from './order.types';
+import type { CategorySequence, OrderSequence } from './order.types';
 
 export const DEFAULT_ROOT_ORDER: OrderSequence = [
 	[
@@ -40,7 +40,7 @@ export const DEFAULT_ORDER: OrderSequence = [
 	'*',
 ];
 
-export const DEFAULT_WITHIN: Readonly<Record<string, WithinSequence>> = {
+export const DEFAULT_CATEGORY_ORDERS: Readonly<Record<string, CategorySequence>> = {
 	'pseudo-classes': Object.freeze([
 		':link', ':visited', ':hover', Object.freeze([':focus', ':focus-visible']), ':active', '*',
 	]),

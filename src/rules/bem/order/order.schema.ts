@@ -3,11 +3,14 @@ import * as v from 'valibot';
 import { vFunction, vReadonly, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { normalizeLocalSelector } from './utils/normalize-local-selector/normalize-local-selector';
 import type {
+	AtRuleCategoryMatcher,
 	AtRuleMatcher,
-	AtRuleWithinMatcher,
 	BlankLineCondition,
 	BlankLinePolicy,
 	BlankLines,
+	CategoryMatcher,
+	CategoryOrder,
+	CategorySequence,
 	GroupMatcher,
 	GroupOrder,
 	GroupSequence,
@@ -20,7 +23,7 @@ import type {
 	PrimaryOption,
 	PropertiesGroup,
 	PropertiesSequence,
-	QueryWithinMatcher,
+	QueryCategoryMatcher,
 	RuleMatcher,
 	SecondaryOption,
 	SelectorListOrder,
@@ -28,9 +31,6 @@ import type {
 	SelectorSetMatcher,
 	UnspecifiedOrder,
 	UnspecifiedOrderOptions,
-	WithinMatcher,
-	WithinOrder,
-	WithinSequence,
 } from './order.types';
 
 const vOrderCategory = v.picklist([
@@ -204,9 +204,9 @@ const vSelectorSetMatcher: v.GenericSchema<SelectorSetMatcher> = v.strictObject(
 	]),
 });
 
-const vWithinString = v.pipe(v.string(), v.regex(/^(?!group:|@)/u));
-const vWithinMatcher = v.union([
-	vWithinString, v.instance(RegExp), vAtRuleMatcher, vRuleMatcher, vSelectorSetMatcher, vPropertiesGroup,
+const vCategoryString = v.pipe(v.string(), v.regex(/^(?!group:|@)/u));
+const vCategoryMatcher = v.union([
+	vCategoryString, v.instance(RegExp), vAtRuleMatcher, vRuleMatcher, vSelectorSetMatcher, vPropertiesGroup,
 ]);
 
 /**
@@ -216,8 +216,8 @@ const vWithinMatcher = v.union([
  *
  * @returns           Category order schema with shared sorting and spacing settings.
  */
-const createWithinOrderSchema = <Matcher extends WithinMatcher>(matcher: v.GenericSchema<Matcher>) => {
-	const sequence: v.GenericSchema<WithinSequence<Matcher>> = v.pipe(vReadonly(v.array(v.union([
+const createCategoryOrderSchema = <Matcher extends CategoryMatcher>(matcher: v.GenericSchema<Matcher>) => {
+	const sequence: v.GenericSchema<CategorySequence<Matcher>> = v.pipe(vReadonly(v.array(v.union([
 		matcher,
 		vReadonly(v.array(matcher)),
 	]))), v.check((entries) => hasTerminalRemainder(entries), 'Place * only at the end of the sequence'));
@@ -231,26 +231,28 @@ const createWithinOrderSchema = <Matcher extends WithinMatcher>(matcher: v.Gener
 			sort: v.optional(vOrderSort),
 			blankLines: v.optional(vBlankLines),
 		}),
-	]) satisfies v.GenericSchema<WithinOrder<Matcher>>;
+	]) satisfies v.GenericSchema<CategoryOrder<Matcher>>;
 };
 
-const vWithinOrder = createWithinOrderSchema(vWithinMatcher);
-const vAtRuleWithinOrder = createWithinOrderSchema<AtRuleWithinMatcher>(v.union([vAtRuleMatcher, v.literal('*')]));
-const vQueryWithinOrder = createWithinOrderSchema<QueryWithinMatcher>(
-	v.union([vWithinString, v.instance(RegExp), vAtRuleMatcher]),
+const vCategoryOrder = createCategoryOrderSchema(vCategoryMatcher);
+const vAtRuleCategoryOrder = createCategoryOrderSchema<AtRuleCategoryMatcher>(
+	v.union([vAtRuleMatcher, v.literal('*')]),
 );
-const vOptionalWithinOrder = v.optional(vWithinOrder);
-const withinEntries: Record<OrderCategory, typeof vOptionalWithinOrder> = tsObject.fromEntries(
-	vOrderCategory.options.map((category) => [category, vOptionalWithinOrder] as const),
+const vQueryCategoryOrder = createCategoryOrderSchema<QueryCategoryMatcher>(
+	v.union([vCategoryString, v.instance(RegExp), vAtRuleMatcher]),
 );
-const vWithin = vReadonly(v.strictObject({
-	...withinEntries,
-	'at-rules': v.optional(vAtRuleWithinOrder),
-	'css:media': v.optional(vQueryWithinOrder),
-	'css:container': v.optional(vQueryWithinOrder),
+const vOptionalCategoryOrder = v.optional(vCategoryOrder);
+const categoryEntries: Record<OrderCategory, typeof vOptionalCategoryOrder> = tsObject.fromEntries(
+	vOrderCategory.options.map((category) => [category, vOptionalCategoryOrder] as const),
+);
+const vCategories = vReadonly(v.strictObject({
+	...categoryEntries,
+	'at-rules': v.optional(vAtRuleCategoryOrder),
+	'css:media': v.optional(vQueryCategoryOrder),
+	'css:container': v.optional(vQueryCategoryOrder),
 }));
 
-const vSelectorListMatcher = v.union([vWithinString, v.instance(RegExp), vRuleMatcher]);
+const vSelectorListMatcher = v.union([vCategoryString, v.instance(RegExp), vRuleMatcher]);
 const vSelectorListSequence: v.GenericSchema<SelectorListSequence> = v.pipe(vReadonly(v.array(v.union([
 	vSelectorListMatcher, vReadonly(v.array(vSelectorListMatcher)),
 ]))), v.check((sequence) => hasTerminalRemainder(sequence), 'Place * only at the end of the sequence'));
@@ -269,7 +271,7 @@ export const schema = {
 			order: v.optional(vOrderSequence),
 			unspecified: v.optional(vUnspecifiedOrderOptions),
 		})),
-		within: v.optional(vWithin),
+		categories: v.optional(vCategories),
 		groups: v.optional(vReadonly(v.record(v.string(), vGroupOrder))),
 		selectorList: v.optional(v.union([v.literal(false), vSelectorListOrder])),
 		separators: vSeparatorsSchema,

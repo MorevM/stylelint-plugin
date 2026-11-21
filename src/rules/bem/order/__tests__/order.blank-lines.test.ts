@@ -8,7 +8,7 @@ const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 testRule({
 	description: 'Category spacing with the default root and nested orders',
 	config: [true, {
-		within: { 'css:container': { blankLines: { before: 'always', between: 'never' } } },
+		categories: { 'css:container': { blankLines: { before: 'always', between: 'never' } } },
 	} satisfies SecondaryOption],
 	reject: [{
 		description: 'Separates container queries from media queries and keeps consecutive containers together',
@@ -45,7 +45,7 @@ testRule({
 	description: 'Spacing for complete modifier families',
 	config: [true, {
 		order: ['declarations', 'base', 'modifiers', 'pseudo-classes'],
-		within: { modifiers: { blankLines: { before: 'always', between: 'always' } } },
+		categories: { modifiers: { blankLines: { before: 'always', between: 'always' } } },
 	} satisfies SecondaryOption],
 	reject: [{
 		description: 'Keeps a modifier with its state and separates the next modifier',
@@ -78,7 +78,7 @@ testRule({
 	description: 'Category formatting across declaration groups',
 	config: [true, {
 		order: ['custom-properties', 'declarations', 'pseudo-classes'],
-		within: {
+		categories: {
 			declarations: {
 				order: [{ properties: ['display'], blankLines: { after: 'ignore' } }, 'color'],
 				unspecified: { position: 'bottom', blankLines: { between: 'always' } },
@@ -126,7 +126,7 @@ testRule({
 testRule({
 	description: 'Compact property groups separated from following declarations',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{ properties: ['display', 'position'], blankLines: { between: 'never', after: 'always' } },
 				'color',
@@ -172,7 +172,7 @@ testRule({
 testRule({
 	description: 'Spacing after a group and its attached trailing comment',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{ properties: ['display'], groupName: 'Layout', blankLines: { after: 'always' } },
 				'color',
@@ -201,7 +201,7 @@ testRule({
 testRule({
 	description: 'Before takes precedence over the previous group after',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{ properties: ['display'], blankLines: { after: 'always' } },
 				{ properties: ['color'], blankLines: { before: 'never' } },
@@ -245,7 +245,7 @@ testRule({
 testRule({
 	description: 'An explicit ignore suppresses the previous group after',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{ properties: ['display'], blankLines: { after: 'always' } },
 				{ properties: ['color'], blankLines: { before: 'ignore' } },
@@ -272,7 +272,7 @@ testRule({
 testRule({
 	description: 'Whitespace inside the opening and closing braces',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{ properties: ['color'], blankLines: { before: 'always', after: 'always' } },
 			],
@@ -302,7 +302,7 @@ testRule({
 testRule({
 	description: 'Removing whitespace before a closing brace',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{ properties: ['color'], blankLines: { after: 'never' } },
 			],
@@ -328,7 +328,7 @@ testRule({
 testRule({
 	description: 'First and last nested exceptions follow final positions',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{
 					properties: ['display'],
@@ -403,7 +403,7 @@ testRule({
 testRule({
 	description: 'Conditional policies preserve compact blocks',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				'display',
 				{
@@ -446,7 +446,7 @@ testRule({
 testRule({
 	description: 'Nested conditions combine disjunction and negation',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{
 					properties: ['color'],
@@ -488,7 +488,7 @@ testRule({
 testRule({
 	description: 'The first matching clause can preserve authored spacing',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{
 					properties: ['color'],
@@ -526,7 +526,7 @@ testRule({
 testRule({
 	description: 'Item count thresholds combined with the first nested exception',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				'display',
 				{
@@ -637,7 +637,7 @@ testRule({
 testRule({
 	description: 'Container thresholds count direct items in the authored source',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				'display',
 				{
@@ -735,7 +735,7 @@ testRule({
 testRule({
 	description: 'Omitting scope counts the properties in the group itself',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				'display',
 				{
@@ -780,7 +780,7 @@ testRule({
 testRule({
 	description: 'A before policy can count properties in the previous group',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				'display',
 				{
@@ -868,7 +868,7 @@ testRule({
 			},
 			'declarations',
 		],
-		within: {
+		categories: {
 			declarations: [{ properties: ['width', 'height'] }, '*'],
 		},
 	} satisfies SecondaryOption],
@@ -918,7 +918,7 @@ testRule({
 testRule({
 	description: 'A category-local unspecified group can precede an explicit property group',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: {
 				unspecified: 'top',
 				order: [{
@@ -954,7 +954,7 @@ testRule({
 testRule({
 	description: 'An after policy can count properties in the next group',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{
 					properties: ['width', 'height'],
@@ -1002,7 +1002,7 @@ testRule({
 testRule({
 	description: 'A leading comment can separate property groups',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				'display',
 				{
@@ -1072,7 +1072,7 @@ testRule({
 testRule({
 	description: 'The after policy inspects comments on the following group',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{
 					properties: ['display'],
@@ -1113,7 +1113,7 @@ testRule({
 testRule({
 	description: 'Standalone comments at the start of a group and between its members',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{
 					properties: ['color', 'opacity'],
@@ -1153,7 +1153,7 @@ testRule({
 testRule({
 	description: 'Blank lines before a group with comments on either side of the gap',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				'display',
 				{ properties: ['color'], groupName: 'Text', blankLines: { before: 'always' } },
@@ -1240,7 +1240,7 @@ testRule({
 testRule({
 	description: 'Protected boundaries keep their authored spacing',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{ properties: ['display'], blankLines: { after: 'always' } },
 				{ properties: ['color'], blankLines: { before: 'always' } },
@@ -1265,7 +1265,7 @@ testRule({
 testRule({
 	description: 'Single-line conditions use the complete planned container layout',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				{
 					properties: ['display'],
@@ -1315,7 +1315,7 @@ testRule({
 				},
 			},
 		},
-		within: {
+		categories: {
 			declarations: [
 				'color',
 				{ properties: ['opacity'], blankLines: { before: 'always' } },
@@ -1353,7 +1353,7 @@ describe('Invalid conditional spacing', () => {
 				plugins: [stylelint.createPlugin(ruleName, rule)],
 				rules: {
 					[ruleName]: [true, {
-						within: {
+						categories: {
 							declarations: [{
 								properties: ['color'],
 								blankLines: {
@@ -1439,7 +1439,7 @@ testRule({
 testRule({
 	description: 'Conditional blank lines before unspecified declarations',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: {
 				order: ['display'],
 				unspecified: {
@@ -1469,7 +1469,7 @@ testRule({
 testRule({
 	description: 'An explicit remainder stays outside unmatched formatting',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: {
 				order: ['display', '*'],
 				unspecified: { position: 'bottom', blankLines: { before: 'always', between: 'always' } },
@@ -1491,7 +1491,7 @@ testRule({
 testRule({
 	description: 'Spacing retains authored newline style',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: [
 				'display',
 				{ properties: ['color'], blankLines: { before: 'always' } },

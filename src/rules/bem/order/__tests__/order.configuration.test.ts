@@ -3,14 +3,16 @@ import * as v from 'valibot';
 import { createDefineRules } from '../../../../create-define-rules';
 import rule from '../order';
 import { schema } from '../order.schema';
-import type { AtRuleWithinMatcher, GroupSequence, OrderSortItem, SecondaryOption, WithinSequence } from '../order.types';
+import type {
+	AtRuleCategoryMatcher, CategorySequence, GroupSequence, OrderSortItem, SecondaryOption,
+} from '../order.types';
 
 const { ruleName } = rule;
 const testRuleConfig = createTestRuleConfig({ ruleName });
 
 // @ts-expect-error Group definitions cannot reference other groups.
 const reference: GroupSequence = ['group:other'];
-// @ts-expect-error The remainder belongs directly in order or within.
+// @ts-expect-error The remainder belongs in an outer or category order.
 const remainder: GroupSequence = ['*'];
 
 testRuleConfig({
@@ -40,7 +42,7 @@ testRuleConfig({
 				'elements',
 				'*',
 			],
-			within: {
+			categories: {
 				'declarations': ['display', ['width', 'height'], '*'],
 				'custom-properties': { order: ['--theme'], unspecified: 'top', sort: (items) => items },
 				'pseudo-classes': [
@@ -76,12 +78,12 @@ testRuleConfig({
 	description: 'Sequence structure and placement policies',
 	reject: [
 		{ description: 'Rejects arrays deeper than equal-rank groups', config: [true, { order: [[[':hover']]] }] },
-		{ description: 'Rejects unknown categories', config: [true, { within: { states: [] } }] },
+		{ description: 'Rejects unknown categories', config: [true, { categories: { states: [] } }] },
 		{ description: 'Rejects unknown placement policies', config: [true, { unspecified: 'unknown' }] },
 		{ description: 'Validates root placement policies', config: [true, { root: { unspecified: 'unknown' } }] },
 		{
 			description: 'Validates category placement policies',
-			config: [true, { within: { declarations: { unspecified: 'unknown' } } }],
+			config: [true, { categories: { declarations: { unspecified: 'unknown' } } }],
 		},
 		{ description: 'Rejects unsupported root grouping', config: [true, { root: { groupBy: 'block' } }] },
 	],
@@ -114,7 +116,7 @@ testRuleConfig({
 			} },
 			unspecified: { position: 'bottom', blankLines: { before: 'ignore' } },
 			root: { unspecified: { position: 'top', blankLines: { between: 'never' } } },
-			within: { declarations: {
+			categories: { declarations: {
 				unspecified: { position: 'bottom', blankLines: { before: {
 					default: 'always',
 					rules: [{ when: { any: ['first-nested', 'inside-single-line-block'] }, mode: 'ignore' }],
@@ -166,7 +168,7 @@ testRuleConfig({
 		config: [true, { unspecified: { blankLines: { before: 'always' } } }],
 	}, {
 		description: 'Requires formatted unspecified content to participate in placement',
-		config: [true, { within: { declarations: {
+		config: [true, { categories: { declarations: {
 			unspecified: { position: 'ignore', blankLines: { before: 'always' } },
 		} } }],
 	}],
@@ -176,40 +178,40 @@ testRuleConfig({
 	description: 'Selector-set constraints',
 	accept: [{
 		description: 'Distinguishes repeated conditions and pseudo-element stages',
-		config: [true, { within: { 'pseudo-classes': [{ selectorSet: {
+		config: [true, { categories: { 'pseudo-classes': [{ selectorSet: {
 			equals: ['.foo:hover', '.foo.foo:hover', ':hover::before', '::before:hover'],
 		} }] } }],
 	}],
 	reject: [
 		{
 			description: 'Requires mutually exclusive exact and inclusive requirements',
-			config: [true, { within: { 'pseudo-classes': [{
+			config: [true, { categories: { 'pseudo-classes': [{
 				selectorSet: { equals: [':hover'], includes: [':active'] },
 			}] } }],
 		},
 		{
 			description: 'Requires a single local branch per entry',
-			config: [true, { within: { 'pseudo-classes': [{ selectorSet: { equals: [':hover, :active'] } }] } }],
+			config: [true, { categories: { 'pseudo-classes': [{ selectorSet: { equals: [':hover, :active'] } }] } }],
 		},
 		{
 			description: 'Requires the size to accommodate all requested branches',
-			config: [true, { within: { 'pseudo-classes': [{
+			config: [true, { categories: { 'pseudo-classes': [{
 				selectorSet: { includes: [':hover', ':active'], size: 1 },
 			}] } }],
 		},
 		{
 			description: 'Requires distinct selector branches',
-			config: [true, { within: { 'pseudo-classes': [{ selectorSet: { equals: [':hover', ':hover'] } }] } }],
+			config: [true, { categories: { 'pseudo-classes': [{ selectorSet: { equals: [':hover', ':hover'] } }] } }],
 		},
 		{
 			description: 'Rejects equivalent branches in an exact set regardless of condition order',
-			config: [true, { within: { 'pseudo-classes': [{ selectorSet: {
+			config: [true, { categories: { 'pseudo-classes': [{ selectorSet: {
 				equals: [':hover.foo', '.foo:hover'],
 			} }] } }],
 		},
 		{
 			description: 'Rejects equivalent required branches regardless of condition order',
-			config: [true, { within: { 'pseudo-classes': [{ selectorSet: {
+			config: [true, { categories: { 'pseudo-classes': [{ selectorSet: {
 				includes: [':hover.foo', '.foo:hover'], size: 2,
 			} }] } }],
 		},
@@ -219,29 +221,29 @@ testRuleConfig({
 testRuleConfig({
 	description: 'Sorting presets',
 	accept: [
-		{ description: 'Accepts ascending names by default', config: [true, { within: { 'at-rules': {
+		{ description: 'Accepts ascending names by default', config: [true, { categories: { 'at-rules': {
 			sort: { by: 'name' },
 		} } }] },
-		{ description: 'Accepts descending names', config: [true, { within: { 'at-rules': {
+		{ description: 'Accepts descending names', config: [true, { categories: { 'at-rules': {
 			sort: { by: 'name', direction: 'desc' },
 		} } }] },
-		{ description: 'Accepts dimension sorting without unit priorities', config: [true, { within: { 'at-rules': {
+		{ description: 'Accepts dimension sorting without unit priorities', config: [true, { categories: { 'at-rules': {
 			sort: { by: 'dimension' },
 		} } }] },
-		{ description: 'Accepts empty unit priorities', config: [true, { within: { 'at-rules': {
+		{ description: 'Accepts empty unit priorities', config: [true, { categories: { 'at-rules': {
 			sort: { by: 'dimension', units: [] },
 		} } }] },
 	],
 	reject: [
-		{ description: 'Rejects unknown presets', config: [true, { within: { elements: { sort: 'unknown' } } }] },
+		{ description: 'Rejects unknown presets', config: [true, { categories: { elements: { sort: 'unknown' } } }] },
 		{ description: 'Rejects invalid group sorters', config: [true, { groups: { media: { order: [], sort: false } } }] },
-		{ description: 'Requires distinct units regardless of case', config: [true, { within: { 'at-rules': {
+		{ description: 'Requires distinct units regardless of case', config: [true, { categories: { 'at-rules': {
 			sort: { by: 'dimension', units: ['rem', 'REM'] },
 		} } }] },
-		{ description: 'Rejects units in name presets', config: [true, { within: { 'at-rules': {
+		{ description: 'Rejects units in name presets', config: [true, { categories: { 'at-rules': {
 			sort: { by: 'name', units: ['rem'] },
 		} } }] },
-		{ description: 'Rejects invalid directions', config: [true, { within: { 'at-rules': {
+		{ description: 'Rejects invalid directions', config: [true, { categories: { 'at-rules': {
 			sort: { by: 'name', direction: 'sideways' },
 		} } }] },
 		{
@@ -268,7 +270,7 @@ testRuleConfig({
 	accept: [
 		{
 			description: 'Accepts at-rule objects with equal ranks and a terminal remainder',
-			config: [true, { within: { 'at-rules': [
+			config: [true, { categories: { 'at-rules': [
 				[
 					{ type: 'at-rule', name: 'include', hasBlock: false },
 					{ type: 'at-rule', name: 'include', hasBlock: true },
@@ -279,24 +281,24 @@ testRuleConfig({
 		},
 		{
 			description: 'Accepts explicit at-rule matchers returned by transformers',
-			config: [true, { within: { 'at-rules': (defaults: WithinSequence<AtRuleWithinMatcher>) => [
+			config: [true, { categories: { 'at-rules': (defaults: CategorySequence<AtRuleCategoryMatcher>) => [
 				{ type: 'at-rule', name: 'supports' }, ...defaults,
 			] } }],
 		},
 	],
 	reject: [
-		{ description: 'Rejects other strings in at-rule orders', config: [true, { within: { 'at-rules': ['media'] } }] },
+		{ description: 'Rejects other strings in at-rule orders', config: [true, { categories: { 'at-rules': ['media'] } }] },
 		{
 			description: 'Rejects non-at-rule objects in at-rule orders',
-			config: [true, { within: { 'at-rules': [{ type: 'rule', selector: '.card' }] } }],
+			config: [true, { categories: { 'at-rules': [{ type: 'rule', selector: '.card' }] } }],
 		},
 		{
 			description: 'Requires the remainder to end at-rule orders',
-			config: [true, { within: { 'at-rules': ['*', { type: 'at-rule', name: 'media' }] } }],
+			config: [true, { categories: { 'at-rules': ['*', { type: 'at-rule', name: 'media' }] } }],
 		},
 		{
 			description: 'Rejects equal-rank remainders returned by at-rule transformers',
-			config: [true, { within: { 'at-rules': () => [['*']] } }],
+			config: [true, { categories: { 'at-rules': () => [['*']] } }],
 		},
 	],
 });
@@ -311,14 +313,17 @@ testRuleConfig({
 			config: [true, { groups: { custom: [['group:other']] } }],
 		},
 		{ description: 'Rejects equal-rank remainders in groups', config: [true, { groups: { custom: [['*']] } }] },
-		{ description: 'Rejects references inside within', config: [true, { within: { 'pseudo-classes': ['group:custom'] } }] },
 		{
-			description: 'Rejects equal-rank references inside within',
-			config: [true, { within: { 'pseudo-classes': [['group:custom']] } }],
+			description: 'Rejects references in category orders',
+			config: [true, { categories: { 'pseudo-classes': ['group:custom'] } }],
+		},
+		{
+			description: 'Rejects equal-rank references in category orders',
+			config: [true, { categories: { 'pseudo-classes': [['group:custom']] } }],
 		},
 		{
 			description: 'Validates group references returned by transformers',
-			config: [true, { within: { 'pseudo-classes': () => ['group:custom'] } }],
+			config: [true, { categories: { 'pseudo-classes': () => ['group:custom'] } }],
 		},
 		{ description: 'Requires defined outer groups', config: [true, { order: ['group:missing'] }] },
 		{ description: 'Requires defined root groups', config: [true, { root: { order: ['group:missing'] } }] },
@@ -333,11 +338,11 @@ testRuleConfig({
 		{ description: 'Rejects equal-rank remainders', config: [true, { order: [['*']] }] },
 		{
 			description: 'Requires the remainder to end category orders',
-			config: [true, { within: { declarations: ['*', 'display'] } }],
+			config: [true, { categories: { declarations: ['*', 'display'] } }],
 		},
 		{
 			description: 'Validates remainder markers returned by transformers',
-			config: [true, { within: { declarations: () => [['*']] } }],
+			config: [true, { categories: { declarations: () => [['*']] } }],
 		},
 	],
 });
@@ -347,7 +352,7 @@ describe('bem/order configuration types and transformations', () => {
 		const defineRules = createDefineRules();
 		const rules = defineRules({
 			'@morev/bem/order': [true, {
-				within: {
+				categories: {
 					'elements': {
 						sort: (items) => {
 							expectTypeOf(items).toEqualTypeOf<readonly OrderSortItem[]>();
@@ -356,13 +361,13 @@ describe('bem/order configuration types and transformations', () => {
 						},
 					},
 					'sass:variables': (defaults) => {
-						expectTypeOf(defaults).toEqualTypeOf<WithinSequence>();
+						expectTypeOf(defaults).toEqualTypeOf<CategorySequence>();
 
 						return [/^\$_/, ...defaults];
 					},
 					'at-rules': {
 						order: (defaults) => {
-							expectTypeOf(defaults).toEqualTypeOf<WithinSequence<AtRuleWithinMatcher>>();
+							expectTypeOf(defaults).toEqualTypeOf<CategorySequence<AtRuleCategoryMatcher>>();
 
 							return [{ type: 'at-rule', name: 'media' }, ...defaults];
 						},
@@ -371,8 +376,8 @@ describe('bem/order configuration types and transformations', () => {
 			}],
 		});
 		const parsed = v.parse(schema.secondary, rules['@morev/bem/order'][1]);
-		const transform = parsed?.within?.['sass:variables'];
-		const atRules = parsed?.within?.['at-rules'];
+		const transform = parsed?.categories?.['sass:variables'];
+		const atRules = parsed?.categories?.['at-rules'];
 		const defaults = [['$size', '$gap'], '*'] as const;
 
 		assert(isFunction(transform));

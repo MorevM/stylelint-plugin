@@ -8,7 +8,7 @@ testRule({
 	description: 'Sass definition names',
 	config: [true, {
 		root: { order: ['at-rules', 'sass:functions', 'sass:mixins'] },
-		within: {
+		categories: {
 			'sass:functions': ['tone', '*'],
 			'sass:mixins': { order: [/^[-_]/u, 'respond-to', '*'], sort: { by: 'name' } },
 		},
@@ -71,7 +71,7 @@ testRule({
 	description: 'Generic at-rule sorting for Sass definitions',
 	config: [true, {
 		root: { order: ['at-rules'] },
-		within: { 'at-rules': { sort: { by: 'name' } } },
+		categories: { 'at-rules': { sort: { by: 'name' } } },
 	} satisfies SecondaryOption],
 	reject: [{
 		description: 'Exposes directive names when the order uses the generic at-rule category',

@@ -13,7 +13,7 @@ const aspectRatio = (item: OrderSortItem) => {
 testRule({
 	description: 'Sorting context for semantic owners',
 	config: [true, {
-		within: {
+		categories: {
 			elements: {
 				sort: ((items, context) => {
 					expect(context.category).toBe('elements');

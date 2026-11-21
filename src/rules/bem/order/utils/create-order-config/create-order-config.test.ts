@@ -12,7 +12,7 @@ describe(createOrderConfig, () => {
 		`);
 		const config = createOrderConfig({
 			order: [{ type: 'at-rule', name: 'media', parameter: ' ( --tablet ) ' }, 'at-rules'],
-			within: { 'at-rules': [{ type: 'at-rule', name: 'media', parameter: '(  --tablet  )' }] },
+			categories: { 'at-rules': [{ type: 'at-rule', name: 'media', parameter: '(  --tablet  )' }] },
 		});
 
 		for (const node of root.nodes) {

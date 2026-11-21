@@ -8,7 +8,7 @@ testRule({
 	description: 'CSS function and mixin definitions',
 	config: [true, {
 		root: { order: ['at-rules', 'css:mixins', 'css:functions'] },
-		within: {
+		categories: {
 			'css:mixins': { sort: { by: 'name' } },
 			'css:functions': ['--space', '*'],
 		},

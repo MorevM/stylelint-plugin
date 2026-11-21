@@ -53,7 +53,7 @@ testRule({
 testRule({
 	description: 'Category-local matcher names',
 	config: [true, {
-		within: { rules: [
+		categories: { rules: [
 			{ type: 'rule', selector: 'h1, h2', name: 'Headings' },
 			{ type: 'rule', selector: 'p', name: 'Paragraphs' },
 		] },
@@ -138,7 +138,7 @@ testRule({
 testRule({
 	description: 'Authored at-rule headers',
 	config: [true, {
-		within: { 'at-rules': [
+		categories: { 'at-rules': [
 			{ type: 'at-rule', name: 'media', parameter: /^\(min-width:10px\)$/u },
 			{ type: 'at-rule', name: 'media', parameter: '(min-width:20px)' },
 		] },
@@ -185,7 +185,7 @@ testRule({
 testRule({
 	description: 'Sass variables in media diagnostics',
 	config: [true, {
-		within: { 'at-rules': [
+		categories: { 'at-rules': [
 			{ type: 'at-rule', name: 'media', parameter: '#{$tablet}' },
 			{ type: 'at-rule', name: 'media', parameter: 'screen' },
 		] },

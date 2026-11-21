@@ -8,7 +8,7 @@ testRule({
 	description: 'Sass include names',
 	config: [true, {
 		order: ['sass:include-statements', 'declarations', 'sass:include-blocks'],
-		within: {
+		categories: {
 			'at-rules': [{ type: 'at-rule', parameter: /^theme\./u }, '*'],
 			'sass:includes': ['layout.respond-to', '*'],
 			'sass:include-statements': { sort: { by: 'name', direction: 'desc' } },
@@ -45,7 +45,7 @@ testRule({
 	description: 'Separate Sass include forms',
 	config: [true, {
 		order: ['sass:includes', 'declarations', 'sass:include-blocks'],
-		within: {
+		categories: {
 			'sass:includes': { sort: { by: 'name', direction: 'asc' } },
 			'sass:include-blocks': { sort: { by: 'dimension', direction: 'asc' } },
 		},
@@ -96,7 +96,7 @@ testRule({
 	description: 'Generic at-rule order within Sass includes',
 	config: [true, {
 		root: { order: ['at-rules', 'rules', 'sass:includes'] },
-		within: { 'at-rules': [{ type: 'at-rule', parameter: 'theme' }, '*'] },
+		categories: { 'at-rules': [{ type: 'at-rule', parameter: 'theme' }, '*'] },
 	} satisfies SecondaryOption],
 	reject: [{
 		description: 'Uses the generic priority for calls while keeping them after selector rules',
@@ -120,7 +120,7 @@ testRule({
 	description: 'Sass includes in a custom order',
 	config: [true, {
 		root: { order: ['at-rules', 'sass:include-statements', { type: 'at-rule', name: 'include', parameter: 'reset' }] },
-		within: { 'sass:includes': { sort: { by: 'dimension', direction: 'asc' } } },
+		categories: { 'sass:includes': { sort: { by: 'dimension', direction: 'asc' } } },
 	} satisfies SecondaryOption],
 	reject: [{
 		description: 'Sorts include arguments by dimension and gives an explicit matcher its own position',

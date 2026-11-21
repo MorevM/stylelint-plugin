@@ -1,7 +1,7 @@
 import type { Separators } from '#modules/shared';
 
 /**
- * Built-in scopes whose inner order can be configured through `within`.
+ * Built-in scopes whose inner order can be configured through `categories`.
  * Applicability depends on the current container or selector family.
  * `base` positions the family's own rule; `declarations` positions property nodes inside rules.
  */
@@ -447,7 +447,7 @@ export type GroupMatcher = OrderCategory | AtRuleMatcher | RuleMatcher | Propert
 
 /**
  * Outer ordering entry: a built-in category, named group, remainder, or explicit custom matcher.
- * Arbitrary strings and standalone regular expressions belong in non-at-rule `within` categories.
+ * Arbitrary strings and standalone regular expressions belong in category orders other than `at-rules`.
  * Group references require a non-empty name, checked at runtime.
  */
 export type OrderMatcher = GroupMatcher | `group:${string}` | '*';
@@ -524,22 +524,23 @@ export type GroupOrder = GroupSequence | PropertiesGroup | OrderGroupSpacing & {
  * Category-local matcher for property names, selector tokens, patterns and structured constraints.
  * The generic at-rule category requires structured matchers. Query categories also accept conditions.
  */
-export type WithinMatcher = string | RegExp | AtRuleMatcher | RuleMatcher | SelectorSetMatcher | PropertiesGroup;
+export type CategoryMatcher = string | RegExp | AtRuleMatcher | RuleMatcher | SelectorSetMatcher | PropertiesGroup;
 
 /**
  * At-rule constraints use explicit fields, with a wildcard for the remaining at-rules.
  */
-export type AtRuleWithinMatcher = AtRuleMatcher | '*';
+export type AtRuleCategoryMatcher = AtRuleMatcher | '*';
 
 /**
  * Exact query parameters, a pattern over them, or an explicit at-rule constraint.
  */
-export type QueryWithinMatcher = string | RegExp | AtRuleMatcher;
+export type QueryCategoryMatcher = string | RegExp | AtRuleMatcher;
 
 /**
  * Category-local sequence whose nested arrays assign equal rank.
  */
-export type WithinSequence<Matcher extends WithinMatcher = WithinMatcher> = ReadonlyArray<Matcher | readonly Matcher[]>;
+export type CategorySequence<Matcher extends CategoryMatcher = CategoryMatcher> =
+	ReadonlyArray<Matcher | readonly Matcher[]>;
 
 /**
  * Priorities for authored selector branches, excluding declaration and at-rule matchers.
@@ -556,18 +557,18 @@ export type SelectorListSequence = ReadonlyArray<
  *
  * @returns            Replacement order for the same category.
  */
-export type OrderTransformer<Matcher extends WithinMatcher = WithinMatcher> = (
-	defaults: WithinSequence<Matcher>,
-) => WithinSequence<Matcher>;
+export type OrderTransformer<Matcher extends CategoryMatcher = CategoryMatcher> = (
+	defaults: CategorySequence<Matcher>,
+) => CategorySequence<Matcher>;
 
 /**
  * Ordering and formatting for a built-in category.
  */
-export type WithinOrderOptions<Matcher extends WithinMatcher = WithinMatcher> = {
+export type CategoryOrderOptions<Matcher extends CategoryMatcher = CategoryMatcher> = {
 	/**
 	 * Replaces the category defaults, optionally deriving a sequence from them.
 	 */
-	order?: WithinSequence<Matcher> | OrderTransformer<Matcher>;
+	order?: CategorySequence<Matcher> | OrderTransformer<Matcher>;
 
 	/**
 	 * Positions unmatched members or preserves their category-local slots.
@@ -614,8 +615,8 @@ export type SelectorListOrder = {
 /**
  * Replaces a category's defaults directly or derives a replacement from them.
  */
-export type WithinOrder<Matcher extends WithinMatcher = WithinMatcher> =
-	WithinSequence<Matcher> | OrderTransformer<Matcher> | WithinOrderOptions<Matcher>;
+export type CategoryOrder<Matcher extends CategoryMatcher = CategoryMatcher> =
+	CategorySequence<Matcher> | OrderTransformer<Matcher> | CategoryOrderOptions<Matcher>;
 
 /**
  * Enables semantic ordering and autofix within authored containers.
@@ -667,10 +668,10 @@ export type SecondaryOption = {
 	 * At-rules use explicit matcher objects; other categories also accept literal strings and patterns.
 	 * Omitted categories use their built-in defaults.
 	 */
-	within?: {
-		readonly [Category in OrderCategory]?: WithinOrder<
-			Category extends 'at-rules' ? AtRuleWithinMatcher
-				: Category extends 'css:media' | 'css:container' ? QueryWithinMatcher : WithinMatcher
+	categories?: {
+		readonly [Category in OrderCategory]?: CategoryOrder<
+			Category extends 'at-rules' ? AtRuleCategoryMatcher
+				: Category extends 'css:media' | 'css:container' ? QueryCategoryMatcher : CategoryMatcher
 		>;
 	};
 

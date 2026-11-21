@@ -7,7 +7,7 @@ const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 testRule({
 	description: 'Ignored declaration slots',
 	config: [true, {
-		within: {
+		categories: {
 			declarations: {
 				order: ['display', 'position', 'color', 'width', 'height'],
 				unspecified: 'ignore',
@@ -43,7 +43,7 @@ testRule({
 testRule({
 	description: 'Ignored semantic families',
 	config: [true, {
-		within: {
+		categories: {
 			elements: { order: ['.card__title', '.card__icon'], unspecified: 'ignore' },
 		},
 	}],
@@ -131,7 +131,7 @@ testRule({
 testRule({
 	description: 'Unspecified priorities and transformed sequences',
 	config: [true, {
-		within: { declarations: { order: () => ['color'], unspecified: 'top' } },
+		categories: { declarations: { order: () => ['color'], unspecified: 'top' } },
 	}],
 	reject: [{
 		description: 'Places unspecified properties first in their original order',
@@ -157,7 +157,7 @@ testRule({
 	description: 'Explicit remainder priority',
 	config: [true, {
 		root: { order: ['rules', '*'], unspecified: 'top' },
-		within: { declarations: { order: ['color', '*'], unspecified: 'ignore' } },
+		categories: { declarations: { order: ['color', '*'], unspecified: 'ignore' } },
 	}],
 	accept: [{
 		description: 'Treats an explicit remainder as matched before applying unspecified policies',
@@ -170,7 +170,7 @@ testRule({
 
 testRule({
 	description: 'Unspecified selector lists at the bottom',
-	config: [true, { within: { 'pseudo-classes': [':hover', ':active'] } }],
+	config: [true, { categories: { 'pseudo-classes': [':hover', ':active'] } }],
 	reject: [{
 		description: 'Moves hover across a list that does not match an individual state string',
 		code: `
@@ -193,7 +193,7 @@ testRule({
 
 testRule({
 	description: 'Unspecified selector lists at the top',
-	config: [true, { within: { 'pseudo-classes': { order: [':hover', ':active'], unspecified: 'top' } } }],
+	config: [true, { categories: { 'pseudo-classes': { order: [':hover', ':active'], unspecified: 'top' } } }],
 	reject: [{
 		description: 'Places an unmatched whole list before explicitly ranked states',
 		code: `
@@ -216,7 +216,7 @@ testRule({
 
 testRule({
 	description: 'Ignored selector-list slots',
-	config: [true, { within: { 'pseudo-classes': { order: [':hover', ':active'], unspecified: 'ignore' } } }],
+	config: [true, { categories: { 'pseudo-classes': { order: [':hover', ':active'], unspecified: 'ignore' } } }],
 	reject: [{
 		description: 'Keeps the list in its slot while sorting states across it',
 		code: `
@@ -240,7 +240,7 @@ testRule({
 testRule({
 	description: 'Explicit selector-list remainder',
 	config: [true, {
-		within: { 'pseudo-classes': { order: [':hover', ':active', '*'], unspecified: 'ignore' } },
+		categories: { 'pseudo-classes': { order: [':hover', ':active', '*'], unspecified: 'ignore' } },
 	}],
 	reject: [{
 		description: 'Uses the wildcard priority for the whole list instead of ignoring it',

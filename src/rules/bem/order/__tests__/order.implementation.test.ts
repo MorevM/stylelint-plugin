@@ -1,5 +1,5 @@
 import rule from '../order';
-import type { WithinSequence } from '../order.types';
+import type { CategorySequence } from '../order.types';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
@@ -155,7 +155,7 @@ testRule({
 
 testRule({
 	description: 'Property order and attached comments',
-	config: [true, { within: { declarations: ['display', '*'] } }],
+	config: [true, { categories: { declarations: ['display', '*'] } }],
 	reject: [{
 		description: 'Sorts nested content and moves leading and trailing comments with their rule',
 		code: `
@@ -380,8 +380,8 @@ testRule({
 testRule({
 	description: 'Category overrides',
 	config: [true, {
-		within: {
-			'sass:variables': (defaults: WithinSequence) => [/^\$_/u, ...defaults],
+		categories: {
+			'sass:variables': (defaults: CategorySequence) => [/^\$_/u, ...defaults],
 			'at-rules': [
 				{ type: 'at-rule', name: 'include', hasBlock: false },
 				{ type: 'at-rule', name: 'include', hasBlock: true },
@@ -482,7 +482,7 @@ testRule({
 
 testRule({
 	description: 'Minimal relocations',
-	config: [true, { within: { declarations: ['display', 'position', 'inset', 'color', 'opacity'] } }],
+	config: [true, { categories: { declarations: ['display', 'position', 'inset', 'color', 'opacity'] } }],
 	reject: [
 		{
 			description: 'Moves one contiguous run instead of reporting every shifted declaration',
