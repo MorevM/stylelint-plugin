@@ -186,17 +186,7 @@ It also works with SCSS nesting, including smart resolving of SASS variables:
 
 :::
 
-And yes, you can customize all of ordering rules.
-
-::: info A note from the author
-Like the other rules, it comes with defaults I'd recommend as a starting point based on my own experience.
-However, it's **expected** that you'll adapt the rule to your own conventions.
-
-If you've used [`order/order`][stylelint-order], the setup will feel familiar. You list what should come first.
-You can set the order you want, down to the details.
-For example, give `:hover` and `:focus-visible` the same priority
-or put a specific `@include` between two groups of properties.
-:::
+And yes, you can customize **all** of these ordering rules.
 
 ::: warning Autofix changes source order
 Although I've built safeguards into autofix, static analysis can't guarantee that every fix is safe.
@@ -210,25 +200,215 @@ If two selectors match the same element, moving one can change which style wins.
 
 ## Rule options
 
-Set `'@morev/bem/order': true` to use the defaults. To change the order, pass an options object after `true`.
-Use `order` inside selectors and BEM families, and `root.order` for the stylesheet itself.
-For example, this puts hover and focus states before nested media queries and keeps top-level media queries after the blocks:
+::: info A note from the author
+Like the other rules, this one comes with defaults I recommend based on my own experience.
+Just set the primary option to `true` and the rule will organize your BEM styles using those defaults.
+However, it's **expected and recommended** that you'll adapt the rule to your own conventions.
 
-```js
-export default {
-  plugins: ['@morev/stylelint-plugin'],
-  rules: {
-    '@morev/bem/order': [true, {
-      order: ['declarations', 'pseudo-classes', 'at-rules', '*'],
-      root: { order: ['rules', 'at-rules', '*'] },
-    }],
-  },
-};
+If you've used [`order/order`][stylelint-order], the setup will feel familiar.
+You can list items in a fixed order or use conditions for finer control.
+For example, you can place a specific breakpoint before all other media queries.
+:::
+
+To customize the rule, pass an options object after `true`.
+
+```ts
+{
+  '@morev/bem/order': [true, {
+    order: [
+      // List categories and matchers in the order you want.
+    ],
+  }],
+}
 ```
 
-::: details Full configuration example
+Any options you leave out keep their defaults. \
+An `order` array replaces the default sequence for its scope.
 
-This example combines custom matchers, named groups, and equal ranks.
+::: details Full default configuration
+
+```ts
+{
+  '@morev/bem/order': [true, {
+    root: {
+      order: [
+        // These entries have equal priority, so they keep their source order.
+        // This keeps Sass definitions available where they're used.
+        // By convention, this group goes at the top, before selector rules.
+        [
+          'sass:variables',
+          'sass:functions',
+          'sass:mixins',
+          'css:functions',
+          'css:mixins',
+          'sass:placeholders',
+          'sass:includes',
+          'sass:diagnostics',
+        ],
+        // Put shared values before selectors...
+        'custom-properties',
+        // ...plain selectors next...
+        'rules',
+        // ...then media queries, container queries, and the remaining at-rules.
+        'css:media',
+        'css:container',
+        'at-rules',
+      ],
+      // If you lint `display: grid; --gap: 1rem;` as a CSS fragment,
+      // `--gap` matches `custom-properties`. The unmatched `display` goes last.
+      unspecified: 'bottom',
+    },
+
+    order: [
+      // Define local Sass values before anything reads them...
+      'sass:variables',
+      // ...then set the custom properties that other CSS can override.
+      'custom-properties',
+      // Apply shared styles before writing local overrides...
+      'sass:include-statements',
+      // ...and keep the selector's own properties together.
+      'declarations',
+      // In each BEM family, put the plain selector before its variants.
+      'base',
+      // Keep mixins with a content block near the styles they change.
+      'sass:include-blocks',
+      // Read conditions on the viewing environment first...
+      'css:media',
+      // ...then conditions on the container.
+      'css:container',
+      // Keep the remaining at-rules together before selector states.
+      'at-rules',
+      // Start with states like :hover and :focus...
+      'pseudo-classes',
+      // ...then show the variants named by BEM modifiers.
+      'modifiers',
+      // Look for extra classes on the same node first...
+      'qualifiers:class',
+      // ...then attributes like [aria-busy].
+      'qualifiers:attribute',
+      // Read overrides from ancestors in the same block first...
+      'context:internal',
+      // ...then those that depend on an ancestor outside the block.
+      'context:external',
+      // Keep ::before and ::after with the selector they belong to.
+      'pseudo-elements',
+      // Each element starts its own family and follows this order again.
+      'elements',
+      // Give placeholders and other nested selectors the same priority.
+      ['sass:placeholders', 'rules'],
+    ],
+
+    // If you omit 'at-rules' from this order, a nested @supports goes last.
+    unspecified: 'bottom',
+
+    // Set the order inside a category wherever that category is used.
+    categories: {
+      // A pressed link can also be hovered, so put :active after :hover.
+      // Give both focus states the same priority to keep their source order.
+      'pseudo-classes': [
+        ':link', ':visited', ':hover',
+        [':focus', ':focus-visible'],
+        ':active',
+        '*',
+      ],
+      // A list item's ::marker comes before its ::before in the element tree.
+      'pseudo-elements': ['::marker', '::before', '::after', '*'],
+    },
+    // Name sets of matchers to reuse as `group:name` in either order.
+    groups: {},
+    // Move each rule as a whole and keep comma-separated selectors as written.
+    selectorList: false,
+  }],
+}
+```
+
+Every other category uses `['*']`,
+so items with the same priority keep their original order.
+
+:::
+
+::: details SCSS component using the default order
+
+Hover over or tap the code to explore the default order.
+Use the arrow buttons to move from one region to the next. {#default-order-example}
+
+```scss annotated
+// [Sass preamble] Load the shared mixins first. The rule keeps @use in place.
+@use '../mixins' as ui;
+
+// [sass:variables] Define the default gap before using it in the card.
+$card-gap: 1rem;
+
+// [rules] The block and its variants form one family in the stylesheet.
+.product-card {
+  // [sass:variables] Save the block selector for the compact card's title.
+  $b: #{&};
+  // [custom-properties] Expose the gap so other styles can override it.
+  --card-gap: #{$card-gap};
+
+  // [sass:include-statements] Apply the shared surface before local styles.
+  @include ui.surface;
+  // [declarations] Keep the card's own layout properties together.
+  display: grid;
+  gap: var(--card-gap);
+
+  // [sass:include-blocks] Keep the breakpoint mixin near the styles it changes.
+  @include ui.from-tablet {}
+  // [css:media] Group media queries before container queries.
+  @media print {}
+  // [css:container] Adapt the card to the space its container gives it.
+  @container (width > 30rem) {}
+
+  // [pseudo-classes] Read the card's states before its named variants.
+  &:hover {}
+  &:focus-visible {}
+  // [modifiers] The compact variant belongs to the card itself.
+  &--compact {}
+
+  // [qualifiers:class] This class changes the card on the same HTML element.
+  &.is-selected {}
+  // [qualifiers:attribute] This attribute is also on the card itself.
+  &[aria-busy='true'] {}
+
+  // [pseudo-elements] Keep generated content with the card that owns it.
+  &::before {}
+  &::after {}
+
+  // [elements] The title is the base of a new family. The order starts again.
+  &__title {
+    // [pseudo-classes] The title's own state comes before its modifier.
+    &:hover {}
+
+    // [modifiers] The linked title starts its own family inside the title.
+    &--linked {
+      // [pseudo-classes] States come first inside the modifier too.
+      &:hover {}
+      &:focus-visible {}
+      // [pseudo-elements] This generated content belongs to the linked title.
+      &::after {}
+    }
+
+    // [context:internal] The compact card changes its own title.
+    #{$b}--compact & {}
+    // [context:external] The sidebar changes the title from outside the card.
+    .sidebar & {}
+    // [pseudo-elements] This generated content belongs to the title itself.
+    &::after {}
+  }
+
+  // [rules] Other nested selectors share the last named priority.
+  > img {}
+  // [sass:placeholders] The placeholder keeps its source order with the image.
+  %product-card-artwork {}
+}
+```
+
+:::
+
+::: details Highly customized configuration example
+
+This example keeps layout properties together, sorts breakpoints by width, and adds blank lines between larger groups.
+It also orders the branches of a selector list independently of the rule that contains them.
 
 ```js
 export default {
@@ -236,60 +416,75 @@ export default {
   rules: {
     '@morev/bem/order': [true, {
       root: {
-        order: ['group:sass', 'custom-properties', 'rules', 'at-rules', '*'],
-        unspecified: 'bottom',
+        order: ['group:sass', 'custom-properties', 'rules', 'group:responsive'],
+        // Other top-level at-rules keep their original positions.
+        unspecified: 'ignore',
       },
 
       order: [
         'sass:variables',
         'custom-properties',
-        { type: 'at-rule', name: 'include', hasBlock: false },
+        'sass:include-statements',
+        'group:layout',
+        { properties: ['color', /^background(?:-|$)/u] },
         'declarations',
         'base',
         'group:side-effects',
-        'group:structural',
+        ['group:structural', 'group:functional'],
         { type: 'at-rule', name: 'media', parameter: '(--less-tablet-small)' },
-        { type: 'at-rule', name: 'media', parameter: /\(--less-tablet-small\)/ },
-        { type: 'at-rule', name: 'media' },
+        'group:responsive',
         'pseudo-classes',
         'modifiers',
         'qualifiers:class',
         'qualifiers:attribute',
-        'group:functional',
         'context:internal',
         'context:external',
         'pseudo-elements',
         'elements',
-        { type: 'at-rule', name: 'include', hasBlock: true },
+        'sass:include-blocks',
         'at-rules',
-        'rules',
-        '*',
       ],
 
-      unspecified: 'bottom',
-      selectorList: { order: 'inherit' },
+      unspecified: {
+        position: 'bottom',
+        blankLines: { before: 'always' },
+      },
 
-      within: {
+      categories: {
         'sass:variables': (defaults) => [/^\$_/, ...defaults],
-        declarations: [
-          'display',
-          ['width', 'height'],
-          '*',
-        ],
+        declarations: {
+          order: [
+            {
+              groupName: 'Typography',
+              properties: ['font-family', ['font-size', 'line-height']],
+            },
+            'opacity',
+          ],
+          unspecified: 'top',
+        },
         'pseudo-classes': [
           ':link',
           ':visited',
           ':hover',
           [':focus', ':focus-visible'],
+          { selectorSet: { equals: [':hover', ':focus-visible'] } },
+          { selectorSet: { includes: [':hover'], size: 2 } },
           ':active',
           '*',
         ],
-        'pseudo-elements': ['::before', '::after', '*'],
+        'pseudo-elements': ['::marker', '::before', '::after', '*'],
         'at-rules': [
-          { type: 'at-rule', name: 'media', parameter: '(--less-tablet-small)' },
+          { type: 'at-rule', name: 'media', parameter: /^\(--less-/u },
           { type: 'at-rule', name: 'supports' },
           '*',
         ],
+        elements: {
+          order: ['.card__title', '*'],
+          sort(items, context) {
+            const byName = context.sort(items, { by: 'name' });
+            return byName.toSorted((a, b) => a.name.length - b.name.length);
+          },
+        },
       },
 
       groups: {
@@ -297,34 +492,97 @@ export default {
           'sass:variables',
           'sass:functions',
           'sass:mixins',
-          { type: 'at-rule', name: 'function', parameter: /^--/u },
-          { type: 'at-rule', name: 'mixin', parameter: /^--/u },
+          'css:functions',
+          'css:mixins',
           'sass:placeholders',
-          { type: 'at-rule', name: 'include' },
-          { type: 'at-rule', name: 'extend' },
-          { type: 'at-rule', name: 'debug' },
-          { type: 'at-rule', name: 'warn' },
-          { type: 'at-rule', name: 'error' },
+          'sass:includes',
+          'sass:diagnostics',
         ]],
-        'side-effects': [{ type: 'rule', selector: /^>\s*\*$/, name: 'Authored direct children' }],
+        layout: {
+          groupName: 'Layout',
+          properties: ['display', 'position', ['width', 'height'], /^grid-/u],
+          sort: { by: 'name' },
+          blankLines: {
+            between: 'never',
+            after: {
+              default: 'never',
+              rules: [
+                { when: 'separated-by-comment', mode: 'ignore' },
+                {
+                  when: {
+                    all: [
+                      { not: 'last-nested' },
+                      { minItems: 6, scope: 'container' },
+                      {
+                        any: [
+                          { minItems: 3, scope: 'group' },
+                          { minItems: 3, scope: 'next-group' },
+                        ],
+                      },
+                    ],
+                  },
+                  mode: 'always',
+                },
+              ],
+            },
+          },
+        },
+        'side-effects': [
+          { type: 'rule', selector: '> *', name: 'Direct children' },
+        ],
         structural: [
           { type: 'rule', relativeSelector: '&:empty' },
           { type: 'rule', relativeSelector: '&:only-child' },
         ],
         functional: [
-          { type: 'rule', relativeSelector: /^&:(?:is|has|not)\(/ },
+          { type: 'rule', relativeSelector: /^&:(?:is|has|not)\(/u },
         ],
+        responsive: {
+          groupName: 'Breakpoints',
+          order: [[
+            { type: 'at-rule', name: 'media' },
+            { type: 'at-rule', name: 'container' },
+          ]],
+          sort: {
+            by: 'dimension',
+            units: ['rem', 'px'],
+            direction: 'asc',
+            unresolved: 'bottom',
+          },
+          blankLines: {
+            before: {
+              default: 'always',
+              rules: [
+                { when: 'first-nested', mode: 'never' },
+                { when: 'inside-single-line-block', mode: 'never' },
+                {
+                  when: { maxItems: 1, scope: 'previous-group' },
+                  mode: 'never',
+                },
+              ],
+            },
+          },
+        },
+      },
+
+      selectorList: {
+        order: [':hover', [':focus', ':focus-visible'], ':active'],
+        unspecified: 'bottom',
+        sort: { by: 'name', direction: 'asc' },
       },
 
       separators: {
         element: '__',
-        modifier: '--',
-        modifierValue: '--',
+        modifier: '_',
+        modifierValue: '_',
       },
     }],
   },
 };
 ```
+
+The explicit `selectorList.order` gives list branches their own priorities. Use `order: 'inherit'` to reuse
+the category order, or set only `sort: { by: 'name' }` to sort the whole list alphabetically.
 
 :::
 

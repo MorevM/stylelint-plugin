@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AnnotatedCode: typeof import('./.vitepress/components/annotated-code/annotated-code.vue')['default']
     RulesList: typeof import('./.vitepress/components/rules-list/rules-list.vue')['default']
   }
 }

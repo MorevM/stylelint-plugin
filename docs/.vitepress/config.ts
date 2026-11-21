@@ -3,12 +3,14 @@ import { fileURLToPath } from 'node:url';
 import Components from 'unplugin-vue-components/vite';
 import { defineConfig } from 'vitepress';
 import { rulesMeta, scopedRulesMeta } from '../../src/modules/meta/index';
+import { annotatedScss } from './annotated-scss';
 
 export default defineConfig({
 	srcDir: fileURLToPath(new URL('../..', import.meta.url)),
 	title: '@morev/stylelint-plugin',
 	description: 'Stylelint rules for BEM and SCSS best practices',
 	base: '/stylelint-plugin/',
+	markdown: { config: annotatedScss },
 	vite: {
 		publicDir: fileURLToPath(new URL('../public', import.meta.url)),
 		server: {
