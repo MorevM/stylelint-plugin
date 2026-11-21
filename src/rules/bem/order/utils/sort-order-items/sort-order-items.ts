@@ -179,8 +179,10 @@ export const sortOrderItems = (
 			}, scopes)
 			: sibling.items,
 		policy: sibling.rank.spacing,
+		categorySpacing: sibling.rank.categorySpacing,
 	}));
-	if (scopes && (scopes.spacing.length !== previousScopeCount || projection.some((unit) => unit.policy.blankLines))) {
+	if (scopes && (scopes.spacing.length !== previousScopeCount
+		|| projection.some((unit) => unit.policy.blankLines ?? unit.categorySpacing))) {
 		scopes.spacing.push({ depth, units: projection });
 	}
 

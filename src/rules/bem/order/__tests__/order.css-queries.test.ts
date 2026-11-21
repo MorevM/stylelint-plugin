@@ -87,6 +87,36 @@ testRule({
 });
 
 testRule({
+	description: 'Category spacing with inherited media ordering',
+	config: [true, {
+		root: { order: ['rules', 'group:queries'] },
+		groups: { queries: { order: ['css:media'], blankLines: { between: 'never' } } },
+		within: {
+			'at-rules': [{ type: 'at-rule', name: 'media', parameter: 'print' }, '*'],
+			'css:media': { blankLines: { before: 'always', between: 'always' } },
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Keeps the inherited print priority and the named group spacing between queries',
+		code: `
+			.card {}
+			@media screen {}
+			@media print {}
+		`,
+		fixed: `
+			.card {}
+
+			@media print {}
+			@media screen {}
+		`,
+		warnings: [
+			{ message: messages.expectedBefore('@media print', '@media screen') },
+			{ message: messages.expectedEmptyLineBefore('@media print') },
+		],
+	}],
+});
+
+testRule({
 	description: 'Query sorting with the default nested order',
 	config: [true, {
 		within: {

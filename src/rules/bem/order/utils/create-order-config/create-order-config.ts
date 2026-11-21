@@ -189,6 +189,21 @@ const prepareUnspecified = (key: string, setting: UnspecifiedOrder | Unspecified
 const isQueryCategory = (category: OrderCategory) => category === 'css:media' || category === 'css:container';
 
 /**
+ * Include forms can inherit from Sass includes, and specific at-rules can inherit from generic at-rules.
+ *
+ * @param   category   Category selected by the outer order.
+ * @param   item       Authored item with its specific at-rule category, if any.
+ * @param   settings   Categories with an override for the policy being resolved.
+ *
+ * @returns            Category supplying the applicable override.
+ */
+const getWithinCategory = (category: OrderCategory, item: OrderItem, settings: ReadonlyMap<OrderCategory, unknown>) => {
+	if (!item.atRuleMember || category === 'at-rules' || settings.has(category)) return category;
+	if (settings.has(item.atRuleMember.category)) return item.atRuleMember.category;
+	return settings.has('at-rules') ? 'at-rules' : category;
+};
+
+/**
  * Resolves a category override using defaults compatible with its matcher contract.
  *
  * @param   override    Optional sequence, transformer or expanded category settings.
@@ -326,8 +341,16 @@ const createOrderConfig = (options: SecondaryOption) => {
 	const rootUnspecified = prepareUnspecified('root.unspecified', options.root?.unspecified);
 
 	const within = new Map<OrderCategory, NonNullable<ReturnType<typeof prepareWithinOrder>>>();
+	const categorySpacing = new Map<OrderCategory, PreparedOrderSpacing>();
 	const overrides = options.within ?? {};
 	for (const category of tsObject.keys(overrides)) {
+		const override = overrides[category];
+		if (override && 'blankLines' in override && !isUndefined(override.blankLines)) {
+			categorySpacing.set(category, { key: `within.${category}`, blankLines: override.blankLines });
+			// Formatting alone leaves an inherited at-rule order in effect.
+			if (isUndefined(override.order) && isUndefined(override.sort) && isUndefined(override.unspecified)) continue;
+		}
+
 		const prepared = category === 'at-rules'
 			? prepareWithinOrder(overrides[category], REMAINDER, category)
 			: isQueryCategory(category)
@@ -422,20 +445,19 @@ const createOrderConfig = (options: SecondaryOption) => {
 		}
 
 		const outerSpacing = selected.spacing;
+		const categoryPolicy = categorySpacing.size
+			? categorySpacing.get(getWithinCategory(category, item, categorySpacing))
+			: undefined;
 		if (!isString(selected.matcher) && 'properties' in selected.matcher) {
 			return {
 				outer: rank, inner: getPropertyRank(selected.matcher, item), member: 0, category,
 				innerScope: selected.scope,
 				sort: selected.sort, sortScope: `${selected.scope}.sort`, group: selected.group,
-				spacing: outerSpacing,
+				spacing: outerSpacing, categorySpacing: categoryPolicy,
 			};
 		}
 
-		// Each include form can inherit the shared include order before falling back to generic at-rules.
-		if (item.atRuleMember && category !== 'at-rules' && !within.has(category)) {
-			if (within.has(item.atRuleMember.category)) category = item.atRuleMember.category;
-			else if (within.has('at-rules')) category = 'at-rules';
-		}
+		category = getWithinCategory(category, item, within);
 		const settings = within.get(category);
 		const categoryOrder = settings?.order ?? DEFAULT_WITHIN[category] ?? REMAINDER;
 		const matchText = isQueryCategory(category) && node.type === 'atrule' && categoryOrder !== REMAINDER
@@ -464,7 +486,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 				outer: rank, inner, member: getPropertyRank(property, item), category,
 				memberScope: scope,
 				sort: propertySorter(property), sortScope: `${scope}.sort`,
-				spacing: spacing(property, scope),
+				spacing: spacing(property, scope), categorySpacing: categoryPolicy,
 			};
 		}
 
@@ -483,6 +505,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 			group: selected.group,
 			label: innerLabel ?? outerLabel,
 			spacing: useUnmatchedSpacing ? unmatchedSpacing : outerSpacing,
+			categorySpacing: categoryPolicy,
 		};
 	};
 

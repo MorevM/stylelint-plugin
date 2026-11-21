@@ -561,7 +561,7 @@ export type OrderTransformer<Matcher extends WithinMatcher = WithinMatcher> = (
 ) => WithinSequence<Matcher>;
 
 /**
- * Category ordering with an explicit policy for unmatched members.
+ * Ordering and formatting for a built-in category.
  */
 export type WithinOrderOptions<Matcher extends WithinMatcher = WithinMatcher> = {
 	/**
@@ -581,6 +581,12 @@ export type WithinOrderOptions<Matcher extends WithinMatcher = WithinMatcher> = 
 	 * Orders matched members with equal inner rank, keeping unspecified units outside the callback.
 	 */
 	sort?: OrderSort;
+
+	/**
+	 * Formats each consecutive run of category members in the root and nested orders.
+	 * Explicit group policies take precedence at the boundaries they format.
+	 */
+	blankLines?: BlankLines;
 };
 
 /**
@@ -657,7 +663,7 @@ export type SecondaryOption = {
 	};
 
 	/**
-	 * Overrides inner category orders without changing their position or membership.
+	 * Configures category ordering and spacing without changing position or membership.
 	 * At-rules use explicit matcher objects; other categories also accept literal strings and patterns.
 	 * Omitted categories use their built-in defaults.
 	 */

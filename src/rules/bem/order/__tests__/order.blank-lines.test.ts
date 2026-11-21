@@ -6,6 +6,124 @@ const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 
 testRule({
+	description: 'Category spacing with the default root and nested orders',
+	config: [true, {
+		within: { 'css:container': { blankLines: { before: 'always', between: 'never' } } },
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Separates container queries from media queries and keeps consecutive containers together',
+		code: `
+			.card {
+				@media screen {}
+				@container (width > 20rem) {}
+
+				@container (width > 40rem) {}
+			}
+			@media print {}
+			@container sidebar (width > 30rem) {}
+		`,
+		fixed: `
+			.card {
+				@media screen {}
+
+				@container (width > 20rem) {}
+				@container (width > 40rem) {}
+			}
+			@media print {}
+
+			@container sidebar (width > 30rem) {}
+		`,
+		warnings: [
+			{ message: messages.expectedEmptyLineBefore('@container (width > 20rem)') },
+			{ message: messages.unexpectedEmptyLineBefore('@container (width > 40rem)') },
+			{ message: messages.expectedEmptyLineBefore('@container sidebar (width > 30rem)') },
+		],
+	}],
+});
+
+testRule({
+	description: 'Spacing for complete modifier families',
+	config: [true, {
+		order: ['declarations', 'base', 'modifiers', 'pseudo-classes'],
+		within: { modifiers: { blankLines: { before: 'always', between: 'always' } } },
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Keeps a modifier with its state and separates the next modifier',
+		code: `
+			.card {
+				display: grid;
+				&--small {}
+				&--small:hover {}
+				&--large {}
+			}
+		`,
+		fixed: `
+			.card {
+				display: grid;
+
+				&--small {}
+				&--small:hover {}
+
+				&--large {}
+			}
+		`,
+		warnings: [
+			{ message: messages.expectedEmptyLineBefore('&--small') },
+			{ message: messages.expectedEmptyLineBefore('&--large') },
+		],
+	}],
+});
+
+testRule({
+	description: 'Category formatting across declaration groups',
+	config: [true, {
+		order: ['custom-properties', 'declarations', 'pseudo-classes'],
+		within: {
+			declarations: {
+				order: [{ properties: ['display'], blankLines: { after: 'ignore' } }, 'color'],
+				unspecified: { position: 'bottom', blankLines: { between: 'always' } },
+				blankLines: { before: 'always', between: 'never', after: 'always' },
+			},
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Formats the whole run and gives explicit policies priority at inner boundaries',
+		code: `
+			.card {
+				--gap: 1rem;
+				display: grid;
+
+				color: red;
+
+				gap: var(--gap);
+				padding: 1rem;
+				&:hover {}
+			}
+		`,
+		fixed: `
+			.card {
+				--gap: 1rem;
+
+				display: grid;
+
+				color: red;
+				gap: var(--gap);
+
+				padding: 1rem;
+
+				&:hover {}
+			}
+		`,
+		warnings: [
+			{ message: messages.expectedEmptyLineBefore('display') },
+			{ message: messages.unexpectedEmptyLineBefore('gap') },
+			{ message: messages.expectedEmptyLineBefore('padding') },
+			{ message: messages.expectedEmptyLineAfter('padding') },
+		],
+	}],
+});
+
+testRule({
 	description: 'Compact property groups separated from following declarations',
 	config: [true, {
 		within: {

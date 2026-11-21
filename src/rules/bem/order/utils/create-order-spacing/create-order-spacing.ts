@@ -51,6 +51,25 @@ type SpacingBoundary = {
 };
 
 /**
+ * Consecutive members use the run's between policy. At its edges, before takes priority over after.
+ *
+ * @param   boundary   Runs on either side of a whitespace slot.
+ *
+ * @returns            The policy and the side that owns it, if configured.
+ */
+const getBoundaryPolicy = (boundary?: SpacingBoundary) => {
+	if (!boundary) return undefined;
+	const { left, right } = boundary;
+	const useFollowingPolicy = left === right || !isUndefined(right?.policy.blankLines?.before);
+	const group = useFollowingPolicy ? right : left;
+	const policy = left === right
+		? group?.policy.blankLines?.between
+		: useFollowingPolicy ? group?.policy.blankLines?.before : group?.policy.blankLines?.after;
+
+	return group && !isUndefined(policy) ? { group, policy, useFollowingPolicy } : undefined;
+};
+
+/**
  * Checks whether leading comments occupy a line between surrounding code in the final order.
  *
  * @param   item           Member following the boundary, if any.
@@ -142,37 +161,40 @@ export const createOrderSpacing = (
 	const isContainerEnd = container.nodes?.at(-1) === originalLast;
 	const positions = new Map(sorted.map((item, index) => [item, index]));
 	const boundaries = new Map<number, SpacingBoundary>();
+	const categoryBoundaries = new Map<number, SpacingBoundary>();
 	const edits: OrderSpacingEdit[] = [];
 	let containerItemCount: number | undefined;
 
 	// Outer scopes own gaps between families; descendants can only claim gaps inside a family.
 	for (const { depth, units } of [...scopes].sort((a, b) => a.depth - b.depth)) {
-		let group: SpacingGroup | undefined;
+		// Category runs can span several property groups or inner ranks at this same semantic depth.
+		const collectBoundaries = (source: 'policy' | 'categorySpacing', target: Map<number, SpacingBoundary>) => {
+			let group: SpacingGroup | undefined;
+			for (const unit of units) {
+				const start = positions.get(unit.items[0])!;
+				const end = positions.get(unit.items.at(-1)!)! + 1;
+				const previous = group?.end === start ? group : undefined;
+				const policy = unit[source] ?? { key: unit.policy.key };
 
-		for (const { items, policy } of units) {
-			const start = positions.get(items[0])!;
-			const end = positions.get(items.at(-1)!)! + 1;
-			const previous = group?.end === start ? group : undefined;
+				if (previous?.policy.key === policy.key) {
+					previous.end = end;
+					group = previous;
+				} else {
+					group = { start, end, policy, previous };
+					if (previous) previous.next = group;
+				}
 
-			if (previous?.policy.key === policy.key) {
-				previous.end = end;
-				group = previous;
-			} else {
-				group = { start, end, policy, previous };
-				if (previous) previous.next = group;
+				if (previous && !boundaries.has(start)) target.set(start, { left: previous, right: group });
+				if (depth === 0 && start === 0 && isContainerStart) target.set(0, { right: group });
 			}
 
-			if (previous && !boundaries.has(start)) {
-				boundaries.set(start, { left: previous, right: group });
-			}
-			if (depth === 0 && start === 0 && isContainerStart) {
-				boundaries.set(0, { right: group });
-			}
+			if (depth === 0 && group && isContainerEnd) target.set(sorted.length, { left: group });
+		};
+
+		if (units.some((unit) => unit.categorySpacing)) {
+			collectBoundaries('categorySpacing', categoryBoundaries);
 		}
-
-		if (depth === 0 && group && isContainerEnd) {
-			boundaries.set(sorted.length, { left: group });
-		}
+		collectBoundaries('policy', boundaries);
 	}
 
 	const countItems = (scope: BlankLineItemScope, group: SpacingGroup) => {
@@ -216,19 +238,14 @@ export const createOrderSpacing = (
 		return rule?.mode ?? policy.default ?? 'ignore';
 	};
 
-	for (const [position, { left, right }] of [...boundaries].sort(([a], [b]) => a - b)) {
+	for (const [position, boundary] of [...boundaries].sort(([a], [b]) => a - b)) {
 		// File padding is outside group formatting, unlike whitespace inside a nested block.
 		if (container.type === 'root' && (position === 0 || position === sorted.length)) continue;
 
 		const isTerminal = position === sorted.length;
-		const isSameGroup = left === right;
-		const before = right?.policy.blankLines?.before;
-		const useFollowingPolicy = isSameGroup || !isUndefined(before);
-		const policy = isSameGroup
-			? right?.policy.blankLines?.between
-			: useFollowingPolicy ? before : left?.policy.blankLines?.after;
-		const group = useFollowingPolicy ? right : left;
-		if (isUndefined(policy) || policy === 'ignore' || isUndefined(group)) continue;
+		const selected = getBoundaryPolicy(boundary) ?? getBoundaryPolicy(categoryBoundaries.get(position));
+		if (!selected || selected.policy === 'ignore') continue;
+		const { policy, group, useFollowingPolicy } = selected;
 
 		const itemPosition = useFollowingPolicy ? position : position - 1;
 		const item = sorted[itemPosition];

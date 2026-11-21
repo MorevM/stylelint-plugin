@@ -84,6 +84,11 @@ export type OrderRank = {
 	 * Group selected for this unit at its current semantic level.
 	 */
 	spacing: PreparedOrderSpacing;
+
+	/**
+	 * Category-wide formatting used where the group leaves a boundary unspecified.
+	 */
+	categorySpacing?: PreparedOrderSpacing;
 };
 
 /**
@@ -229,6 +234,11 @@ export type OrderScopes = {
 			 * Formatting policy selected at this semantic level.
 			 */
 			policy: PreparedOrderSpacing;
+
+			/**
+			 * Formatting shared across consecutive members of the category.
+			 */
+			categorySpacing?: PreparedOrderSpacing;
 		}>;
 	}>;
 };

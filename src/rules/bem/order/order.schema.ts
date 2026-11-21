@@ -229,6 +229,7 @@ const createWithinOrderSchema = <Matcher extends WithinMatcher>(matcher: v.Gener
 			order: v.optional(order),
 			unspecified: v.optional(vUnspecifiedOrderOptions),
 			sort: v.optional(vOrderSort),
+			blankLines: v.optional(vBlankLines),
 		}),
 	]) satisfies v.GenericSchema<WithinOrder<Matcher>>;
 };
