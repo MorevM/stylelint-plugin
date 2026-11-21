@@ -1,5 +1,5 @@
 import rule from '../order';
-import { DEFAULT_ROOT_ORDER } from '../order.constants';
+import { DEFAULT_ORDER, DEFAULT_ROOT_ORDER } from '../order.constants';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
@@ -68,7 +68,11 @@ testRule({
 	}],
 });
 
-describe('Default root order', () => {
+describe('Default structural orders', () => {
+	it('Leaves unmatched nested items to unspecified', () => {
+		expect(DEFAULT_ORDER).not.toContain('*');
+	});
+
 	it('Leaves unmatched items to root.unspecified', () => {
 		expect(DEFAULT_ROOT_ORDER).not.toContain('*');
 	});

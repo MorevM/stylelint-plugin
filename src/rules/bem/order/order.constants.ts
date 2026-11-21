@@ -37,7 +37,6 @@ export const DEFAULT_ORDER: OrderSequence = [
 	'pseudo-elements',
 	'elements',
 	['sass:placeholders', 'rules'],
-	'*',
 ];
 
 export const DEFAULT_CATEGORY_ORDERS: Readonly<Record<string, CategorySequence>> = {
