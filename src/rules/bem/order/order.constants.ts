@@ -43,7 +43,7 @@ export const DEFAULT_CATEGORY_ORDERS: Readonly<Record<string, CategorySequence>>
 	'pseudo-classes': Object.freeze([
 		':link', ':visited', ':hover', Object.freeze([':focus', ':focus-visible']), ':active', '*',
 	]),
-	'pseudo-elements': Object.freeze(['::before', '::after', '*']),
+	'pseudo-elements': Object.freeze(['::marker', '::before', '::after', '*']),
 };
 
 export const REMAINDER = Object.freeze(['*'] as const);

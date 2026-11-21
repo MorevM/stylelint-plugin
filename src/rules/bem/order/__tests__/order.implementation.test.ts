@@ -82,6 +82,22 @@ testRule({
 			],
 		},
 		{
+			description: 'Places the list marker before generated content by default',
+			code: `
+				.list__item::before {}
+				.list__item::after {}
+				.list__item::marker {}
+				.list__item::selection {}
+			`,
+			fixed: `
+				.list__item::marker {}
+				.list__item::before {}
+				.list__item::after {}
+				.list__item::selection {}
+			`,
+			warnings: [{ message: messages.expectedBefore('.list__item::marker', '.list__item::before') }],
+		},
+		{
 			description: 'Keeps pseudo-element states with their family and resolves Sass references',
 			code: `
 				.card {
