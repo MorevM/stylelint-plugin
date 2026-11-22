@@ -103,12 +103,16 @@ export default createRule({
 		// A conflicting declaration dependency blocks fixes for this region only.
 		const conflict = findPropertyOrderConflict(items, sorted, ({ node }) => node.type === 'decl' ? node.prop : undefined);
 		if (conflict) {
-			const [first, second] = conflict;
-			const headers: [string, string] = [getOrderHeader(first.node), getOrderHeader(second.node)];
+			const labels = conflict.map((item) => {
+				const property = getOrderHeader(item.node);
+				const label = item.label?.text;
+				return label && label !== property ? `${label} (${property})` : property;
+			});
+			const second = conflict[1].node;
 
 			pendingReports.push(() => report({
-				node: second.node, message: messages.unsafeOrder,
-				messageArgs: headers, index: 0, endIndex: headers[1].length,
+				node: second, message: messages.unsafeOrder,
+				messageArgs: [labels[0], labels[1]], index: 0, endIndex: getOrderHeader(second).length,
 			}));
 			return;
 		}
@@ -203,12 +207,12 @@ export default createRule({
 
 		if (container.type === 'rule' && secondary.selectorList
 			&& !isDisabled(container) && !hasStylelintDirective(container)) {
-			const selector = sortSelectorList(container, secondary.selectorList, config, separators, knownTargets);
-			if (selector !== container.selector) {
+			const change = sortSelectorList(container, secondary.selectorList, config, separators, knownTargets);
+			if (change) {
 				pendingReports.push(() => report({
-					node: container, message: messages.selectorList, messageArgs: [selector],
+					node: container, message: messages.selectorList, messageArgs: [change.description],
 					index: 0, endIndex: container.selector.length,
-					fix: () => { container.selector = selector; },
+					fix: () => { container.selector = change.selector; },
 				}));
 			}
 		}

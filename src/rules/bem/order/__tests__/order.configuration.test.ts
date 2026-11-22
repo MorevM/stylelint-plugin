@@ -33,7 +33,7 @@ testRuleConfig({
 				{ type: 'at-rule', name: 'include', hasBlock: true },
 				{ type: 'at-rule', name: 'media', parameter: /^\(--tablet\)$/ },
 				{ type: 'at-rule', name: 'media', parameter: '(--tablet)' },
-				[{ type: 'rule', selector: '&.is-active', name: 'Extra classes' }, 'qualifiers:attribute'],
+				[{ type: 'rule', selector: '&.is-active', label: 'Extra classes' }, 'qualifiers:attribute'],
 				'pseudo-classes',
 				'context:internal',
 				'context:external',
@@ -256,6 +256,10 @@ testRuleConfig({
 testRuleConfig({
 	description: 'Explicit outer matchers',
 	reject: [
+		{
+			description: 'Rejects name as a rule matcher label',
+			config: [true, { order: [{ type: 'rule', name: 'States' }] }],
+		},
 		{ description: 'Rejects empty group references', config: [true, { order: ['group:'] }] },
 		{ description: 'Rejects at-rule fields on rule matchers', config: [true, { order: [{ type: 'rule', hasBlock: true }] }] },
 		{

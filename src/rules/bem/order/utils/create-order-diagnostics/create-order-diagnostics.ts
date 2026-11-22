@@ -45,7 +45,7 @@ export const createOrderDiagnostics = (
 	const labels = new Map(items.map((item) => {
 		const header = headers.get(item)!;
 		const { node } = item;
-		const full = item.label ?? (node.type === 'decl' && duplicateHeaders.has(header)
+		const full = item.label?.text ?? (node.type === 'decl' && duplicateHeaders.has(header)
 			? node.toString()
 			: header);
 

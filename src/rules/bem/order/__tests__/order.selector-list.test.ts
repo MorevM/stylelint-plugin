@@ -100,7 +100,7 @@ testRule({
 	description: 'Descending selector-list comparisons within explicit ranks',
 	config: [true, {
 		selectorList: {
-			order: [':hover', [':focus', ':focus-visible']],
+			order: [{ type: 'rule', relativeSelector: '&:hover', label: 'Hover' }, [':focus', ':focus-visible']],
 			sort: { by: 'name', direction: 'desc' },
 		},
 	} satisfies SecondaryOption],
@@ -108,6 +108,6 @@ testRule({
 		description: 'Retains explicit priorities and ignored slots while reversing tied names',
 		code: '.card:focus, .card:unknown, .card:hover, .card:focus-visible {}',
 		fixed: '.card:hover, .card:unknown, .card:focus-visible, .card:focus {}',
-		warnings: [{ message: messages.selectorList('.card:hover, .card:unknown, .card:focus-visible, .card:focus') }],
+		warnings: [{ message: messages.selectorList('Hover (.card:hover), .card:unknown, .card:focus-visible, .card:focus') }],
 	}],
 });

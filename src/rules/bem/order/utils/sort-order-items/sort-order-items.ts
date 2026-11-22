@@ -86,7 +86,11 @@ export const sortOrderItems = (
 		});
 		const item = base ?? sibling.items[0];
 		const rank = getRank(item, sibling.family, !sibling.family || Boolean(base), isRoot);
-		if (rank.label !== undefined) item.label = rank.label;
+		if (rank.label !== undefined) {
+			for (const member of sibling.items) {
+				if (!member.label || rank.label.priority >= member.label.priority) member.label = rank.label;
+			}
+		}
 		return {
 			...sibling,
 			item,

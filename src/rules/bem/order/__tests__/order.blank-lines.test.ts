@@ -174,7 +174,7 @@ testRule({
 	config: [true, {
 		categories: {
 			declarations: [
-				{ properties: ['display'], groupName: 'Layout', blankLines: { after: 'always' } },
+				{ properties: ['display'], label: 'Layout', blankLines: { after: 'always' } },
 				'color',
 			],
 		},
@@ -1156,7 +1156,7 @@ testRule({
 		categories: {
 			declarations: [
 				'display',
-				{ properties: ['color'], groupName: 'Text', blankLines: { before: 'always' } },
+				{ properties: ['color'], label: 'Text', blankLines: { before: 'always' } },
 			],
 		},
 	} satisfies SecondaryOption],

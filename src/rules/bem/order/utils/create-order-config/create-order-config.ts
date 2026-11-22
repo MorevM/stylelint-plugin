@@ -6,7 +6,7 @@ import { getOrderHeader, getOrderSelectorText } from '../get-order-header/get-or
 import { matchesSelectorSet } from '../matches-selector-set/matches-selector-set';
 import { normalizeParameters } from '../normalize-parameters/normalize-parameters';
 import { normalizeProperty } from '../normalize-property/normalize-property';
-import type { Family, OrderItem, OrderRank, PreparedOrderSorter, PreparedOrderSpacing } from '../../order.internal-types';
+import type { Family, OrderItem, OrderLabel, OrderRank, PreparedOrderSorter, PreparedOrderSpacing } from '../../order.internal-types';
 import type {
 	AtRuleMatcher, CategoryMatcher, CategoryOrder, CategoryOrderOptions, CategorySequence,
 	OrderCategory, OrderGroupSpacing, OrderMatcher, OrderSequence, PropertiesGroup, RuleMatcher,
@@ -58,6 +58,22 @@ const matchesValue = (pattern: string | RegExp | undefined, value: string | unde
 
 	// A shared /g or /y matcher must not carry state between nodes or lint runs.
 	return new RegExp(pattern.source, pattern.flags).test(value);
+};
+
+/**
+ * Chooses the most specific label and retains its precedence for nested families.
+ *
+ * @param   matcher    Label of the matched selector, at-rule or property matcher.
+ * @param   group      Label shared by members of a named or unmatched group.
+ * @param   category   Label shared by members of a built-in category.
+ *
+ * @returns            The label to use when rendering a diagnostic.
+ */
+const resolveLabel = (matcher?: string, group?: string, category?: string): OrderLabel | undefined => {
+	if (!isUndefined(matcher)) return { text: matcher, priority: 3 };
+	if (!isUndefined(group)) return { text: group, priority: 2 };
+	if (!isUndefined(category)) return { text: category, priority: 1 };
+	return undefined;
 };
 
 /**
@@ -173,6 +189,19 @@ const isCategoryMatch = (
 };
 
 /**
+ * Prepares spacing metadata with a stable group identity.
+ *
+ * @param   settings     Spacing policy from a group or category override.
+ * @param   key          Scope identity used to recognize adjacent members of the same group.
+ * @param   groupLabel   Display label inherited from the enclosing named group.
+ *
+ * @returns              Spacing policy with its scope identity.
+ */
+const spacing = (settings: OrderGroupSpacing | undefined, key: string, groupLabel?: string): PreparedOrderSpacing => ({
+	key, blankLines: settings?.blankLines, label: settings?.label ?? groupLabel,
+});
+
+/**
  * Gives unmatched siblings the same group identity for all placement shorthands.
  *
  * @param   key       Configuration scope that owns the group.
@@ -182,7 +211,7 @@ const isCategoryMatch = (
  */
 const prepareUnspecified = (key: string, setting: UnspecifiedOrder | UnspecifiedOrderOptions = 'bottom') => ({
 	position: isString(setting) ? setting : setting.position,
-	spacing: { key, blankLines: isString(setting) ? undefined : setting.blankLines },
+	spacing: spacing(isString(setting) ? undefined : setting, key),
 });
 
 const isQueryCategory = (category: OrderCategory) => category === 'css:media' || category === 'css:container';
@@ -242,18 +271,6 @@ const prepareCategoryOrder = <Matcher extends CategoryMatcher>(
 		sort: isUndefined(settings.sort) ? undefined : createOrderSorter(settings.sort),
 	};
 };
-
-/**
- * Prepares spacing metadata with a stable group identity.
- *
- * @param   settings   Spacing policy from a group or category override.
- * @param   key        Scope identity used to recognize adjacent members of the same group.
- *
- * @returns            Spacing policy with its scope identity.
- */
-const spacing = (settings: OrderGroupSpacing | undefined, key: string): PreparedOrderSpacing => ({
-	...settings, key,
-});
 
 /**
  * Expands named fragments and prepares category orders once per stylesheet.
@@ -319,7 +336,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 				matcher: member, group,
 				scope: property ? memberScope : `groups.${group}`,
 				sort: (property && propertySorter(property)) ?? sort,
-				spacing: property ? spacing(property, memberScope) : spacing(settings, `groups.${group}`),
+				spacing: property ? spacing(property, memberScope, settings.label) : spacing(settings, `groups.${group}`),
 			};
 		}));
 	};
@@ -347,12 +364,14 @@ const createOrderConfig = (options: SecondaryOption) => {
 
 	const categoryOrders = new Map<OrderCategory, NonNullable<ReturnType<typeof prepareCategoryOrder>>>();
 	const categorySpacing = new Map<OrderCategory, PreparedOrderSpacing>();
+	const categoryLabels = new Map<OrderCategory, string>();
 	const overrides = options.categories ?? {};
 	for (const category of tsObject.keys(overrides)) {
 		const override = overrides[category];
-		if (override && 'blankLines' in override && !isUndefined(override.blankLines)) {
-			categorySpacing.set(category, { key: `categories.${category}`, blankLines: override.blankLines });
-			// Formatting alone leaves an inherited at-rule order in effect.
+		if (override && ('blankLines' in override || 'label' in override)) {
+			if (!isUndefined(override.label)) categoryLabels.set(category, override.label);
+			if (override.blankLines) categorySpacing.set(category, spacing(override, `categories.${category}`));
+			// Formatting and labels leave an inherited category order in effect.
 			if (isUndefined(override.order) && isUndefined(override.sort) && isUndefined(override.unspecified)) continue;
 		}
 
@@ -448,16 +467,20 @@ const createOrderConfig = (options: SecondaryOption) => {
 			});
 		}
 
+		const categoryLabel = categoryLabels.size
+			? categoryLabels.get(getConfiguredCategory(category, item, categoryLabels))
+			: undefined;
 		if (isUndefined(selected)) {
 			const unspecified = isRoot ? rootUnspecified : nestedUnspecified;
 
 			return {
 				outer: getUnspecifiedRank(unspecified.position, order.length), inner: 0, member: 0, category,
-				spacing: unspecified.spacing,
+				spacing: unspecified.spacing, label: resolveLabel(undefined, unspecified.spacing.label, categoryLabel),
 			};
 		}
 
 		const outerSpacing = selected.spacing;
+		const outerLabel = isString(selected.matcher) ? undefined : selected.matcher.label;
 		const categoryPolicy = categorySpacing.size
 			? categorySpacing.get(getConfiguredCategory(category, item, categorySpacing))
 			: undefined;
@@ -466,6 +489,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 				outer: rank, inner: getPropertyRank(selected.matcher, item), member: 0, category,
 				innerScope: selected.scope,
 				sort: selected.sort, sortScope: `${selected.scope}.sort`, group: selected.group,
+				label: resolveLabel(outerLabel, outerSpacing.label, categoryLabel),
 				spacing: outerSpacing, categorySpacing: categoryPolicy,
 			};
 		}
@@ -482,22 +506,14 @@ const createOrderConfig = (options: SecondaryOption) => {
 			&& isCategoryMatch(entry, item, family, matchText));
 		const match = matches[matchIndex];
 
-		const outerMatcher = selected.matcher;
-		const outerLabel = !isString(outerMatcher)
-			&& 'type' in outerMatcher && outerMatcher.type === 'rule'
-			? outerMatcher.name
-			: undefined;
-		const innerLabel = match && !isString(match)
-			&& 'type' in match && match.type === 'rule'
-			? match.name
-			: undefined;
-
+		const innerLabel = match && !isString(match) && !isRegExp(match) ? match.label : undefined;
 		const property = match && !isString(match) && 'properties' in match ? match : undefined;
 		const scope = `categories.${category}.order.${inner}.${matchIndex}`;
 		if (property) {
 			return {
 				outer: rank, inner, member: getPropertyRank(property, item), category,
 				memberScope: scope,
+				label: resolveLabel(property.label ?? outerLabel, outerSpacing.label, categoryLabel),
 				sort: propertySorter(property), sortScope: `${scope}.sort`,
 				spacing: spacing(property, scope), categorySpacing: categoryPolicy,
 			};
@@ -516,7 +532,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 			sort,
 			sortScope: sort ? (selected.sort ? `${selected.scope}.sort` : `categories.${category}.sort`) : undefined,
 			group: selected.group,
-			label: innerLabel ?? outerLabel,
+			label: resolveLabel(innerLabel ?? outerLabel, outerSpacing.label ?? unmatchedSpacing?.label, categoryLabel),
 			spacing: useUnmatchedSpacing ? unmatchedSpacing : outerSpacing,
 			categorySpacing: categoryPolicy,
 		};

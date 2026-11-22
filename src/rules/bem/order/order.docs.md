@@ -938,6 +938,53 @@ selector exactly as written**, before resolving nesting.
 
 ---
 
+##### Diagnostic labels
+
+Use `label` to give a matcher a readable name in Stylelint messages.
+In this example, `name: 'media'` selects the directive and `parameter: 'print'`
+selects the query. The warning calls it “Print styles”.
+
+```js
+{
+  order: [
+    { properties: ['display', 'gap'], label: 'Layout' },
+    { type: 'at-rule', name: 'media', parameter: 'print', label: 'Print styles' },
+  ],
+}
+```
+
+```css
+.card {
+  @media print {}
+  display: grid;
+}
+```
+
+Stylelint highlights `display` and uses the configured labels on both sides.
+
+```text
+Expected "Layout" to come before "Print styles". (@morev/bem/order)
+```
+
+Rule and at-rule matchers, property groups, and selector sets all accept
+`label`. Use it on a matcher in [`order`][order-option] or in the
+[`root` configuration][root-option], or set a shared label on the object form
+of a named group, category, or `unspecified` policy. A matcher's own label
+takes precedence over its group's or category's label. Without a label,
+Stylelint uses the source text.
+
+In [spacing messages][group spacing], a label on the group that requests the
+blank line names that group. Selector-list and cascade warnings keep the
+authored selectors and property names alongside their labels.
+
+---
+
+#### Matcher priority {#matchers-and-equal-ranks}
+
+In the opening configuration, `@media print` matches both `css:media` and the
+at-rule object. The rule checks objects first, so print comes after the other media queries.
+If two objects match, the **first** in `order` wins. This also applies to objects
+inside a [named group][groups-option], which expands where you list it.
 
 #### Pseudo-element variants {#pseudo-element-variants}
 
@@ -1442,7 +1489,7 @@ and `'ignore'` keeps the existing gap. These policies also apply when everything
 is already in order.
 
 You can set `blankLines` on a category, a property group, a named group with
-an `order`, or [unmatched items][unspecified-option]. Set `groupName` on a named
+an `order`, or [unmatched items][unspecified-option]. Set `label` on a named
 or property group if you'd like the lint message to use a label such as `Layout`.
 
 ::: details Keep small blocks compact or let a comment separate groups
@@ -1792,7 +1839,6 @@ The checks for overlapping properties draw on [Stylelint][stylelint] property da
 [namespace-placement]: https://www.w3.org/TR/css-namespaces-3/#syntax
 [order-option]: #order
 [outer-matchers]: #matchers-and-equal-ranks
-[property groups]: #property-groups
 [root-option]: #root
 [selector-list]: #selectorlist
 [selector-sets]: #selector-sets

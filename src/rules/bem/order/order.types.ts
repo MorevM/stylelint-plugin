@@ -1,6 +1,16 @@
 import type { Separators } from '#modules/shared';
 
 /**
+ * Display text for a configured entity in lint messages.
+ */
+type DiagnosticLabel = {
+	/**
+	 * Describes the matched items independently of their source spelling.
+	 */
+	label?: string;
+};
+
+/**
  * Built-in scopes whose inner order can be configured through `categories`.
  * Applicability depends on the current container or selector family.
  * `base` positions the family's own rule; `declarations` positions property nodes inside rules.
@@ -37,7 +47,7 @@ export type OrderCategory =
 /**
  * Explicit matcher for authored at-rules.
  */
-export type AtRuleMatcher = {
+export type AtRuleMatcher = DiagnosticLabel & {
 	/**
 	 * Restricts matching to at-rules.
 	 */
@@ -64,7 +74,7 @@ export type AtRuleMatcher = {
 /**
  * Explicit matcher for authored selectors.
  */
-export type RuleMatcher = {
+export type RuleMatcher = DiagnosticLabel & {
 	/**
 	 * Restricts matching to selector rules.
 	 */
@@ -81,11 +91,6 @@ export type RuleMatcher = {
 	 * Pseudo-elements retain their position, for example `&:hover::before`.
 	 */
 	relativeSelector?: string | RegExp;
-
-	/**
-	 * Optional descriptive label for diagnostics.
-	 */
-	name?: string;
 };
 
 /**
@@ -393,7 +398,7 @@ export type BlankLines = {
 /**
  * Placement and formatting of genuinely unmatched members; an explicit wildcard remains matched.
  */
-export type UnspecifiedOrderOptions = {
+export type UnspecifiedOrderOptions = DiagnosticLabel & {
 	/**
 	 * Places unmatched members before or after explicitly selected members.
 	 */
@@ -408,16 +413,11 @@ export type UnspecifiedOrderOptions = {
 /**
  * Optional formatting shared by named and inline groups.
  */
-export type OrderGroupSpacing = {
+export type OrderGroupSpacing = DiagnosticLabel & {
 	/**
 	 * Controls empty lines at the group's edges and between its consecutive members.
 	 */
 	blankLines?: BlankLines;
-
-	/**
-	 * Optional label used in spacing diagnostics.
-	 */
-	groupName?: string;
 };
 
 /**
@@ -469,7 +469,7 @@ export type GroupSequence = ReadonlyArray<GroupMatcher | readonly GroupMatcher[]
 /**
  * Unordered local selector branches belonging to the same semantic family and category.
  */
-export type SelectorSetMatcher = {
+export type SelectorSetMatcher = DiagnosticLabel & {
 	/**
 	 * Matches complete branches rather than individual tokens in a compound selector.
 	 * Condition order is ignored within each compound; pseudo-elements retain their boundaries.
@@ -566,7 +566,7 @@ export type OrderTransformer<Matcher extends CategoryMatcher = CategoryMatcher> 
 /**
  * Ordering and formatting for a built-in category.
  */
-export type CategoryOrderOptions<Matcher extends CategoryMatcher = CategoryMatcher> = {
+export type CategoryOrderOptions<Matcher extends CategoryMatcher = CategoryMatcher> = DiagnosticLabel & {
 	/**
 	 * Replaces the category defaults, optionally deriving a sequence from them.
 	 */

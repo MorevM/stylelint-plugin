@@ -124,11 +124,11 @@ describe(createOrderConfig, () => {
 		const node = scss.parse('.card:hover.foo, .card:focus[data-active] {}').first as Rule;
 		const selector = resolveOrderSelector(node, DEFAULT_SEPARATORS, new Set(['.card'])) ?? undefined;
 		const config = createOrderConfig({
-			order: ['qualifiers:class', 'pseudo-classes', { type: 'rule', selector: /^\.card/u, name: 'States' }],
+			order: ['qualifiers:class', 'pseudo-classes', { type: 'rule', selector: /^\.card/u, label: 'States' }],
 		});
 
 		expect(config.getRank({ node, nodes: [node], selector })).toMatchObject({
-			outer: 2, category: 'pseudo-classes', label: 'States',
+			outer: 2, category: 'pseudo-classes', label: { text: 'States' },
 		});
 	});
 });

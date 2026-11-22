@@ -18,7 +18,7 @@ import type { createOrderConfig } from '../create-order-config/create-order-conf
  * @param   separators     Configured BEM separators.
  * @param   knownTargets   Unambiguous BEM subjects elsewhere in the stylesheet.
  *
- * @returns                Authored selector with only top-level branches permuted.
+ * @returns                Reordered source and its diagnostic text when branches move.
  */
 export const sortSelectorList = (
 	node: Rule,
@@ -26,12 +26,12 @@ export const sortSelectorList = (
 	config: ReturnType<typeof createOrderConfig>,
 	separators: Separators,
 	knownTargets: Set<string>,
-): string => {
-	if (node.selector.includes('#{')) return node.selector;
+) => {
+	if (node.selector.includes('#{')) return undefined;
 
 	const original = node.raws.selector?.value === node.selector ? node.raws.selector.raw : node.selector;
 	const parsed = parser().astSync(original);
-	if (parsed.nodes.length < 2) return node.selector;
+	if (parsed.nodes.length < 2) return undefined;
 
 	const branches = parsed.nodes.map((branch) => {
 		const raw = branch.toString();
@@ -51,25 +51,32 @@ export const sortSelectorList = (
 
 	if (shouldInherit) {
 		const first = branches[0].selector;
-		if (!first?.path.length || first.isList) return node.selector;
+		if (!first?.path.length || first.isList) return undefined;
 		const { category } = config.getRank(branches[0].item);
 		if (branches.some(({ selector, item }) => {
 			if (!selector || selector.isList || !deepEqual(selector.path, first.path)) return true;
 			if (category === 'qualifiers') return config.getRank(item).category !== category;
 			return !deepEqual(selector.categories, first.categories);
 		})) {
-			return node.selector;
+			return undefined;
 		}
 		order = config.getCategoryOrder(category);
 	}
 
 	const ranked = branches.map((branch) => {
-		const rank = order.findIndex((entry) => (isArray(entry) ? entry : [entry]).some((matcher) => {
-			return (isString(matcher) && matcher === branch.name) || isCategoryMatch(matcher, branch.item);
-		}));
+		let label: string | undefined;
+		const rank = order.findIndex((entry) => {
+			const match = (isArray(entry) ? entry : [entry]).find((matcher) => {
+				return (isString(matcher) && matcher === branch.name) || isCategoryMatch(matcher, branch.item);
+			});
+			if (match === undefined) return false;
+			if (!isString(match) && 'label' in match) label = match.label;
+			return true;
+		});
 
 		return {
 			...branch,
+			label,
 			rank: rank !== -1
 				? rank
 				: options.unspecified === 'top'
@@ -87,10 +94,15 @@ export const sortSelectorList = (
 	});
 
 	let index = 0;
-	const sorted = ranked.map((branch) => {
-		const sorted = branch.rank === null ? branch : ordered[index++];
-		return `${branch.before}${sorted.text}${branch.after}`;
+	const sorted = ranked.map((branch) => (branch.rank === null ? branch : ordered[index++]));
+	const selector = sorted.map((branch, position) => {
+		const { before, after } = ranked[position];
+		return `${before}${branch.text}${after}`;
 	}).join(',');
+	if (selector === original) return undefined;
 
-	return sorted === original ? node.selector : sorted;
+	const description = sorted.some((branch) => branch.label !== undefined)
+		? sorted.map(({ text, label }) => (label === undefined ? text : `${label} (${text})`)).join(', ')
+		: selector;
+	return { selector, description };
 };

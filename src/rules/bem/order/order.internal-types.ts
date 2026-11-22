@@ -27,6 +27,21 @@ export type PreparedOrderSpacing = OrderGroupSpacing & {
 };
 
 /**
+ * Display label selected for an authored item or one of its enclosing families.
+ */
+export type OrderLabel = {
+	/**
+	 * Configured text to display in diagnostics.
+	 */
+	text: string;
+
+	/**
+	 * Precedence of the label's source across nested semantic families.
+	 */
+	priority: number;
+};
+
+/**
  * Independent ordering dimensions and the policy belonging to a matched unit.
  */
 export type OrderRank = {
@@ -76,9 +91,9 @@ export type OrderRank = {
 	group?: string;
 
 	/**
-	 * Diagnostic label supplied by the selected explicit rule matcher.
+	 * Diagnostic label of the matched item at this semantic level.
 	 */
-	label?: string;
+	label?: OrderLabel;
 
 	/**
 	 * Group selected for this unit at its current semantic level.
@@ -185,7 +200,7 @@ export type OrderItem = {
 	/**
 	 * Selected matcher label, kept separate from the authored header and source range.
 	 */
-	label?: string;
+	label?: OrderLabel;
 };
 
 /**

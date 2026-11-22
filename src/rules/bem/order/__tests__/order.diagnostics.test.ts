@@ -4,14 +4,19 @@ const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 
 testRule({
-	description: 'Named rule matcher diagnostics',
+	description: 'Named group labels',
 	config: [true, {
 		order: ['group:children', 'declarations'],
-		groups: { children: [{ type: 'rule', selector: /^>/u, name: 'Direct children' }] },
+		groups: {
+			children: {
+				order: [{ type: 'rule', selector: /^>/u }],
+				label: 'Direct children',
+			},
+		},
 	}],
 	reject: [
 		{
-			description: 'Uses the selected matcher name without extending its source highlight',
+			description: 'Uses the enclosing group label without extending the source highlight',
 			code: `
 				.host {
 					color: red;
@@ -30,7 +35,7 @@ testRule({
 			}],
 		},
 		{
-			description: 'Disambiguates repeated matcher names when referencing an anchor',
+			description: 'Disambiguates repeated group labels when referencing an anchor',
 			code: `
 				.host {
 					color: red;
@@ -51,11 +56,11 @@ testRule({
 });
 
 testRule({
-	description: 'Category-local matcher names',
+	description: 'Category-local matcher labels',
 	config: [true, {
 		categories: { rules: [
-			{ type: 'rule', selector: 'h1, h2', name: 'Headings' },
-			{ type: 'rule', selector: 'p', name: 'Paragraphs' },
+			{ type: 'rule', selector: 'h1, h2', label: 'Headings' },
+			{ type: 'rule', selector: 'p', label: 'Paragraphs' },
 		] },
 	}],
 	reject: [{
@@ -69,6 +74,56 @@ testRule({
 			p {}
 		`,
 		warnings: [{ message: messages.expectedBefore('Headings', 'Paragraphs') }],
+	}],
+});
+
+testRule({
+	description: 'Property and at-rule labels',
+	config: [true, {
+		order: ['group:layout', { type: 'at-rule', name: 'media', parameter: 'print', label: 'Print styles' }],
+		groups: {
+			layout: {
+				order: [{ properties: ['display', 'gap'], label: 'Layout properties' }],
+				label: 'Layout group',
+			},
+		},
+	}],
+	reject: [{
+		description: 'Uses the property matcher label in preference to the group label',
+		code: '.card { @media print {} display: grid; }',
+		fixed: '.card { display: grid; @media print {} }',
+		warnings: [{ message: messages.expectedBefore('Layout properties', 'Print styles') }],
+	}],
+});
+
+testRule({
+	description: 'Labels across BEM family levels',
+	config: [true, {
+		root: { order: [{ type: 'rule', selector: '.banner', label: 'Banner' }, 'rules'] },
+		categories: { base: { label: 'Base rule' } },
+	}],
+	reject: [{
+		description: 'Keeps an explicit matcher label when its family also has a category label',
+		code: '.card {} .banner {}',
+		fixed: '.banner {} .card {}',
+		warnings: [{ message: messages.expectedBefore('Banner', 'Base rule') }],
+	}],
+});
+
+testRule({
+	description: 'Category labels with inherited ordering',
+	config: [true, {
+		order: ['css:media'],
+		categories: {
+			'css:media': { label: 'Media queries' },
+			'at-rules': [{ type: 'at-rule', name: 'media', parameter: 'print', label: 'Print' }, '*'],
+		},
+	}],
+	reject: [{
+		description: 'Uses the specific category label while inheriting the shared at-rule order',
+		code: '.card { @media screen {} @media print {} }',
+		fixed: '.card { @media print {} @media screen {} }',
+		warnings: [{ message: messages.expectedBefore('Print', 'Media queries') }],
 	}],
 });
 

@@ -274,7 +274,8 @@ export const createOrderSpacing = (
 		if (canSeparateComment) {
 			edits.push({
 				node, field, value: newline + indent, reportNode: following.nodes[0],
-				message: 'expectedCommentOnOwnLine', addsLineBreak: true, header: getOrderHeader(following.node),
+				message: 'expectedCommentOnOwnLine', addsLineBreak: true,
+				header: following.label?.text ?? getOrderHeader(following.node),
 			});
 			continue;
 		}
@@ -286,7 +287,7 @@ export const createOrderSpacing = (
 
 		edits.push({
 			node, field, value, reportNode: item.node, message, addsLineBreak: hasEmptyLine,
-			header: group.policy.groupName ?? getOrderHeader(item.node),
+			header: group.policy.label ?? item.label?.text ?? getOrderHeader(item.node),
 		});
 	}
 

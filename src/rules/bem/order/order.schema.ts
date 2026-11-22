@@ -63,8 +63,10 @@ const vOrderCategory = v.picklist([
 	'elements',
 ]) satisfies v.GenericSchema<OrderCategory>;
 
+const vLabel = v.optional(v.string());
 const vAtRuleMatcher: v.GenericSchema<AtRuleMatcher> = v.strictObject({
 	type: v.literal('at-rule'),
+	label: vLabel,
 	name: v.optional(v.string()),
 	parameter: v.optional(vStringOrRegExpSchema),
 	hasBlock: v.optional(v.boolean()),
@@ -74,7 +76,7 @@ const vRuleMatcher: v.GenericSchema<RuleMatcher> = v.pipe(v.strictObject({
 	type: v.literal('rule'),
 	selector: v.optional(vStringOrRegExpSchema),
 	relativeSelector: v.optional(vStringOrRegExpSchema),
-	name: v.optional(v.string()),
+	label: vLabel,
 }), v.check((matcher) => isUndefined(matcher.selector) || isUndefined(matcher.relativeSelector),
 	'Use either selector or relativeSelector'));
 
@@ -150,11 +152,11 @@ const vBlankLines: v.GenericSchema<BlankLines> = v.strictObject({
 });
 const vUnspecifiedOrderOptions: v.GenericSchema<UnspecifiedOrder | UnspecifiedOrderOptions> = v.union([
 	vUnspecifiedOrder,
-	v.strictObject({ position: v.picklist(['top', 'bottom']), blankLines: v.optional(vBlankLines) }),
+	v.strictObject({ position: v.picklist(['top', 'bottom']), label: vLabel, blankLines: v.optional(vBlankLines) }),
 ]);
 const groupSpacingEntries = {
 	blankLines: v.optional(vBlankLines),
-	groupName: v.optional(v.string()),
+	label: vLabel,
 };
 const vPropertyMatcher = v.union([v.pipe(v.string(), v.minLength(1)), v.instance(RegExp)]);
 const vPropertiesSequence: v.GenericSchema<PropertiesSequence> = v.pipe(vReadonly(v.array(v.union([
@@ -196,6 +198,7 @@ const vLocalSelectors = v.pipe(
 	}, 'Each selector branch must be distinct'),
 );
 const vSelectorSetMatcher: v.GenericSchema<SelectorSetMatcher> = v.strictObject({
+	label: vLabel,
 	selectorSet: v.union([
 		v.strictObject({ equals: vLocalSelectors }),
 		v.pipe(v.strictObject({
@@ -229,6 +232,7 @@ const createCategoryOrderSchema = <Matcher extends CategoryMatcher>(matcher: v.G
 		order,
 		v.strictObject({
 			order: v.optional(order),
+			label: vLabel,
 			unspecified: v.optional(vUnspecifiedOrderOptions),
 			sort: v.optional(vOrderSort),
 			blankLines: v.optional(vBlankLines),
