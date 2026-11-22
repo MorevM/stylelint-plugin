@@ -786,7 +786,7 @@ their own position in the list.
     'declarations',
 
     // Match this selector exactly as written.
-    { type: 'rule', selector: '.card:focus-visible' },
+    { type: 'rule', selector: '&:hover' },
     // Match this state on any BEM entity, including nested `&:focus-visible`.
     { type: 'rule', relativeSelector: '&:focus-visible' },
     'pseudo-classes',
@@ -856,8 +856,8 @@ For more ways to sort, see
 ##### Relative selectors {#authored-and-relative-selectors}
 
 Use `relativeSelector` to give a state the same position across blocks, elements,
-and modifiers. The rule resolves nesting, then replaces the BEM entity's class
-with `&`.
+and modifiers. The rule **resolves nesting, then replaces the BEM entity's class
+with `&`.**
 
 ```js
 {
@@ -937,6 +937,68 @@ selector exactly as written**, before resolving nesting.
 - `{ type: 'rule' }` matches any selector rule.
 
 ---
+
+###### `selector` or `relativeSelector`
+
+Green lines show which rules each `type: 'rule'` matcher selects.
+
+<div class="bem-order-selector-comparison">
+<div>
+
+**`relativeSelector: '&:focus'`**
+
+```css
+.card__link:focus {} /* [!code ++] */
+.menu__item:focus {} /* [!code ++] */
+.menu__item:hover {}
+button:focus {} /* No BEM class. */
+```
+
+```scss
+.card:focus { // [!code ++:2]
+  & {} // Inherits :focus.
+}
+
+.card {
+  &:focus {} // [!code ++]
+}
+
+.sidebar .card {
+  &:focus {} // .sidebar &:focus
+}
+```
+
+</div>
+<div>
+
+**`selector: '&:focus'`**
+
+```css
+.card__link:focus {}
+.menu__item:focus {}
+.menu__item:hover {}
+button:focus {}
+```
+
+```scss
+.card:focus {
+  & {}
+}
+
+.card {
+  &:focus {} // [!code ++]
+}
+
+.sidebar .card { // Parent ignored.
+  &:focus {} // [!code ++]
+}
+```
+
+</div>
+</div>
+
+---
+
 
 ##### Diagnostic labels
 
