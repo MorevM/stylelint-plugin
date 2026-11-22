@@ -137,7 +137,7 @@ testRule({
 			@include reset;
 		`,
 		warnings: [
-			{ message: messages.expectedBefore('@include layout.from(40rem)', '@include reset') },
+			{ message: messages.expectedBefore('@include layout.from(40rem)', '@include layout.from(60rem)') },
 		],
 	}],
 });

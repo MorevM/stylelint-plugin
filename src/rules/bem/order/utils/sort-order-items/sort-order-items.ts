@@ -155,7 +155,7 @@ export const sortOrderItems = (
 		for (const position of indexes) {
 			const { rank } = ranked[position];
 			if (rank.sort) {
-				const key = JSON.stringify([rank.inner, rank.member, rank.sortScope]);
+				const key = JSON.stringify([rank.inner, rank.memberScope, rank.member, rank.sortScope]);
 				const batch = batches.get(key) ?? [];
 				batch.push(position);
 				batches.set(key, batch);

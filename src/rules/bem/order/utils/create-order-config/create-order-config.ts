@@ -14,7 +14,7 @@ import type {
 } from '../../order.types';
 
 /**
- * Expanded matcher with the sorting policy of the named group that supplied it.
+ * Expanded matcher with its own or its enclosing group's sorting policy.
  */
 type ExpandedMatcher = {
 	/**
@@ -28,7 +28,7 @@ type ExpandedMatcher = {
 	group?: string;
 
 	/**
-	 * Group-specific sorting callback, when the definition supplies one.
+	 * Prepared matcher or group sorter.
 	 */
 	sort?: PreparedOrderSorter;
 
@@ -282,19 +282,19 @@ const prepareCategoryOrder = <Matcher extends CategoryMatcher>(
  * @throws  {Error}    If a property group is configured outside the declaration category.
  */
 const createOrderConfig = (options: SecondaryOption) => {
-	const sorters = new WeakMap<PropertiesGroup, PreparedOrderSorter>();
+	const sorters = new WeakMap<AtRuleMatcher | RuleMatcher | PropertiesGroup, PreparedOrderSorter>();
 
 	/**
-	 * Prepares and caches a property-group sorter for this configuration.
+	 * Prepares each matcher's sorter once per configuration.
 	 *
-	 * @param   group   Property group that may supply a sorting policy.
+	 * @param   matcher   Matcher that may supply a sorting policy.
 	 *
-	 * @returns         Shared prepared sorter, or undefined when the group has no sorter.
+	 * @returns           Shared prepared sorter, or undefined when the matcher has no sorter.
 	 */
-	const propertySorter = (group: PropertiesGroup) => {
-		if (isUndefined(group.sort)) return undefined;
-		if (!sorters.has(group)) sorters.set(group, createOrderSorter(group.sort));
-		return sorters.get(group);
+	const matcherSorter = (matcher: AtRuleMatcher | RuleMatcher | PropertiesGroup) => {
+		if (isUndefined(matcher.sort)) return undefined;
+		if (!sorters.has(matcher)) sorters.set(matcher, createOrderSorter(matcher.sort));
+		return sorters.get(matcher);
 	};
 
 	/**
@@ -311,7 +311,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 
 			return [[{
 				matcher, scope,
-				sort: property && propertySorter(property),
+				sort: isString(matcher) ? undefined : matcherSorter(matcher),
 				spacing: spacing(property, scope),
 			}]];
 		}
@@ -321,7 +321,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 		if ('properties' in definition) {
 			return [[{
 				matcher: definition, group, scope: `groups.${group}`,
-				sort: propertySorter(definition), spacing: spacing(definition, `groups.${group}`),
+				sort: matcherSorter(definition), spacing: spacing(definition, `groups.${group}`),
 			}]];
 		}
 
@@ -331,11 +331,12 @@ const createOrderConfig = (options: SecondaryOption) => {
 		return settings.order.map((entry, index) => (isArray(entry) ? [...entry] : [entry]).map((member, memberIndex) => {
 			const memberScope = `groups.${group}.order.${index}.${memberIndex}`;
 			const property = !isString(member) && 'properties' in member ? member : undefined;
+			const memberSort = isString(member) ? undefined : matcherSorter(member);
 
 			return {
 				matcher: member, group,
-				scope: property ? memberScope : `groups.${group}`,
-				sort: (property && propertySorter(property)) ?? sort,
+				scope: property || memberSort ? memberScope : `groups.${group}`,
+				sort: memberSort ?? sort,
 				spacing: property ? spacing(property, memberScope, settings.label) : spacing(settings, `groups.${group}`),
 			};
 		}));
@@ -480,16 +481,16 @@ const createOrderConfig = (options: SecondaryOption) => {
 		}
 
 		const outerSpacing = selected.spacing;
-		const outerLabel = isString(selected.matcher) ? undefined : selected.matcher.label;
 		const categoryPolicy = categorySpacing.size
 			? categorySpacing.get(getConfiguredCategory(category, item, categorySpacing))
 			: undefined;
-		if (!isString(selected.matcher) && 'properties' in selected.matcher) {
+		if (!isString(selected.matcher)) {
+			const property = 'properties' in selected.matcher ? selected.matcher : undefined;
 			return {
-				outer: rank, inner: getPropertyRank(selected.matcher, item), member: 0, category,
-				innerScope: selected.scope,
-				sort: selected.sort, sortScope: `${selected.scope}.sort`, group: selected.group,
-				label: resolveLabel(outerLabel, outerSpacing.label, categoryLabel),
+				outer: rank, inner: property ? getPropertyRank(property, item) : 0, member: 0, category,
+				innerScope: property ? selected.scope : undefined,
+				sort: selected.sort, sortScope: selected.sort ? `${selected.scope}.sort` : undefined, group: selected.group,
+				label: resolveLabel(selected.matcher.label, outerSpacing.label, categoryLabel),
 				spacing: outerSpacing, categorySpacing: categoryPolicy,
 			};
 		}
@@ -497,6 +498,8 @@ const createOrderConfig = (options: SecondaryOption) => {
 		category = getConfiguredCategory(category, item, categoryOrders);
 		const settings = categoryOrders.get(category);
 		const categoryOrder = settings?.order ?? DEFAULT_CATEGORY_ORDERS[category] ?? REMAINDER;
+		// Explicit category priorities apply only within the slots left to that category.
+		const innerScope = categoryOrder.length === 1 && categoryOrder[0] === '*' ? undefined : category;
 		const matchText = isQueryCategory(category) && node.type === 'atrule' && categoryOrder !== REMAINDER
 			? normalizeParameters(node.params)
 			: item.atRuleMember?.name;
@@ -511,28 +514,30 @@ const createOrderConfig = (options: SecondaryOption) => {
 		const scope = `categories.${category}.order.${inner}.${matchIndex}`;
 		if (property) {
 			return {
-				outer: rank, inner, member: getPropertyRank(property, item), category,
+				outer: rank, inner, innerScope, member: getPropertyRank(property, item), category,
 				memberScope: scope,
-				label: resolveLabel(property.label ?? outerLabel, outerSpacing.label, categoryLabel),
-				sort: propertySorter(property), sortScope: `${scope}.sort`,
+				label: resolveLabel(property.label, outerSpacing.label, categoryLabel),
+				sort: matcherSorter(property), sortScope: `${scope}.sort`,
 				spacing: spacing(property, scope), categorySpacing: categoryPolicy,
 			};
 		}
 
-		const sort = inner === -1 ? undefined : selected.sort ?? settings?.sort;
+		const innerSort = match && !isString(match) && 'type' in match ? matcherSorter(match) : undefined;
+		const sort = inner === -1 ? undefined : innerSort ?? selected.sort ?? settings?.sort;
+		const sortScope = innerSort ? scope : selected.sort ? selected.scope : `categories.${category}`;
 		const unmatchedSpacing = inner === -1 ? settings?.unspecified.spacing : undefined;
 		// A named group keeps its spacing for unmatched members unless the local remainder has its own policy.
 		const useUnmatchedSpacing = !isUndefined(unmatchedSpacing)
 			&& (isUndefined(selected.group) || !isUndefined(unmatchedSpacing.blankLines));
 
 		return {
-			outer: rank,
+			outer: rank, innerScope,
 			inner: inner === -1 ? getUnspecifiedRank(settings?.unspecified.position ?? 'bottom', categoryOrder.length) : inner,
-			member: 0, category,
+			member: 0, memberScope: innerSort ? selected.group : undefined, category,
 			sort,
-			sortScope: sort ? (selected.sort ? `${selected.scope}.sort` : `categories.${category}.sort`) : undefined,
+			sortScope: sort ? `${sortScope}.sort` : undefined,
 			group: selected.group,
-			label: resolveLabel(innerLabel ?? outerLabel, outerSpacing.label ?? unmatchedSpacing?.label, categoryLabel),
+			label: resolveLabel(innerLabel, outerSpacing.label ?? unmatchedSpacing?.label, categoryLabel),
 			spacing: useUnmatchedSpacing ? unmatchedSpacing : outerSpacing,
 			categorySpacing: categoryPolicy,
 		};

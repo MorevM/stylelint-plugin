@@ -11,6 +11,51 @@ const aspectRatio = (item: OrderSortItem) => {
 };
 
 testRule({
+	description: 'Sorting breakpoint mixins with an at-rule matcher',
+	config: [true, {
+		order: [
+			'sass:includes',
+			'declarations',
+			{
+				type: 'at-rule', name: 'include', parameter: /^layout\.from\(/u,
+				sort: ((items, context) => {
+					expect(context.container).toStrictEqual({ type: 'rule', selector: '.card' });
+					expect(context.category).toBe('sass:includes');
+					expect(items.map((item) => item.name)).toStrictEqual(['layout.from', 'layout.from']);
+
+					return context.sort(items, { by: 'dimension' });
+				}) satisfies OrderSorter,
+			},
+		],
+		categories: {
+			'sass:includes': { order: ['theme.surface'], unspecified: 'ignore' },
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Sorts matching mixins even when the category ignores unlisted calls',
+		code: `
+			.card {
+				@include theme.surface;
+				display: grid;
+				@include layout.from(60rem) {}
+				@include layout.from(40rem) {}
+			}
+		`,
+		fixed: `
+			.card {
+				@include theme.surface;
+				display: grid;
+				@include layout.from(40rem) {}
+				@include layout.from(60rem) {}
+			}
+		`,
+		warnings: [{
+			message: messages.expectedBefore('@include layout.from(40rem)', '@include layout.from(60rem)'),
+		}],
+	}],
+});
+
+testRule({
 	description: 'Sorting context for semantic owners',
 	config: [true, {
 		categories: {

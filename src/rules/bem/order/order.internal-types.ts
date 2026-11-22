@@ -61,12 +61,12 @@ export type OrderRank = {
 	member: number;
 
 	/**
-	 * Separates local priorities of property groups sharing an outer rank.
+	 * Keeps category and property priorities within their own slots at the same outer rank.
 	 */
 	innerScope?: string;
 
 	/**
-	 * Separates property priorities of groups sharing a category-local rank.
+	 * Separates category-local property priorities and preserves named groups for matcher sorting.
 	 */
 	memberScope?: string;
 

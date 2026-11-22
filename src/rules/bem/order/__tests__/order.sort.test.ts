@@ -1,7 +1,7 @@
 import { assert, isUndefined, stripIndent } from '@morev/utils';
 import stylelint from 'stylelint';
 import rule from '../order';
-import type { GroupSequence, OrderSorter } from '../order.types';
+import type { GroupSequence, OrderSorter, SecondaryOption } from '../order.types';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
@@ -140,6 +140,96 @@ testRule({
 		warnings: [{
 			message: messages.expectedBefore('@container sidebar (min-width: 40rem)', '@media (min-width: 60rem)'),
 		}],
+	}],
+});
+
+testRule({
+	description: 'Matcher sorters with equal priorities in a named group',
+	config: [true, {
+		root: { order: ['group:tags'] },
+		groups: {
+			tags: {
+				order: [
+					[
+						{ type: 'rule', selector: /^h/u, sort: { by: 'name', direction: 'desc' } },
+						{ type: 'rule', selector: /^p/u },
+					],
+				],
+				sort: { by: 'name' },
+			},
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Sorts headings in their own slots and uses the group sorter for the other tags',
+		code: 'h1 {} pre {} h2 {} p {}',
+		fixed: 'h2 {} p {} h1 {} pre {}',
+		warnings: [{ message: messages.expectedGroupBefore('rules "h2", "p"', 'h1') }],
+	}],
+});
+
+testRule({
+	description: 'Matcher sorters with separate priorities in a named group',
+	config: [true, {
+		root: { order: ['group:tags'] },
+		groups: {
+			tags: {
+				order: [
+					{ type: 'rule', selector: /^h/u, sort: { by: 'name', direction: 'desc' } },
+					{ type: 'rule', selector: /^p/u },
+				],
+				sort: { by: 'name' },
+			},
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Places descending headings before the other tags in ascending order',
+		code: 'h1 {} pre {} h2 {} p {}',
+		fixed: 'h2 {} h1 {} p {} pre {}',
+		warnings: [
+			{ message: messages.expectedBefore('h2', 'h1') },
+			{ message: messages.expectedBefore('p', 'pre') },
+		],
+	}],
+});
+
+testRule({
+	description: 'Explicit groups and the remaining rules',
+	config: [true, {
+		root: {
+			order: [
+				'group:headings',
+				'group:text',
+				'rules',
+			],
+		},
+		groups: {
+			headings: [{ type: 'rule', selector: /^h/u }],
+			text: [{ type: 'rule', selector: /^p/u }],
+		},
+		categories: {
+			rules: {
+				order: [
+					{ type: 'rule', selector: 'nav' },
+					{ type: 'rule', sort: { by: 'name', direction: 'desc' } },
+				],
+				sort: { by: 'name' },
+			},
+		},
+	} satisfies SecondaryOption],
+	accept: [{
+		description: 'Preserves source order within each explicit group',
+		code: 'h1 {} h2 {} p {} pre {}',
+	}],
+	reject: [{
+		description: 'Applies the category matcher sorter to the remaining rules',
+		code: 'h1 {} nav {} article {} section {} p {} h2 {} pre {}',
+		fixed: 'h1 {} h2 {} p {} pre {} nav {} section {} article {}',
+		warnings: [
+			{ message: messages.expectedBefore('h2', 'nav') },
+			{ message: messages.expectedBefore('p', 'nav') },
+			{ message: messages.expectedBefore('pre', 'nav') },
+			{ message: messages.expectedBefore('section', 'article') },
+		],
 	}],
 });
 

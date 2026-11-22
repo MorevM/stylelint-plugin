@@ -250,6 +250,10 @@ testRuleConfig({
 			description: 'Restricts selector-list sorting to names',
 			config: [true, { selectorList: { sort: { by: 'dimension', units: ['rem'] } } }],
 		},
+		{
+			description: 'Rejects sibling sorting on a selector-list branch matcher',
+			config: [true, { selectorList: { order: [{ type: 'rule', sort: { by: 'name' } }] } }],
+		},
 	],
 });
 

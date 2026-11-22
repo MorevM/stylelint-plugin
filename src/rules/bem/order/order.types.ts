@@ -45,55 +45,6 @@ export type OrderCategory =
 	| 'elements';
 
 /**
- * Explicit matcher for authored at-rules.
- */
-export type AtRuleMatcher = DiagnosticLabel & {
-	/**
-	 * Restricts matching to at-rules.
-	 */
-	type: 'at-rule';
-
-	/**
-	 * Exact at-rule name without the leading `@`; omission allows any name.
-	 */
-	name?: string;
-
-	/**
-	 * Exact normalized parameters as a string, or a regular expression pattern.
-	 * Strings are normalized on both sides; patterns receive normalized source parameters.
-	 * The at-rule name is excluded; omission allows any parameters.
-	 */
-	parameter?: string | RegExp;
-
-	/**
-	 * Distinguishes block-form at-rules from statements; omission allows both.
-	 */
-	hasBlock?: boolean;
-};
-
-/**
- * Explicit matcher for authored selectors.
- */
-export type RuleMatcher = DiagnosticLabel & {
-	/**
-	 * Restricts matching to selector rules.
-	 */
-	type: 'rule';
-
-	/**
-	 * Exact authored selector as a string, or a regular expression pattern.
-	 * Omission allows any selector; strings are never compiled as regular expressions.
-	 */
-	selector?: string | RegExp;
-
-	/**
-	 * Parsed selector relative to its BEM subject; mutually exclusive with `selector`.
-	 * Pseudo-elements retain their position, for example `&:hover::before`.
-	 */
-	relativeSelector?: string | RegExp;
-};
-
-/**
  * Immutable description of one sortable sibling, which may represent an entire selector family.
  */
 export type OrderSortItem = Readonly<{
@@ -146,12 +97,13 @@ export type OrderSortItem = Readonly<{
 }>;
 
 /**
- * Orders one category's equal-rank siblings without changing explicit priorities or family boundaries.
+ * Orders equal-rank siblings without changing explicit priorities or family boundaries.
  * The callback must be synchronous, deterministic, and stable on its own result.
  *
- * @param   items   Frozen descriptions in their original sibling order.
+ * @param   items     Frozen descriptions in their original sibling order.
+ * @param   context   Container, semantic owner and built-in sorting presets for this batch.
  *
- * @returns         Every original description exactly once, in the desired order.
+ * @returns           Every original description exactly once, in the desired order.
  */
 export type OrderSorter = (items: readonly OrderSortItem[], context: OrderSortContext) => readonly OrderSortItem[];
 
@@ -283,6 +235,65 @@ export type OrderSortPreset = {
  * Built-in preset or project-specific permutation of equally ranked siblings.
  */
 export type OrderSort = OrderSorter | OrderSortPreset;
+
+/**
+ * Explicit matcher for authored at-rules.
+ */
+export type AtRuleMatcher = DiagnosticLabel & {
+	/**
+	 * Restricts matching to at-rules.
+	 */
+	type: 'at-rule';
+
+	/**
+	 * Exact at-rule name without the leading `@`; omission allows any name.
+	 */
+	name?: string;
+
+	/**
+	 * Exact normalized parameters as a string, or a regular expression pattern.
+	 * Strings are normalized on both sides; patterns receive normalized source parameters.
+	 * The at-rule name is excluded; omission allows any parameters.
+	 */
+	parameter?: string | RegExp;
+
+	/**
+	 * Distinguishes block-form at-rules from statements; omission allows both.
+	 */
+	hasBlock?: boolean;
+
+	/**
+	 * Orders matching at-rules that share a priority.
+	 */
+	sort?: OrderSort;
+};
+
+/**
+ * Explicit matcher for authored selectors.
+ */
+export type RuleMatcher = DiagnosticLabel & {
+	/**
+	 * Restricts matching to selector rules.
+	 */
+	type: 'rule';
+
+	/**
+	 * Exact authored selector as a string, or a regular expression pattern.
+	 * Omission allows any selector; strings are never compiled as regular expressions.
+	 */
+	selector?: string | RegExp;
+
+	/**
+	 * Parsed selector relative to its BEM subject; mutually exclusive with `selector`.
+	 * Pseudo-elements retain their position, for example `&:hover::before`.
+	 */
+	relativeSelector?: string | RegExp;
+
+	/**
+	 * Orders matching rules or selector families that share a priority.
+	 */
+	sort?: OrderSort;
+};
 
 /**
  * Whether an authored group boundary requires, forbids or preserves empty lines.
@@ -517,7 +528,7 @@ export type GroupOrder = GroupSequence | PropertiesGroup | OrderGroupSpacing & {
 	order: GroupSequence;
 
 	/**
-	 * Overrides the category sorter for this group's matched members.
+	 * Orders equally ranked group members that share this sorter.
 	 */
 	sort?: OrderSort;
 };
@@ -547,9 +558,7 @@ export type CategorySequence<Matcher extends CategoryMatcher = CategoryMatcher> 
 /**
  * Priorities for authored selector branches, excluding declaration and at-rule matchers.
  */
-export type SelectorListSequence = ReadonlyArray<
-	string | RegExp | RuleMatcher | ReadonlyArray<string | RegExp | RuleMatcher>
->;
+export type SelectorListSequence = CategorySequence<string | RegExp | Omit<RuleMatcher, 'sort'>>;
 
 /**
  * Composes a replacement category order without mutating its built-in defaults.

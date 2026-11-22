@@ -999,6 +999,33 @@ button:focus {}
 
 ---
 
+##### Sorting items with equal priority
+
+Use `sort` on a property group, rule matcher, or at-rule matcher to order
+its matches when they share a priority.
+
+```js
+{
+  order: [
+    'sass:includes', // Other mixins keep their place before declarations.
+    'declarations',
+    {
+      type: 'at-rule',
+      name: 'include',
+      parameter: /^layout\.from\(/u,
+      // Put layout.from(40rem) before layout.from(60rem).
+      sort: { by: 'dimension' },
+    },
+  ],
+}
+```
+
+A matcher takes the same [presets][sorting-presets] and [callbacks][custom-sorting]
+as a [named group][named-group-sorting] or [category][categories-option].
+A rule or at-rule selected by an object in `order`, `root.order`, or a named
+group uses the matcher's `sort`, or the enclosing group's `sort` if the matcher omits it.
+With neither, matches at the same priority keep their source order.
+The category's `order` and `sort` apply to items placed through that category.
 
 ##### Diagnostic labels
 
@@ -1448,9 +1475,10 @@ Put both matchers in the same nested array and give the group a dimension sorter
 With separate entries the sorter works **within** each priority, so all matching
 includes still come before all media queries. You can also give a whole group
 one priority where you use it, with `['group:breakpoints']` nested in the outer
-order. A group's `sort` takes precedence over the category's sorter for the
-members it matches. It accepts the same [presets][sorting-presets] and
-[callbacks][custom-sorting].
+order. A group's `sort` applies to its equal-priority members and accepts the
+same [presets][sorting-presets] and [callbacks][custom-sorting]. An explicit
+matcher can supply its own sorter. Listing a category such as `'css:media'`
+in the group keeps that category's internal priorities.
 
 #### Property groups {#property-groups}
 
@@ -1788,7 +1816,7 @@ To alphabetize whole lists, including selectors like `h2, h1`, set just
 }
 ```
 
-With explicit priorities, `sort` only breaks ties. `direction: 'desc'` reverses
+Use `selectorList.sort` to break ties between branches. `direction: 'desc'` reverses
 name comparison. Strings match a complete normalized branch or a local
 condition. Regular expressions and rule matchers with `selector` or
 `relativeSelector` work too. Here `'*'` also ranks the remaining branches.
@@ -1898,6 +1926,7 @@ The checks for overlapping properties draw on [Stylelint][stylelint] property da
 [group spacing]: #group-spacing
 [groups-option]: #groups
 [layer-statements]: https://www.w3.org/TR/css-cascade-5/#layer-statements
+[named-group-sorting]: #named-group-sorting
 [namespace-placement]: https://www.w3.org/TR/css-namespaces-3/#syntax
 [order-option]: #order
 [outer-matchers]: #matchers-and-equal-ranks
