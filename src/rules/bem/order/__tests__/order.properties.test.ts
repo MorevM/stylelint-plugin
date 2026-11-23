@@ -24,6 +24,26 @@ testRule({
 });
 
 testRule({
+	description: 'Overlapping outer property groups',
+	config: [true, {
+		order: [
+			{ properties: ['*'] },
+			{ properties: [/^p/u] },
+			{ properties: ['position'] },
+		],
+	}],
+	reject: [{
+		description: 'Prefers an exact property name over a pattern and a pattern over the remainder',
+		code: '.card { position: relative; padding: 0; color: red; }',
+		fixed: '.card { color: red; padding: 0; position: relative; }',
+		warnings: [
+			{ message: messages.expectedBefore('color', 'position') },
+			{ message: messages.expectedBefore('padding', 'position') },
+		],
+	}],
+});
+
+testRule({
 	description: 'Outer equal-rank property groups',
 	config: [true, {
 		order: [equalRankGroups, '*'],

@@ -43,6 +43,8 @@ type ExpandedMatcher = {
 	spacing: PreparedOrderSpacing;
 };
 
+const VARIABLE_PREFIX = /^(?:--|\$)/u;
+
 /**
  * Matches optional authored text without carrying regular-expression state between calls.
  *
@@ -116,7 +118,7 @@ const findOrderRank = <T>(sequence: readonly T[], isMatch: (entry: T) => boolean
  */
 const getPropertyRank = (group: PropertiesGroup, item: OrderItem) => {
 	const { node } = item;
-	if (node.type !== 'decl' || /^(?:--|\$)/u.test(node.prop)) return -1;
+	if (node.type !== 'decl' || VARIABLE_PREFIX.test(node.prop)) return -1;
 
 	return findOrderRank(group.properties, (entry) => (isArray(entry) ? entry : [entry])
 		.some((matcher) => matchesProperty(matcher, node.prop)));
@@ -125,14 +127,12 @@ const getPropertyRank = (group: PropertiesGroup, item: OrderItem) => {
 /**
  * Applies a structured matcher to an authored node and its resolved selector metadata.
  *
- * @param   matcher   Rule, at-rule or property-group constraint.
+ * @param   matcher   Rule or at-rule constraint.
  * @param   item      Authored unit to match.
  *
  * @returns           Whether every supplied constraint is satisfied.
  */
-const matchesObject = (matcher: AtRuleMatcher | RuleMatcher | PropertiesGroup, item: OrderItem) => {
-	if ('properties' in matcher) return getPropertyRank(matcher, item) !== -1;
-
+const matchesObject = (matcher: AtRuleMatcher | RuleMatcher, item: OrderItem) => {
 	const { node } = item;
 	if (matcher.type === 'rule') {
 		const selector = getOrderSelectorText(item);
@@ -144,10 +144,45 @@ const matchesObject = (matcher: AtRuleMatcher | RuleMatcher | PropertiesGroup, i
 	return node.type === 'atrule'
 		&& (isUndefined(matcher.name) || matcher.name === node.name)
 		&& (isUndefined(matcher.hasBlock) || matcher.hasBlock === Boolean(node.nodes))
-		&& matchesValue(
+		&& (isUndefined(matcher.parameter) || matchesValue(
 			isString(matcher.parameter) ? normalizeParameters(matcher.parameter) : matcher.parameter,
 			normalizeParameters(node.params),
-		);
+		));
+};
+
+/**
+ * Compares text constraints that already match the same value.
+ * Distinct regular expressions have no defined priority relative to each other.
+ *
+ * @param   broad    Constraint that may cover the other.
+ * @param   narrow   Constraint on the same field of the other matcher.
+ *
+ * @returns          Whether the second constraint is at least as specific as the first.
+ */
+const coversPattern = (broad?: string | RegExp, narrow?: string | RegExp) => {
+	if (isUndefined(broad) || isString(narrow)) return true;
+	return isRegExp(broad) && isRegExp(narrow) && broad.source === narrow.source && broad.flags === narrow.flags;
+};
+
+/**
+ * Checks whether a matching object preserves every constraint of another matching object.
+ * Authored and relative selectors constrain different fields, even when their text coincides.
+ *
+ * @param   broad    Object whose constraints must be preserved.
+ * @param   narrow   Object that may add or tighten constraints.
+ *
+ * @returns          Whether the second object is equally specific or a refinement of the first.
+ */
+const coversMatcher = (broad: AtRuleMatcher | RuleMatcher, narrow: AtRuleMatcher | RuleMatcher) => {
+	if (broad.type === 'rule' && narrow.type === 'rule') {
+		return coversPattern(broad.selector, narrow.selector)
+			&& coversPattern(broad.relativeSelector, narrow.relativeSelector);
+	}
+	if (broad.type !== 'at-rule' || narrow.type !== 'at-rule') return false;
+
+	return (isUndefined(broad.name) || broad.name === narrow.name)
+		&& (isUndefined(broad.hasBlock) || broad.hasBlock === narrow.hasBlock)
+		&& coversPattern(broad.parameter, narrow.parameter);
 };
 
 /**
@@ -370,8 +405,40 @@ const createOrderConfig = (options: SecondaryOption) => {
 		const slots = sequence.flatMap((entry, index) => isArray(entry)
 			? [entry.flatMap((matcher, member) => expand(matcher, `${scope}.${index}.${member}`).flat())]
 			: expand(entry as OrderMatcher, `${scope}.${index}`));
-		const matchers = new Set(slots.flatMap((entries) => entries.map(({ matcher }) => matcher)));
-		return { slots, matchers };
+		const ranked = slots.flatMap((entries, rank) => entries.map((entry) => ({ entry, rank })));
+		const matchers = new Set(ranked.map(({ entry }) => entry.matcher));
+		const nodeMatchers = ranked.flatMap(({ entry, rank }) => {
+			const { matcher } = entry;
+			return !isString(matcher) && 'type' in matcher ? [{ entry, rank, matcher }] : [];
+		});
+		const propertyMatchers = ranked.flatMap(({ entry, rank }) => {
+			const { matcher } = entry;
+			if (isString(matcher) || !('properties' in matcher)) return [];
+			return matcher.properties.flat().map((pattern) => ({ entry, rank, pattern }));
+		});
+		const properties = [
+			...propertyMatchers.filter(({ pattern }) => isString(pattern) && pattern !== '*'),
+			...propertyMatchers.filter(({ pattern }) => isRegExp(pattern)),
+			...propertyMatchers.filter(({ pattern }) => pattern === '*'),
+		];
+
+		const findObject = (item: OrderItem) => {
+			const { node } = item;
+			if (node.type === 'decl') {
+				if (!properties.length || VARIABLE_PREFIX.test(node.prop)) return undefined;
+				return properties.find(({ pattern }) => pattern === '*' || matchesProperty(pattern, node.prop));
+			}
+
+			if (!nodeMatchers.length) return undefined;
+			const matches = nodeMatchers.filter(({ matcher }) => matchesObject(matcher, item));
+			if (matches.length < 2) return matches[0];
+
+			// Configuration order breaks ties among the matches that have no stricter refinement.
+			return matches.find(({ matcher }) => !matches.some(({ matcher: other }) => {
+				return coversMatcher(matcher, other) && !coversMatcher(other, matcher);
+			}));
+		};
+		return { slots, matchers, findObject };
 	};
 
 	const nestedOrder = expandOrder(options.order ?? DEFAULT_ORDER, 'order');
@@ -417,7 +484,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 	 * @returns                   Effective priorities with applicable sorting, spacing and diagnostic metadata.
 	 */
 	const getRank = (item: OrderItem, family?: Family, canMatchObjects = true, isRoot = false): OrderRank => {
-		const { slots: order, matchers } = isRoot ? rootOrder : nestedOrder;
+		const { slots: order, matchers, findObject } = isRoot ? rootOrder : nestedOrder;
 		const { node } = item;
 		const categories: OrderCategory[] = (() => {
 			if (family) return [family.category, 'rules'];
@@ -429,13 +496,9 @@ const createOrderConfig = (options: SecondaryOption) => {
 			return ['declarations'];
 		})();
 
-		let selected: ExpandedMatcher | undefined;
-		let rank = canMatchObjects
-			? order.findIndex((entries) => {
-				selected = entries.find(({ matcher }) => !isString(matcher) && matchesObject(matcher, item));
-				return Boolean(selected);
-			})
-			: -1;
+		const object = canMatchObjects ? findObject(item) : undefined;
+		let selected = object?.entry;
+		let rank = object?.rank ?? -1;
 		const selector = family ? undefined : item.selector;
 		const isPlaceholder = categories[0] === 'sass:placeholders';
 		let specificCategories = item.atRuleMember

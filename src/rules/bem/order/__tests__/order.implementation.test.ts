@@ -394,6 +394,88 @@ testRule({
 });
 
 testRule({
+	description: 'Overlapping at-rule matchers',
+	config: [true, {
+		order: [
+			'css:media',
+			{ type: 'at-rule', name: 'media' },
+			{ type: 'at-rule', name: 'media', parameter: /^p/u },
+			'group:print',
+		],
+		root: { order: ['group:print', { type: 'at-rule', name: 'media' }] },
+		groups: { print: [{ type: 'at-rule', name: 'media', parameter: 'print', label: 'Print' }] },
+	}],
+	reject: [
+		{
+			description: 'Uses the original slots of the generic, pattern and exact matchers',
+			code: '.card { @media print {} @media projection {} @media screen {} }',
+			fixed: '.card { @media screen {} @media projection {} @media print {} }',
+			warnings: [
+				{ message: messages.expectedBefore('@media screen', 'Print') },
+				{ message: messages.expectedBefore('@media projection', 'Print') },
+			],
+		},
+		{
+			description: 'Places print first when its group comes before the broad matcher at the root',
+			code: '@media screen {} @media print {}',
+			fixed: '@media print {} @media screen {}',
+			warnings: [{ message: messages.expectedBefore('Print', '@media screen') }],
+		},
+	],
+});
+
+testRule({
+	description: 'Incomparable at-rule constraints',
+	config: [true, {
+		order: [
+			{ type: 'at-rule', name: 'media' },
+			{ type: 'at-rule', hasBlock: true, label: 'Blocks' },
+			'declarations',
+			// 📌 A refinement must preserve every constraint of the other matcher, regardless of field count.
+			// Adding `parameter` refines the `media` matcher. It leaves `hasBlock` open, so `Blocks` wins by order.
+			{ type: 'at-rule', name: 'media', parameter: 'print' },
+		],
+	}],
+	reject: [{
+		description: 'Chooses the first remaining match after a later object refines the first candidate',
+		code: '.card { color: red; @media print {} }',
+		fixed: '.card { @media print {} color: red }',
+		warnings: [{ message: messages.expectedBefore('Blocks', 'color') }],
+	}],
+});
+
+testRule({
+	description: 'Overlapping selectors at an equal rank',
+	config: [true, {
+		root: {
+			order: [
+				[
+					{ type: 'rule' },
+					{ type: 'rule', selector: /^h/u, label: 'Starts with h' },
+					{ type: 'rule', selector: /^h[1-6]$/u, label: 'Numbered heading' },
+					{ type: 'rule', selector: 'h1', label: 'Heading' },
+				],
+				'at-rules',
+			],
+		},
+	}],
+	reject: [
+		{
+			description: 'Uses the exact selector label within the shared slot',
+			code: '@media print {} h1 {}',
+			fixed: 'h1 {} @media print {}',
+			warnings: [{ message: messages.expectedBefore('Heading', '@media print') }],
+		},
+		{
+			description: 'Uses the first of two different matching selector patterns',
+			code: '@media print {} h2 {}',
+			fixed: 'h2 {} @media print {}',
+			warnings: [{ message: messages.expectedBefore('Starts with h', '@media print') }],
+		},
+	],
+});
+
+testRule({
 	description: 'Category overrides',
 	config: [true, {
 		categories: {

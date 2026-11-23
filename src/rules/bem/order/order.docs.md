@@ -641,8 +641,10 @@ Built-in categories are the simplest way to refer to parts of a stylesheet by na
         <code>article.card {}</code>, <code>.card#featured {}</code><br />
         <small>
           An extra class, attribute, type or ID on the same element.
-          If you list a more specific qualifier category, it takes priority.
-          See <a href="#matchers-and-equal-ranks">Matcher priority</a> below.
+          If you list a more specific qualifier category, it takes priority.<br />
+          If a selector matches two specific qualifier categories, the first one in <code>order</code> wins.
+          For example, <code>.card.is-selected[aria-busy]</code> matches both
+          <code>qualifiers:class</code> and <code>qualifiers:attribute</code>.
         </small>
       </td>
     </tr>
@@ -1171,24 +1173,67 @@ To give them a different position, place `'*'` where you want them. Explicit mat
 
 #### Matcher priority {#matchers-and-equal-ranks}
 
-In the opening configuration, `@media print` matches both `css:media` and the
-at-rule object. The rule checks objects first, so print comes after the other media queries.
-If two objects match, the **first** in `order` wins. This also applies to objects
-inside a [named group][groups-option], which expands where you list it.
+Read each example from top to bottom. In `order` and `root.order`,
+**a more specific object matcher wins wherever you list it**.
+The winning matcher's position determines where the item goes.
+A matcher from a [named group][groups-option] competes the same way.
 
-::: details How does the rule choose a category?
+If no object matches, the rule checks the configured categories, then `'*'`.
+If none matches, the item follows [`unspecified`][unspecified-option].
 
-- A matcher only sees items at the current level of the family.
-- If no object matches, the rule looks at the categories you listed.
-  A specific query, definition, diagnostic or include category takes precedence over
-  `at-rules`. For `@include`, the matching statement or block category takes
-  precedence over `sass:includes`. Eligible selector lists and placeholders
-  likewise use their specific categories before `rules`.
-- A listed qualifier type takes priority over `qualifiers`. If two types match,
-  the first one in `order` wins. For example, `.card.is-selected[aria-busy]`
-  can match both `qualifiers:class` and `qualifiers:attribute`.
+**A CSS property** (`display: grid;`)
 
-:::
+```text
+{ properties: ['display'] }
+↓
+{ properties: [/^dis/u] }
+↓
+{ properties: ['*'] }
+↓
+'declarations'
+↓
+'*'
+```
+
+**A print media query** (`@media print {}`)
+
+```text
+{ type: 'at-rule', name: 'media', parameter: 'print' }
+↓
+{ type: 'at-rule', name: 'media', parameter: /^print/u }
+↓
+{ type: 'at-rule', name: 'media' }
+↓
+{ type: 'at-rule' }
+↓
+'css:media'
+↓
+'at-rules'
+↓
+'*'
+```
+
+**A Sass mixin call with a content block** (`@include theme.dark {}`)
+
+```text
+{ type: 'at-rule', name: 'include', parameter: 'theme.dark', hasBlock: true }
+↓
+{ type: 'at-rule', name: 'include', hasBlock: true }
+↓
+{ type: 'at-rule', name: 'include' }
+↓
+{ type: 'at-rule' }
+↓
+'sass:include-blocks'
+↓
+'sass:includes'
+↓
+'at-rules'
+↓
+'*'
+```
+
+---
 
 #### Pseudo-element variants {#pseudo-element-variants}
 
@@ -1537,7 +1582,7 @@ and `'ignore'` keeps the existing gap. These policies also apply when everything
 is already in order.
 
 You can set `blankLines` on a category, a property group, a named group with
-an `order`, or [unmatched items][unspecified-option]. Set `label` on a named
+an `order`, or [unmatched items][unspecified-option]. Set [`label`][diagnostic-labels] on a named
 or property group if you'd like the lint message to use a label such as `Layout`.
 
 ::: details Keep small blocks compact or let a comment separate groups
