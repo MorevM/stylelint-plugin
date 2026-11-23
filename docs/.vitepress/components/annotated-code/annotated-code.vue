@@ -1,5 +1,16 @@
 <template>
-	<figure class="annotated-code">
+	<component
+		:is="$props.lineHints ? 'div' : 'figure'"
+		ref="source"
+		class="annotated-code"
+		:class="$props.lineHints ? 'annotated-code--hints' : 'annotated-code--hierarchy'"
+		@pointermove="onPointerMove"
+		@pointerleave="onPointerLeave"
+		@click="showAtPointer"
+		@focusin="onFocus"
+		@focusout="dismiss"
+	>
+		<slot></slot>
 		<div
 			v-if="entry && root"
 			:id="captionId"
@@ -7,7 +18,7 @@
 			class="annotated-code__caption"
 			role="tooltip"
 		>
-			<dl class="annotated-code__levels">
+			<dl v-if="!$props.lineHints" class="annotated-code__levels">
 				<div class="annotated-code__level annotated-code__level--root">
 					<dt>Root scope</dt>
 					<dd>{{ root.label }}</dd>
@@ -24,20 +35,11 @@
 					<dd>{{ category }}</dd>
 				</div>
 			</dl>
-			<span class="annotated-code__note">{{ entry.note }}</span>
+			<div class="annotated-code__note">
+				<slot :name="`hint-${selection?.index}`">{{ entry.note }}</slot>
+			</div>
 		</div>
-		<div
-			ref="source"
-			class="annotated-code__source"
-			@pointermove="onPointerMove"
-			@pointerleave="dismiss"
-			@click="showAtPointer"
-			@focusin="onFocus"
-			@focusout="dismiss"
-		>
-			<slot></slot>
-		</div>
-	</figure>
+	</component>
 </template>
 
 <script setup lang="ts">
@@ -45,10 +47,10 @@
 	import { clamp, isElement, isUndefined } from '@morev/utils';
 	import type { CodeRegion } from '../../annotated-scss';
 
-	const $props = defineProps<{ regions: CodeRegion[] }>();
+	const $props = defineProps<{ regions: CodeRegion[]; lineHints?: boolean }>();
 	const captionId = useId();
 	const caption = useTemplateRef('caption');
-	const source = useTemplateRef('source');
+	const source = useTemplateRef<HTMLElement>('source');
 	const selection = shallowRef<{ index: number; x: number; y: number; focusedLine?: HTMLElement }>();
 	const entry = computed(() => selection.value && $props.regions[selection.value.index]);
 	const ancestry = computed(() => {
@@ -75,6 +77,7 @@
 	watch(entry, (current, previous) => {
 		if (previous) lines[previous.start - 1].removeAttribute('aria-describedby');
 		if (current) lines[current.start - 1].setAttribute('aria-describedby', captionId);
+		if ($props.lineHints) return;
 		lines.forEach((line, i) => {
 			const number = i + 1;
 			line.toggleAttribute('data-root-active', isLineInRegion(number, root.value));
@@ -91,14 +94,20 @@
 		selection.value = undefined;
 	}
 
-	function showAtPointer(event: MouseEvent) {
+	function showAtPointer(event: PointerEvent) {
 		const line = isElement(event.target) && event.target.closest<HTMLElement>('[data-region]');
 		if (!line) return dismiss();
-		selection.value = { index: Number(line.dataset.region), x: event.clientX, y: event.clientY };
+		const index = Number(line.dataset.region);
+		if ($props.lineHints && event.pointerType === 'touch' && selection.value?.index === index) return dismiss();
+		selection.value = { index, x: event.clientX, y: event.clientY };
 	}
 
 	function onPointerMove(event: PointerEvent) {
 		if (event.pointerType !== 'touch') showAtPointer(event);
+	}
+
+	function onPointerLeave(event: PointerEvent) {
+		if (event.pointerType !== 'touch') dismiss();
 	}
 
 	function showAtFocusedLine(line: HTMLElement) {

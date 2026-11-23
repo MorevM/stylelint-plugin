@@ -3,6 +3,7 @@ import { combine, defineConfiguration, defineIgnores } from '@morev/eslint-confi
 export default combine([
 	defineIgnores(),
 	defineConfiguration('javascript'),
+	defineConfiguration('browser', { files: ['docs/.vitepress/components/**/*.vue'] }),
 	defineConfiguration('node'),
 	defineConfiguration('json'),
 	defineConfiguration('markdown'),

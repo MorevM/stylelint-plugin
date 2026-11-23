@@ -3,7 +3,7 @@ import type { ChildNode } from 'postcss';
 import type { MarkdownRenderer } from 'vitepress';
 
 /**
- * A group of SCSS siblings and the explanation shown for their displayed lines.
+ * A range of displayed code lines that share a tooltip.
  */
 export type CodeRegion = {
 	/**
@@ -17,9 +17,9 @@ export type CodeRegion = {
 	end: number;
 
 	/**
-	 * Order category or the name of a fixed region such as the Sass preamble.
+	 * Order category or the name of a fixed region, when showing the SCSS hierarchy.
 	 */
-	label: string;
+	label?: string;
 
 	/**
 	 * Enclosing annotation, if this group is inside another annotated node.
@@ -32,9 +32,9 @@ export type CodeRegion = {
 	family?: string;
 
 	/**
-	 * Explanation of the group's position in this example.
+	 * Plain-text explanation for an SCSS region. Line hints supply a Markdown slot.
 	 */
-	note: string;
+	note?: string;
 };
 
 /**
