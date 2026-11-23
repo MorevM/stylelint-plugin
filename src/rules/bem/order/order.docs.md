@@ -813,13 +813,6 @@ their own position in the list.
 }
 ```
 
-<!-- TODO: Nested перенести ниже -->
-
-You can nest entries one level deep to give them equal priority.
-For example, `['pseudo-classes', ['modifiers', 'elements']]` puts states first
-and lets modifiers and elements keep their order of first appearance.
-You can use the same pattern [within a category][categories-option].
-
 ---
 
 ##### Properties {#property-groups}
@@ -1248,40 +1241,67 @@ If none matches, the item follows [`unspecified`][unspecified-option].
 
 ---
 
+#### Equal priority
+
+Nest entries one level deep in `order` to give them the same priority. \
+For a toolbar in a narrow sidebar on a wide screen, both queries below match.
+
+```js
+{
+  '@morev/bem/order': [true, {
+    order: [
+      // Base declarations come before either query.
+      'declarations',
+      // Media and container queries keep their source order.
+      ['css:media', 'css:container'],
+    ],
+  }],
+}
+```
+
+```scss line-hints
+.sidebar { container-type: inline-size; }
+
+.toolbar {
+  display: flex;
+  gap: 8px; // The base gap comes before both overrides.
+
+  // [!hint] On a wide screen, this sets the gap to `16px`. \
+  // A later container query can override it.
+  @media (min-width: 1000px) { gap: 16px; }
+  // [!hint] When both queries match, this block comes last and the gap is `4px`.
+  // You can swap the two blocks to get `16px` instead. The rule preserves either order.
+  @container (max-width: 320px) { gap: 4px; }
+}
+```
+
+---
+
 #### Pseudo-element variants {#pseudo-element-variants}
 
-Each pseudo-element forms a family within its BEM entity.
+Each pseudo-element forms a family within its BEM entity. \
 Both `&:hover::before` and `&::before:hover` belong to the `::before` family.
-By default, states on the originating element come before states on the pseudo-element.
-Within each group, `:hover` comes before `:active`.
 
 ```scss
+// This is the default order. You can customize it.
+
 .card {
+  // The card's own state comes before its pseudo-element families.
   &:hover {}
+  // The `::before` base comes first, followed by its variants.
   &::before {}
   &:hover::before {}
   &:active::before {}
+  // States on ::before itself come next.
   &::before:hover {}
   &::before:active {}
+  // The `::after` family follows the entire `::before` family.
   &::after {}
   &:hover::after {}
 }
 ```
 
-Set `categories['pseudo-elements']` to move a whole pseudo-element family.
-To put states on the pseudo-element first instead, swap the two state categories in `order`.
-
-```js
-{
-  order: ['base', 'pseudo-classes:pseudo-element', 'pseudo-classes', '*'],
-}
-```
-
-To group both kinds of states together, include only `pseudo-classes` in your custom `order`.
-Both use the state order from `categories['pseudo-classes']` unless you give
-`categories['pseudo-classes:pseudo-element']` its own order.
-In a mixed selector such as `&:hover::before:active`, `:active` determines the rank
-within the pseudo-element states.
+---
 
 ### `root`
 
