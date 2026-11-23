@@ -225,35 +225,6 @@ An `order` array replaces the default sequence for its scope.
 ```ts
 {
   '@morev/bem/order': [true, {
-    root: {
-      order: [
-        // These entries have equal priority, so they keep their source order.
-        // This keeps Sass definitions available where they're used.
-        // By convention, this group goes at the top, before selector rules.
-        [
-          'sass:variables',
-          'sass:functions',
-          'sass:mixins',
-          'css:functions',
-          'css:mixins',
-          'sass:placeholders',
-          'sass:includes',
-          'sass:diagnostics',
-        ],
-        // Put shared values before selectors...
-        'custom-properties',
-        // ...plain selectors next...
-        'rules',
-        // ...then media queries, container queries, and the remaining at-rules.
-        'css:media',
-        'css:container',
-        'at-rules',
-      ],
-      // If you lint `display: grid; --gap: 16px;` as a CSS fragment,
-      // `--gap` matches `custom-properties`. The unmatched `display` goes last.
-      unspecified: 'bottom',
-    },
-
     order: [
       // Define local Sass values before anything reads them...
       'sass:variables',
@@ -299,9 +270,6 @@ An `order` array replaces the default sequence for its scope.
       ['sass:placeholders', 'rules'],
     ],
 
-    // If you omit 'at-rules' from this order, a nested @supports goes last.
-    unspecified: 'bottom',
-
     // Set the order inside a category wherever that category is used.
     categories: {
       // A pressed link can also be hovered, so put :active after :hover.
@@ -315,10 +283,53 @@ An `order` array replaces the default sequence for its scope.
       // A list item's ::marker comes before its ::before in the element tree.
       'pseudo-elements': ['::marker', '::before', '::after', '*'],
     },
+
     // Name sets of matchers to reuse as `group:name` in either order.
     groups: {},
+
+    // If you omit 'at-rules' from `order`, a nested @supports goes last.
+    unspecified: 'bottom',
+
+    root: {
+      order: [
+        // These entries have equal priority, so they keep their source order.
+        // This keeps Sass definitions available where they're used.
+        // By convention, this group goes at the top, before selector rules.
+        [
+          'sass:variables',
+          'sass:functions',
+          'sass:mixins',
+          'css:functions',
+          'css:mixins',
+          'sass:placeholders',
+          'sass:includes',
+          'sass:diagnostics',
+        ],
+        // Put shared values before selectors...
+        'custom-properties',
+        // ...plain selectors next...
+        'rules',
+        // ...then media queries, container queries, and the remaining at-rules.
+        'css:media',
+        'css:container',
+        'at-rules',
+      ],
+      // If you lint `display: grid; --gap: 16px;` as a CSS fragment,
+      // `--gap` matches `custom-properties`. The unmatched `display` goes last.
+      unspecified: 'bottom',
+    },
+
     // Move each rule as a whole and keep comma-separated selectors as written.
     selectorList: false,
+
+    separators: {
+      // Separate a block from its element, as in `.card__title`.
+      element: '__',
+      // Separate a block or element from its modifier, as in `.card__title--size`.
+      modifier: '--',
+      // Separate the modifier from its value, as in `.card__title--size--small`.
+      modifierValue: '--',
+    },
   }],
 }
 ```
@@ -1303,55 +1314,6 @@ Both `&:hover::before` and `&::before:hover` belong to the `::before` family.
 
 ---
 
-### `root`
-
-At the top of a stylesheet you might want all the block styles together,
-followed by the media queries that override them. Inside a card you might want
-media queries *before* its states. The two orders are independent.
-
-#### `root.order` {#root-order}
-
-::: code-group
-
-```js [Configuration]
-{
-  root: { order: ['rules', 'css:media', 'at-rules'] },
-  categories: { 'css:media': ['(--tablet)', '*'] },
-}
-```
-
-```scss [Result]
-.card {}
-.card:hover {}
-@media (--tablet) {}
-@media print {}
-@supports (display: grid) {}
-```
-
-:::
-
-`root.order` puts the card family and the query wrappers in place.
-`order` still puts `.card` before `.card:hover`. A wrapper stays whole,
-even if the selectors inside it belong to different blocks.
-
-Stylesheet-level `@media`, `@supports`, `@container`, `@layer`, `@scope`,
-`@starting-style`, and `@document` (including `@-moz-document`) use `root.order`
-for their contents too. Once you enter a selector, its children use `order`.
-Bodies such as `@font-face` or `@mixin` also use the nested order.
-
-Leaving `root` out keeps the default stylesheet order, even when you replace `order`.
-By default, definitions, Sass calls, and diagnostics share the first position so
-they can keep their source order. Custom properties follow, then selector families,
-media queries, container queries, and the remaining at-rules.
-
-#### `root.unspecified` {#root-unspecified}
-
-If you only want to order some top-level items, set `root.unspecified: 'ignore'`.
-For example, `root: { order: ['rules', 'css:media'], unspecified: 'ignore' }`
-keeps an unlisted `@supports` in its slot while the selectors and media queries
-are ordered around it. The root and nested [`unspecified`][unspecified-option]
-settings each default to `'bottom'` and can be changed independently.
-
 ### `categories`
 
 Say you like where the states appear, but you always look for `:focus-visible`
@@ -1823,6 +1785,55 @@ variables are alphabetical too. To keep those in source order with a blank
 line before them, drop the star and set
 `unspecified: { position: 'bottom', blankLines: { before: 'always' } }`.
 You can use this object form for `'top'` or `'bottom'` at any of the three levels.
+
+### `root`
+
+At the top of a stylesheet you might want all the block styles together,
+followed by the media queries that override them. Inside a card you might want
+media queries *before* its states. The two orders are independent.
+
+#### `root.order` {#root-order}
+
+::: code-group
+
+```js [Configuration]
+{
+  root: { order: ['rules', 'css:media', 'at-rules'] },
+  categories: { 'css:media': ['(--tablet)', '*'] },
+}
+```
+
+```scss [Result]
+.card {}
+.card:hover {}
+@media (--tablet) {}
+@media print {}
+@supports (display: grid) {}
+```
+
+:::
+
+`root.order` puts the card family and the query wrappers in place.
+`order` still puts `.card` before `.card:hover`. A wrapper stays whole,
+even if the selectors inside it belong to different blocks.
+
+Stylesheet-level `@media`, `@supports`, `@container`, `@layer`, `@scope`,
+`@starting-style`, and `@document` (including `@-moz-document`) use `root.order`
+for their contents too. Once you enter a selector, its children use `order`.
+Bodies such as `@font-face` or `@mixin` also use the nested order.
+
+Leaving `root` out keeps the default stylesheet order, even when you replace `order`.
+By default, definitions, Sass calls, and diagnostics share the first position so
+they can keep their source order. Custom properties follow, then selector families,
+media queries, container queries, and the remaining at-rules.
+
+#### `root.unspecified` {#root-unspecified}
+
+If you only want to order some top-level items, set `root.unspecified: 'ignore'`.
+For example, `root: { order: ['rules', 'css:media'], unspecified: 'ignore' }`
+keeps an unlisted `@supports` in its slot while the selectors and media queries
+are ordered around it. The root and nested [`unspecified`][unspecified-option]
+settings each default to `'bottom'` and can be changed independently.
 
 ### `selectorList`
 
