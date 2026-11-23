@@ -277,21 +277,25 @@ testRuleConfig({
 	description: 'Explicit category-local at-rule matchers',
 	accept: [
 		{
-			description: 'Accepts at-rule objects with equal ranks and a terminal remainder',
+			description: 'Accepts a remainder between explicit at-rule priorities',
 			config: [true, { categories: { 'at-rules': [
 				[
 					{ type: 'at-rule', name: 'include', hasBlock: false },
 					{ type: 'at-rule', name: 'include', hasBlock: true },
 				],
-				{ type: 'at-rule', name: 'media', parameter: /^\(min-width:/u },
 				'*',
+				{ type: 'at-rule', name: 'media', parameter: /^\(min-width:/u },
 			] } }],
 		},
 		{
 			description: 'Accepts explicit at-rule matchers returned by transformers',
-			config: [true, { categories: { 'at-rules': (defaults: CategorySequence<AtRuleCategoryMatcher>) => [
-				{ type: 'at-rule', name: 'supports' }, ...defaults,
-			] } }],
+			config: [true, {
+				categories: {
+					'at-rules': (defaults: CategorySequence<AtRuleCategoryMatcher>) => [
+						...defaults, { type: 'at-rule', name: 'supports' },
+					],
+				},
+			}],
 		},
 	],
 	reject: [
@@ -299,10 +303,6 @@ testRuleConfig({
 		{
 			description: 'Rejects non-at-rule objects in at-rule orders',
 			config: [true, { categories: { 'at-rules': [{ type: 'rule', selector: '.card' }] } }],
-		},
-		{
-			description: 'Requires the remainder to end at-rule orders',
-			config: [true, { categories: { 'at-rules': ['*', { type: 'at-rule', name: 'media' }] } }],
 		},
 		{
 			description: 'Rejects equal-rank remainders returned by at-rule transformers',
@@ -339,15 +339,10 @@ testRuleConfig({
 });
 
 testRuleConfig({
-	description: 'Terminal remainder markers',
+	description: 'Standalone remainder markers',
 	reject: [
-		{ description: 'Requires the remainder to end the outer order', config: [true, { order: ['*', 'base'] }] },
-		{ description: 'Requires the remainder to end the root order', config: [true, { root: { order: ['*', 'rules'] } }] },
+		{ description: 'Rejects two remainder positions', config: [true, { order: ['*', 'base', '*'] }] },
 		{ description: 'Rejects equal-rank remainders', config: [true, { order: [['*']] }] },
-		{
-			description: 'Requires the remainder to end category orders',
-			config: [true, { categories: { declarations: ['*', 'display'] } }],
-		},
 		{
 			description: 'Validates remainder markers returned by transformers',
 			config: [true, { categories: { declarations: () => [['*']] } }],

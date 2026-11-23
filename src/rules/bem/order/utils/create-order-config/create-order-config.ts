@@ -77,7 +77,7 @@ const resolveLabel = (matcher?: string, group?: string, category?: string): Orde
 };
 
 /**
- * Matches property names against wildcards, normalized names or regular expressions.
+ * Matches property names against normalized names or regular expressions.
  *
  * @param   matcher    Property constraint from the configured order.
  * @param   property   Authored declaration name.
@@ -85,8 +85,25 @@ const resolveLabel = (matcher?: string, group?: string, category?: string): Orde
  * @returns            Whether the authored or normalized property satisfies the constraint.
  */
 const matchesProperty = (matcher: string | RegExp, property: string) => {
-	if (isString(matcher)) return matcher === '*' || normalizeProperty(matcher) === normalizeProperty(property);
+	if (isString(matcher)) return normalizeProperty(matcher) === normalizeProperty(property);
 	return matchesValue(matcher, property) || matchesValue(matcher, normalizeProperty(property));
+};
+
+/**
+ * Gives explicit matches precedence over the remainder at any position in the sequence.
+ *
+ * @param   sequence   Priority slots in configured order.
+ * @param   isMatch    Whether an explicit slot matches the current item.
+ *
+ * @returns            First matching rank, the remainder rank, or -1 if neither exists.
+ */
+const findOrderRank = <T>(sequence: readonly T[], isMatch: (entry: T) => boolean) => {
+	let remainder = -1;
+	for (const [index, entry] of sequence.entries()) {
+		if (entry === '*') remainder = index;
+		else if (isMatch(entry)) return index;
+	}
+	return remainder;
 };
 
 /**
@@ -101,7 +118,7 @@ const getPropertyRank = (group: PropertiesGroup, item: OrderItem) => {
 	const { node } = item;
 	if (node.type !== 'decl' || /^(?:--|\$)/u.test(node.prop)) return -1;
 
-	return group.properties.findIndex((entry) => (isArray(entry) ? entry : [entry])
+	return findOrderRank(group.properties, (entry) => (isArray(entry) ? entry : [entry])
 		.some((matcher) => matchesProperty(matcher, node.prop)));
 };
 
@@ -166,7 +183,7 @@ const isCategoryMatch = (
 	}
 
 	if (!isUndefined(matchText) && (isString(matcher) || isRegExp(matcher))) {
-		return matcher === '*' || matchesValue(matcher, matchText);
+		return matchesValue(matcher, matchText);
 	}
 
 	if (isRegExp(matcher)) {
@@ -179,7 +196,6 @@ const isCategoryMatch = (
 	}
 
 	if (!isString(matcher)) return 'type' in matcher && matchesObject(matcher, item);
-	if (matcher === '*') return true;
 	if (!family && item.selector?.isList) return false;
 	if (family?.key === matcher || item.selector?.tokens.includes(matcher)) return true;
 
@@ -503,11 +519,10 @@ const createOrderConfig = (options: SecondaryOption) => {
 		const matchText = isQueryCategory(category) && node.type === 'atrule' && categoryOrder !== REMAINDER
 			? normalizeParameters(node.params)
 			: item.atRuleMember?.name;
-		const inner = categoryOrder.findIndex((matcher) => isCategoryMatch(matcher, item, family, matchText));
-		const matches = isArray(categoryOrder[inner]) ? categoryOrder[inner] : [categoryOrder[inner]];
-		const matchIndex = matches.findIndex((entry) => !isUndefined(entry)
-			&& isCategoryMatch(entry, item, family, matchText));
-		const match = matches[matchIndex];
+		const inner = findOrderRank(categoryOrder, (matcher) => isCategoryMatch(matcher, item, family, matchText));
+		const slot = categoryOrder[inner];
+		const matchIndex = isArray(slot) ? slot.findIndex((entry) => isCategoryMatch(entry, item, family, matchText)) : 0;
+		const match = isArray(slot) ? slot[matchIndex] : slot;
 
 		const innerLabel = match && !isString(match) && !isRegExp(match) ? match.label : undefined;
 		const property = match && !isString(match) && 'properties' in match ? match : undefined;
@@ -557,4 +572,4 @@ const createOrderConfig = (options: SecondaryOption) => {
 	return { getRank, getCategoryOrder };
 };
 
-export { createOrderConfig, isCategoryMatch };
+export { createOrderConfig, findOrderRank, isCategoryMatch };

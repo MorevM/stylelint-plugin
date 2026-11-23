@@ -1075,6 +1075,29 @@ button:focus {}
 
 ---
 
+##### Using '*' in order and properties
+
+Use `'*'` to place everything left over at the beginning, in the middle, or at
+the end of a list. Each list can have one standalone `'*'`, outside equal-priority
+arrays. Explicit entries on either side take precedence over it.
+
+```js
+{
+  order: [
+    // Within ordinary properties, put display first and z-index last.
+    { properties: ['display', '*', 'z-index'] },
+    // Put remaining items, including custom properties and Sass variables, before media queries.
+    '*',
+    'css:media',
+  ],
+}
+```
+
+The outer `'*'` works the same way in `root.order`. Inside a category it matches
+the remaining members of that category. In `selectorList.order` it matches the
+remaining selector branches. Omitting it leaves their placement to the list's
+[`unspecified` setting][unspecified-option].
+
 ##### Sorting items with equal priority
 
 Use `sort` on a property group, rule matcher, or at-rule matcher to order
@@ -1246,15 +1269,15 @@ before `:hover`. You only need to change one category.
 :::
 
 An array replaces the order inside that category wherever it's used, including
-at the root. The first matching entry wins. Here the final `'*'` matches any
+at the root. The first matching explicit entry wins. Here the final `'*'` matches any
 other states. Use an equal-priority pair like `[':focus', ':focus-visible']`
 when their relative order doesn't matter.
 
 To **keep the defaults** and add one new priority, use a function. For example,
-`'pseudo-classes': (defaults) => [':disabled', ...defaults]` puts disabled states
-first and keeps the existing order for links, hover, focus, and active states.
-The function receives the default list, including its nested arrays, once per
-stylesheet. Return a new list with any `'*'` still at the end.
+`'pseudo-classes': (defaults) => [...defaults, ':disabled']` puts disabled states
+last, after the default `'*'`, and keeps the existing order for links, hover,
+focus, and active states. The function receives the default list, including its
+nested arrays, once per stylesheet.
 
 Use the object form when you also want to [sort ties][sorting-presets],
 [place unmatched items][unspecified-option], or [add blank lines][group spacing].
@@ -1302,8 +1325,8 @@ the text includes the container name, when present. Include each category in
   `at-rules`. Specific CSS queries, definitions, and Sass diagnostics can also
   use the shared `at-rules` settings. A spacing-only override keeps that order.
 - In `at-rules`, use an explicit [at-rule matcher][outer-matchers],
-  such as `{ type: 'at-rule', name: 'supports' }`. Add a final `'*'` to match
-  everything else. Put a pattern in `parameter` to match part of a condition.
+  such as `{ type: 'at-rule', name: 'supports' }`. Place `'*'` where you want
+  the remaining at-rules. Put a pattern in `parameter` to match part of a condition.
 - For a BEM family, use its key, such as `'.card__title'`. Use `':focus'` for
   a local state or `'::before'` for a pseudo-element family. A selector pattern
   sees the normalized selector without the contents of its block. You can also
@@ -1828,7 +1851,7 @@ Each defaults independently to `'bottom'`. A family can move as one item even
 when some of the properties inside it keep their slots. Ignoring a family at
 its parent level still lets the rule gather and order its members.
 
-**Should the rest be sorted too?** Add `'*'` as the **last** entry in the list.
+**Should the rest be sorted too?** Place `'*'` where the remaining items should go.
 That gives the remaining items an explicit priority, so they can use the category's
 sorter. Without the star, `unspecified` places them and keeps their source order.
 

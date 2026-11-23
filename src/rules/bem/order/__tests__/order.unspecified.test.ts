@@ -1,5 +1,6 @@
 import rule from '../order';
 import { DEFAULT_ORDER, DEFAULT_ROOT_ORDER } from '../order.constants';
+import type { SecondaryOption } from '../order.types';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
@@ -160,15 +161,31 @@ testRule({
 testRule({
 	description: 'Explicit remainder priority',
 	config: [true, {
-		root: { order: ['rules', '*'], unspecified: 'top' },
-		categories: { declarations: { order: ['color', '*'], unspecified: 'ignore' } },
-	}],
-	accept: [{
-		description: 'Treats an explicit remainder as matched before applying unspecified policies',
+		root: { order: ['*', 'rules'] },
+		order: ['*', 'declarations'],
+		categories: {
+			declarations: {
+				order: (defaults) => ['display', ...defaults, 'z-index'],
+				unspecified: 'ignore',
+			},
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Uses the remainder position at each level while honoring later explicit matches',
 		code: `
-			.card { color: red; display: grid; }
+			.card { z-index: 1; color: red; display: grid; --accent: red; }
 			@media screen {}
 		`,
+		fixed: `
+			@media screen {}
+			.card { --accent: red; display: grid; color: red; z-index: 1; }
+		`,
+		warnings: [
+			{ message: messages.expectedBefore('--accent', 'z-index') },
+			{ message: messages.expectedBefore('display', 'z-index') },
+			{ message: messages.expectedBefore('color', 'z-index') },
+			{ message: messages.expectedBefore('@media screen', '.card') },
+		],
 	}],
 });
 

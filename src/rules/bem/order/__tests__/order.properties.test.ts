@@ -10,6 +10,20 @@ const equalRankGroups = [
 ];
 
 testRule({
+	description: 'Property group remainder between explicit priorities',
+	config: [true, { order: [{ properties: ['display', '*', 'z-index'] }] }],
+	reject: [{
+		description: 'Keeps unlisted properties between display and z-index',
+		code: '.card { z-index: 1; color: red; display: grid; }',
+		fixed: '.card { display: grid; color: red; z-index: 1; }',
+		warnings: [
+			{ message: messages.expectedBefore('display', 'z-index') },
+			{ message: messages.expectedBefore('color', 'z-index') },
+		],
+	}],
+});
+
+testRule({
 	description: 'Outer equal-rank property groups',
 	config: [true, {
 		order: [equalRankGroups, '*'],

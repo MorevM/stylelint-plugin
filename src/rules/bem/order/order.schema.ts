@@ -70,16 +70,16 @@ const vGroupReference = v.pipe(
 ) as v.GenericSchema<`group:${string}`>;
 
 /**
- * Rejects remainder matchers inside equal-rank groups or before the end of an order.
+ * Each sequence can assign one priority to its remaining members.
  *
  * @param   sequence   Order entries being validated.
  *
- * @returns            Whether every remainder matcher occupies the final top-level slot.
+ * @returns            Whether the remainder appears at most once, outside equal-rank groups.
  */
-const hasTerminalRemainder = (sequence: readonly unknown[]) => sequence.every((entry, index) => {
-	if (isArray(entry)) return !entry.includes('*');
-	return entry !== '*' || index === sequence.length - 1;
-});
+const hasValidRemainder = (sequence: readonly unknown[]) =>
+	sequence.indexOf('*') === sequence.lastIndexOf('*')
+	&& sequence.every((entry) => !isArray(entry) || !entry.includes('*'));
+const remainderMessage = 'Use * at most once per sequence, outside equal-rank groups';
 
 // Callback result validation must preserve description identities rather than clone parsed objects.
 const vOrderSorter = v.custom<OrderSorter>(isFunction, 'Expected a synchronous sorting function');
@@ -171,7 +171,7 @@ const vPropertyMatcher = v.union([v.pipe(v.string(), v.minLength(1)), v.instance
 const vPropertiesSequence: v.GenericSchema<PropertiesSequence> = v.pipe(vReadonly(v.array(v.union([
 	vPropertyMatcher,
 	vReadonly(v.array(vPropertyMatcher)),
-]))), v.minLength(1), v.check((sequence) => hasTerminalRemainder(sequence), 'Place * only at the end of the sequence'));
+]))), v.minLength(1), v.check((sequence) => hasValidRemainder(sequence), remainderMessage));
 const vPropertiesGroup: v.GenericSchema<PropertiesGroup> = v.strictObject({
 	properties: vPropertiesSequence,
 	sort: v.optional(vOrderSort),
@@ -186,7 +186,7 @@ const vOrderMatcher: v.GenericSchema<OrderMatcher> = v.union([
 const vOrderSequence: v.GenericSchema<OrderSequence> = v.pipe(vReadonly(v.array(v.union([
 	vOrderMatcher,
 	vReadonly(v.array(vOrderMatcher)),
-]))), v.check((sequence) => hasTerminalRemainder(sequence), 'Place * only at the end of the sequence'));
+]))), v.check((sequence) => hasValidRemainder(sequence), remainderMessage));
 const vGroupSequence: v.GenericSchema<GroupSequence> = vReadonly(v.array(v.union([
 	vGroupMatcher,
 	vReadonly(v.array(vGroupMatcher)),
@@ -234,7 +234,7 @@ const createCategoryOrderSchema = <Matcher extends CategoryMatcher>(matcher: v.G
 	const sequence: v.GenericSchema<CategorySequence<Matcher>> = v.pipe(vReadonly(v.array(v.union([
 		matcher,
 		vReadonly(v.array(matcher)),
-	]))), v.check((entries) => hasTerminalRemainder(entries), 'Place * only at the end of the sequence'));
+	]))), v.check((sequence) => hasValidRemainder(sequence), remainderMessage));
 	const order = v.union([sequence, vFunction([sequence], sequence)]);
 
 	return v.union([
@@ -270,7 +270,7 @@ const vCategories = vReadonly(v.strictObject({
 const vSelectorListMatcher = v.union([vCategoryString, v.instance(RegExp), v.pipe(vRuleSelector, vExclusiveSelector)]);
 const vSelectorListSequence: v.GenericSchema<SelectorListSequence> = v.pipe(vReadonly(v.array(v.union([
 	vSelectorListMatcher, vReadonly(v.array(vSelectorListMatcher)),
-]))), v.check((sequence) => hasTerminalRemainder(sequence), 'Place * only at the end of the sequence'));
+]))), v.check((sequence) => hasValidRemainder(sequence), remainderMessage));
 const vSelectorListOrder: v.GenericSchema<SelectorListOrder> = v.strictObject({
 	order: v.optional(v.union([v.literal('inherit'), vSelectorListSequence])),
 	unspecified: v.optional(vUnspecifiedOrder),

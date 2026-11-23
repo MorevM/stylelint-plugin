@@ -1,6 +1,6 @@
 import { deepEqual, isArray, isString } from '@morev/utils';
 import parser from 'postcss-selector-parser';
-import { isCategoryMatch } from '../create-order-config/create-order-config';
+import { findOrderRank, isCategoryMatch } from '../create-order-config/create-order-config';
 import { resolveOrderSelector } from '../resolve-order-selector/resolve-order-selector';
 import type { Rule } from 'postcss';
 import type { Separators } from '#modules/shared';
@@ -65,7 +65,7 @@ export const sortSelectorList = (
 
 	const ranked = branches.map((branch) => {
 		let label: string | undefined;
-		const rank = order.findIndex((entry) => {
+		const rank = findOrderRank(order, (entry) => {
 			const match = (isArray(entry) ? entry : [entry]).find((matcher) => {
 				return (isString(matcher) && matcher === branch.name) || isCategoryMatch(matcher, branch.item);
 			});

@@ -66,6 +66,19 @@ testRule({
 });
 
 testRule({
+	description: 'Selector-list remainder between explicit priorities',
+	config: [true, {
+		selectorList: { order: [':hover', '*', { type: 'rule', relativeSelector: '&:active', label: 'Active' }] },
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Places other branches between hover and active',
+		code: '.card:active, .card:focus, .card:hover {}',
+		fixed: '.card:hover, .card:focus, .card:active {}',
+		warnings: [{ message: messages.selectorList('.card:hover, .card:focus, Active (.card:active)') }],
+	}],
+});
+
+testRule({
 	description: 'Explicit selector-list priorities',
 	config: [true, {
 		selectorList: {
