@@ -249,7 +249,7 @@ An `order` array replaces the default sequence for its scope.
         'css:container',
         'at-rules',
       ],
-      // If you lint `display: grid; --gap: 1rem;` as a CSS fragment,
+      // If you lint `display: grid; --gap: 16px;` as a CSS fragment,
       // `--gap` matches `custom-properties`. The unmatched `display` goes last.
       unspecified: 'bottom',
     },
@@ -337,7 +337,7 @@ inside it. Try `display: grid` to see all three. {#default-order-example}
 @use '../mixins' as ui;
 
 // [sass:variables] Define the default gap before using it in the card.
-$card-gap: 1rem;
+$card-gap: 16px;
 
 // [rules | .product-card] The plain card selector is the base of its family.
 .product-card {
@@ -357,7 +357,7 @@ $card-gap: 1rem;
   // [css:media] Group media queries before container queries.
   @media print {}
   // [css:container] Adapt the card to the space its container gives it.
-  @container (width > 30rem) {}
+  @container (width > 480px) {}
 
   // [qualifiers:type] Keep link cards and their hover styles together.
   @at-root a#{$b} {}
@@ -853,7 +853,86 @@ For more ways to sort, see
 
 ---
 
-##### Relative selectors {#authored-and-relative-selectors}
+##### At-rules
+
+Use `type: 'at-rule'` when a directive needs its own place in `order`.
+
+::: code-group
+
+```js line-hints [Reduced motion after breakpoints]
+{
+  order: [
+    // This entry gives matching `@media` rules their own position in `order`.
+    // An object matcher takes precedence over categories explained above.
+    // You can think of it as excluding matching at-rules
+    // from generic categories like `at-rules` or `css:media`.
+    {
+      type: 'at-rule',
+      // [!hint] Write the name without `@`. \
+      // String `'media'` for a `@media` at-rule.
+      name: 'media',
+      // [!hint] A single regular expression matches **all** media queries starting with `(min-width:`.
+      parameter: /^\(min-width:/u,
+      // [!hint] Put `768px` before `1024px`.
+      sort: { by: 'dimension' },
+    },
+    // Other media queries go here.
+    'css:media',
+    // If present, the reduced-motion query comes last.
+    {
+      type: 'at-rule',
+      name: 'media',
+      // [!hint] A string matches the entire media query. Both rules below match
+      // because spacing inside the parentheses and around the colon is optional.
+      //
+      // ```css
+      // @media ( prefers-reduced-motion: reduce ) {}
+      // @media (prefers-reduced-motion:reduce) {}
+      // ```
+      parameter: '(prefers-reduced-motion: reduce)',
+    },
+  ],
+}
+```
+
+```js line-hints [Theme overrides after declarations]
+{
+  order: [
+    // [!hint] Calls such as `@include theme.surface;` go here.
+    'sass:includes',
+    'declarations',
+    {
+      type: 'at-rule',
+      name: 'include',
+      // [!hint] Any mixin from the `theme` module.
+      parameter: /^theme\./u,
+      // [!hint] Use `hasBlock` to select one form of the mixin call.
+      //
+      // - `true` matches a **content block**, e.g. `@include theme.surface { ... }`.
+      // - `false` matches a **statement**, e.g. `@include theme.surface;`.
+      //
+      // Omit `hasBlock` to match both forms.
+      hasBlock: true,
+    },
+  ],
+}
+```
+
+:::
+
+The first tab sorts matching `@media` queries by breakpoint width. \
+For other ways to order matches, see
+[Sorting presets][sorting-presets] and [Custom sorters][custom-sorting].
+
+---
+
+##### Rules
+
+Use `type: 'rule'` to give style rules their own place in `order`.
+Choose either `relativeSelector` or `selector` to narrow the match.
+With neither field, `{ type: 'rule' }` matches any style rule.
+
+###### Relative selectors {#authored-and-relative-selectors}
 
 Use `relativeSelector` to give a state the same position across blocks, elements,
 and modifiers. The rule **resolves nesting, then replaces the BEM entity's class
@@ -902,7 +981,7 @@ with `&`.**
 
 ---
 
-##### Authored selectors
+###### Authored selectors
 
 Use `selector` when the spelling in the file matters. \
 The rule **matches the
@@ -932,9 +1011,6 @@ selector exactly as written**, before resolving nesting.
   &:hover {} // The `/^&:/u` matcher puts this state second.
 }
 ```
-
-- Choose either `selector` or `relativeSelector` in each rule matcher.
-- `{ type: 'rule' }` matches any selector rule.
 
 ---
 
