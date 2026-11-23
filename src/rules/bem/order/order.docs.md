@@ -930,7 +930,6 @@ For other ways to order matches, see
 
 Use `type: 'rule'` to give style rules their own place in `order`.
 Choose either `relativeSelector` or `selector` to narrow the match.
-With neither field, `{ type: 'rule' }` matches any style rule.
 
 ###### Relative selectors {#authored-and-relative-selectors}
 
@@ -1075,95 +1074,98 @@ button:focus {}
 
 ---
 
-##### Using '*' in order and properties
+###### Sorting matched rules
 
-Use `'*'` to place everything left over at the beginning, in the middle, or at
-the end of a list. Each list can have one standalone `'*'`, outside equal-priority
-arrays. Explicit entries on either side take precedence over it.
+Use `sort` on a rule matcher to order matching siblings. \
+Here the matcher
+sorts the heading rules by name, from `h1` to `h6`.
 
-```js
+```js{6}
 {
   order: [
-    // Within ordinary properties, put display first and z-index last.
-    { properties: ['display', '*', 'z-index'] },
-    // Put remaining items, including custom properties and Sass variables, before media queries.
-    '*',
-    'css:media',
-  ],
-}
-```
-
-The outer `'*'` works the same way in `root.order`. Inside a category it matches
-the remaining members of that category. In `selectorList.order` it matches the
-remaining selector branches. Omitting it leaves their placement to the list's
-[`unspecified` setting][unspecified-option].
-
-##### Sorting items with equal priority
-
-Use `sort` on a property group, rule matcher, or at-rule matcher to order
-its matches when they share a priority.
-
-```js
-{
-  order: [
-    'sass:includes', // Other mixins keep their place before declarations.
-    'declarations',
     {
-      type: 'at-rule',
-      name: 'include',
-      parameter: /^layout\.from\(/u,
-      // Put layout.from(40rem) before layout.from(60rem).
-      sort: { by: 'dimension' },
+      type: 'rule',
+      selector: /^h[1-6]$/u,
+      sort: { by: 'name' },
     },
   ],
 }
 ```
 
-A matcher takes the same [presets][sorting-presets] and [callbacks][custom-sorting]
-as a [named group][named-group-sorting] or [category][categories-option].
-A rule or at-rule selected by an object in `order`, `root.order`, or a named
-group uses the matcher's `sort`, or the enclosing group's `sort` if the matcher omits it.
-With neither, matches at the same priority keep their source order.
-The category's `order` and `sort` apply to items placed through that category.
+<div class="bem-order-selector-comparison">
+<div>
 
-##### Diagnostic labels
+**Before autofix**
 
-Use `label` to give a matcher a readable name in Stylelint messages.
-In this example, `name: 'media'` selects the directive and `parameter: 'print'`
-selects the query. The warning calls it “Print styles”.
+```scss
+.wysiwyg-content {
+  h3 {}
+  h1 {}
+  h5 {}
+  h2 {}
+  h6 {}
+  h4 {}
+}
+```
 
-```js
+</div>
+<div>
+
+**After autofix**
+
+```scss
+.wysiwyg-content {
+  h1 {}
+  h2 {}
+  h3 {}
+  h4 {}
+  h5 {}
+  h6 {}
+}
+```
+
+</div>
+</div>
+
+See [Sorting][sorting] for presets and custom sorters.
+
+---
+
+##### Wildcard placement
+
+Unlisted items come last by default (you can change it with [`unspecified` setting][unspecified-option]). \
+To give them a different position, place `'*'` where you want them. Explicit matchers on either side take precedence.
+
+```js{8,14}
 {
   order: [
-    { properties: ['display', 'gap'], label: 'Layout' },
-    { type: 'at-rule', name: 'media', parameter: 'print', label: 'Print styles' },
+    // Put `display` first and `z-index` last among ordinary CSS properties.
+    // Here '*' matches ONLY ordinary properties, such as `color` and `opacity`.
+    {
+      properties: [
+        'display',
+        '*',
+        'z-index',
+      ]
+    },
+    // In the outer scope, '*' matches anything the other entries leave out.
+    // Here that includes custom properties, Sass variables, mixin calls, etc.
+    '*',
+    // Media queries come after everything else.
+    // Use this order to keep responsive overrides at the end of the block.
+    'css:media',
   ],
 }
 ```
 
-```css
-.card {
-  @media print {}
-  display: grid;
-}
-```
+**Key points**
 
-Stylelint highlights `display` and uses the configured labels on both sides.
-
-```text
-Expected "Layout" to come before "Print styles". (@morev/bem/order)
-```
-
-Rule and at-rule matchers, property groups, and selector sets all accept
-`label`. Use it on a matcher in [`order`][order-option] or in the
-[`root` configuration][root-option], or set a shared label on the object form
-of a named group, category, or `unspecified` policy. A matcher's own label
-takes precedence over its group's or category's label. Without a label,
-Stylelint uses the source text.
-
-In [spacing messages][group spacing], a label on the group that requests the
-blank line names that group. Selector-list and cascade warnings keep the
-authored selectors and property names alongside their labels.
+- Inside a category, `'*'` matches the remaining members of that category.
+- Without `'*'`, the list's [`unspecified` setting][unspecified-option] places unlisted items
+  first (`'top'`), last (`'bottom'`), or in their original slots (`'ignore'`).
+  All three preserve the relative order of those items.
+- With `'*'`, you can place the remaining items between two entries and apply the category's
+  sorter to them. To see which items that includes, check the explicit entries on both sides.
 
 ---
 
@@ -1173,6 +1175,20 @@ In the opening configuration, `@media print` matches both `css:media` and the
 at-rule object. The rule checks objects first, so print comes after the other media queries.
 If two objects match, the **first** in `order` wins. This also applies to objects
 inside a [named group][groups-option], which expands where you list it.
+
+::: details How does the rule choose a category?
+
+- A matcher only sees items at the current level of the family.
+- If no object matches, the rule looks at the categories you listed.
+  A specific query, definition, diagnostic or include category takes precedence over
+  `at-rules`. For `@include`, the matching statement or block category takes
+  precedence over `sass:includes`. Eligible selector lists and placeholders
+  likewise use their specific categories before `rules`.
+- A listed qualifier type takes priority over `qualifiers`. If two types match,
+  the first one in `order` wins. For example, `.card.is-selected[aria-busy]`
+  can match both `qualifiers:class` and `qualifiers:attribute`.
+
+:::
 
 #### Pseudo-element variants {#pseudo-element-variants}
 
@@ -1281,12 +1297,14 @@ nested arrays, once per stylesheet.
 
 Use the object form when you also want to [sort ties][sorting-presets],
 [place unmatched items][unspecified-option], or [add blank lines][group spacing].
-For example, this adds one gap before a run of container queries, with no empty
-lines between them. Setting only `blankLines` keeps the existing query order.
+Here the elements of each block are sorted by name. Each run of container queries
+starts with a blank line, with no empty lines between queries. Setting only
+`blankLines` keeps the existing query order.
 
 ```js
 {
   categories: {
+    elements: { sort: { by: 'name' } },
     'css:container': { blankLines: { before: 'always', between: 'never' } },
   },
 }
@@ -1318,7 +1336,7 @@ the text includes the container name, when present. Include each category in
 ::: details Which name or selector should I use?
 
 - For CSS and Sass definitions, use the declared name, such as `'--tone'` or
-  `'respond-to'`. For `@include layout.respond-to(40rem)`, use `'layout.respond-to'`.
+  `'respond-to'`. For `@include layout.respond-to(640px)`, use `'layout.respond-to'`.
   For `@warn`, use `'warn'`.
 - If you split includes into statements and blocks, you can give them different
   settings. A form with no settings of its own uses `sass:includes`, then
@@ -1404,116 +1422,6 @@ once toward `size` and keep their original spelling.
 
 :::
 
-#### Sorting presets {#sorting-presets}
-
-Alphabetize element names with `elements: { sort: { by: 'name' } }`.
-For `.card__title-icon`, the name being compared is `title-icon`.
-Set `direction: 'desc'` for reverse order. Name comparison is case-sensitive
-and gives the same result regardless of the machine's language settings.
-
-For mobile-first styles, sort media queries by their numeric breakpoint.
-This example leaves `print` in place while sorting the widths around it.
-
-::: code-group
-
-```js [Configuration]
-{
-  categories: {
-    'css:media': { sort: { by: 'dimension' } },
-  },
-}
-```
-
-```scss [Before]
-@media (min-width: 60rem) {}
-@media print {}
-@media (min-width: 40rem) {}
-```
-
-```scss [After]
-@media (min-width: 40rem) {}
-@media print {}
-@media (min-width: 60rem) {}
-```
-
-:::
-
-The sorter compares values with the same unit. It never assumes a conversion
-between `rem` and `px`. Without `units`, each unit keeps its slots, so
-`40px, 2rem, 16px, 1rem` becomes `16px, 1rem, 40px, 2rem`.
-To group all `rem` values before all `px` values, set `units: ['rem', 'px']`.
-The same input then becomes `1rem, 2rem, 16px, 40px`. Descending order reverses
-the numbers within each unit. Ties keep their source order.
-
-::: details Which values can the dimension sorter read?
-
-It looks for **one literal number with a unit** in an at-rule's parameters or a
-declaration's value. That can be a width, duration, angle, or resolution.
-`(width >= 40rem) and (hover: hover)`, `sidebar (width >= 40rem)`, and
-`@include respond(40rem)` each have a single value it can use.
-
-A range with two bounds, alternative or negated queries, an extra numeric
-literal, a unitless number, or a value inside `calc()` gives no single size
-to sort by. The rule also leaves Sass variables and custom media names
-unresolved. With an explicit `units` list, unlisted units are unresolved too.
-Unit names are case-insensitive. An empty `units` list works like omitting it.
-
-`unresolved` defaults to `'ignore'`, which keeps those items in their slots.
-Choose `'top'` or `'bottom'` to collect them at either end of the **current
-priority**. To put `print` in a specific place, give it an entry in `order`.
-For declarations, [cascade dependencies][canonical comparison names] still apply.
-If keeping a dependency would displace a unit from its slots, the rule can
-leave the whole batch in source order.
-
-:::
-
-#### Custom sorters {#custom-sorting}
-
-Suppose short element names should come first, then names of the same length
-should appear alphabetically. Use the built-in name comparison for the tie
-and add just the comparison that's specific to your project.
-
-```js
-{
-  categories: {
-    elements: {
-      sort(items, context) {
-        const byName = context.sort(items, { by: 'name' });
-        return byName.toSorted((a, b) => a.name.length - b.name.length);
-      },
-    },
-  },
-}
-```
-
-For `.card__title`, `.card__icon`, and `.card__body`, this gives `body`, `icon`,
-then `title`. Each element moves with its own states and modifiers.
-The callback runs on siblings with equal priority. It can't move a title out
-of its card or reorder entries that you gave different priorities.
-
-::: details What does the callback receive?
-
-- `items` contains read-only descriptions in source order. Each has `type`,
-  `name`, `category`, and `sourceIndex`. A family also has its full `key`.
-  Depending on the type, you can read `selector`, `parameter`, `hasBlock`,
-  or a declaration's `value`. In the generic `at-rules` category the name is
-  the directive, such as `include`. In `sass:includes` it's the called mixin.
-- `context.container` describes the actual root, selector, or at-rule.
-  `context.family` gives the BEM owner path, even in flat CSS. `context.category`
-  and, for a named group, `context.group` tell you what's being sorted.
-- `context.sort(items, preset)` applies a built-in sorter. You can pass a
-  subset if your project needs a separate comparison for some items.
-
-Return each original item exactly once. Keep the callback synchronous and
-make sure a second sort produces the same order. The inputs are frozen.
-If a callback throws or returns an invalid result, the rule reports a
-configuration warning before applying any fixes to the stylesheet.
-
-For a TypeScript config, the package exports `OrderSorter`, `OrderSortContext`,
-`OrderSortItem`, and `OrderSortPreset`.
-
-:::
-
 ### `groups`
 
 Suppose you use a `@include layout.from(...)` mixin alongside plain `@media`
@@ -1541,7 +1449,7 @@ belong in the outer order.
 
 #### Group sorting {#named-group-sorting}
 
-What if `@include layout.from(60rem)` should come *after* `@media (width >= 40rem)`?
+What if `@include layout.from(960px)` should come *after* `@media (width >= 640px)`?
 Put both matchers in the same nested array and give the group a dimension sorter.
 
 ::: code-group
@@ -1564,8 +1472,8 @@ Put both matchers in the same nested array and give the group a dimension sorter
 ```scss [Result]
 .card {
   display: grid;
-  @media (width >= 40rem) {}
-  @include layout.from(60rem) {}
+  @media (width >= 640px) {}
+  @include layout.from(960px) {}
 }
 ```
 
@@ -1578,55 +1486,6 @@ order. A group's `sort` applies to its equal-priority members and accepts the
 same [presets][sorting-presets] and [callbacks][custom-sorting]. An explicit
 matcher can supply its own sorter. Listing a category such as `'css:media'`
 in the group keeps that category's internal priorities.
-
-#### Property groups {#property-groups}
-
-A typography mixin often sets defaults you want to override. To keep layout
-above the mixin and typography below it, put a property group on either side.
-
-::: code-group
-
-```js [Configuration]
-{
-  order: [
-    { properties: ['display', ['width', 'height']] },
-    { type: 'at-rule', name: 'include', parameter: 'typography' },
-    { properties: ['font-size', 'line-height', 'color'] },
-    'declarations',
-  ],
-}
-```
-
-```scss [Result]
-.card {
-  display: grid;
-  height: 100%;
-  width: 20rem;
-  @include typography;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: navy;
-}
-```
-
-:::
-
-`display` goes first. `width` and `height` can appear in either order.
-Give the group `sort: { by: 'name' }` if you also want to alphabetize ties.
-The rule follows the order you chose around the mixin. It can't see which
-properties the mixin will emit.
-
-A property group matches ordinary CSS properties. Strings match
-[comparison names][canonical comparison names]. A pattern such as `/^grid-/u`
-matches the authored or comparison name. A final `'*'` inside `properties`
-matches the remaining ordinary properties. Custom properties and Sass
-variables have their own categories.
-
-Use a property group directly in `order` or `root.order`, or name it in `groups`
-and refer to it as `group:layout`. If all properties should stay together,
-put the property group directly in `categories.declarations.order`.
-Each group controls its own order and sorter. Other declarations still follow
-the shared `declarations` settings.
 
 #### Group spacing {#group-spacing}
 
@@ -1752,13 +1611,13 @@ An alphabetical sorter keeps their relative order in both of these rules.
 
 ```scss
 .card {
-  margin: 2rem;
-  margin-top: 1rem;
+  margin: 32px;
+  margin-top: 16px;
 }
 
 .badge {
-  margin-top: 1rem;
-  margin: 2rem;
+  margin-top: 16px;
+  margin: 32px;
 }
 ```
 
@@ -1915,8 +1774,9 @@ To alphabetize whole lists, including selectors like `h2, h1`, set just
 }
 ```
 
-Use `selectorList.sort` to break ties between branches. `direction: 'desc'` reverses
-name comparison. Strings match a complete normalized branch or a local
+The [name preset][sorting-presets] is the only sorter available for `selectorList.sort`.
+It breaks ties between branches. Use `direction: 'desc'` to reverse the comparison.
+Strings match a complete normalized branch or a local
 condition. Regular expressions and rule matchers with `selector` or
 `relativeSelector` work too. Here `'*'` also ranks the remaining branches.
 Omit it to let `unspecified` keep their slots (`'ignore'`, the default), or
@@ -1941,6 +1801,174 @@ how to recognize it. The element separator can keep its default.
 Now `.card_size_small` and `.card__title` both belong to `.card`.
 The default separators are `__` for `element`, `--` for `modifier`, and `--`
 for `modifierValue`. Set only the ones your project changes.
+
+## Sorting
+
+`order` assigns priorities to sibling items. `sort` orders items that share a
+priority. For example, a dimension sorter can put smaller breakpoints first
+while keeping all media queries in the position assigned by `order`.
+
+Categories, named groups, property groups, and matchers for rules and at-rules
+accept a built-in preset or a custom sorter. Items placed by
+[`unspecified`][unspecified-option] keep their source order. To include the
+remaining members in a category's sort, give them a priority with `'*'`.
+
+### Sorting presets {#sorting-presets}
+
+Alphabetize element names with `elements: { sort: { by: 'name' } }`.
+For `.card__title-icon`, the name being compared is `title-icon`.
+Set `direction: 'desc'` for reverse order. Name comparison is case-sensitive
+and gives the same result regardless of the machine's language settings.
+
+For mobile-first styles, sort media queries by their numeric breakpoint.
+This example leaves `print` in place while sorting the widths around it.
+
+::: code-group
+
+```js [Configuration]
+{
+  categories: {
+    'css:media': { sort: { by: 'dimension' } },
+  },
+}
+```
+
+```scss [Before]
+@media (min-width: 960px) {}
+@media print {}
+@media (min-width: 640px) {}
+```
+
+```scss [After]
+@media (min-width: 640px) {}
+@media print {}
+@media (min-width: 960px) {}
+```
+
+:::
+
+The sorter compares values with the same unit. It never assumes a conversion
+between `vw` and `px`. Without `units`, each unit keeps its slots, so
+`40px, 2vw, 16px, 1vw` becomes `16px, 1vw, 40px, 2vw`.
+To group all `vw` values before all `px` values, set `units: ['vw', 'px']`.
+The same input then becomes `1vw, 2vw, 16px, 40px`. Descending order reverses
+the numbers within each unit. Ties keep their source order.
+
+::: details Which values can the dimension sorter read?
+
+It looks for **one literal number with a unit** in an at-rule's parameters or a
+declaration's value. That can be a width, duration, angle, or resolution.
+`(width >= 640px) and (hover: hover)`, `sidebar (width >= 640px)`, and
+`@include respond(640px)` each have a single value it can use.
+
+A range with two bounds, alternative or negated queries, an extra numeric
+literal, a unitless number, or a value inside `calc()` gives no single size
+to sort by. The rule also leaves Sass variables and custom media names
+unresolved. With an explicit `units` list, unlisted units are unresolved too.
+Unit names are case-insensitive. An empty `units` list works like omitting it.
+
+`unresolved` defaults to `'ignore'`, which keeps those items in their slots.
+Choose `'top'` or `'bottom'` to collect them at either end of the **current
+priority**. To put `print` in a specific place, give it an entry in `order`.
+For declarations, [cascade dependencies][canonical comparison names] still apply.
+If keeping a dependency would displace a unit from its slots, the rule can
+leave the whole batch in source order.
+
+:::
+
+### Custom sorters {#custom-sorting}
+
+Suppose short element names should come first, then names of the same length
+should appear alphabetically. Use the built-in name comparison for the tie
+and add just the comparison that's specific to your project.
+
+```js
+{
+  categories: {
+    elements: {
+      sort(items, context) {
+        const byName = context.sort(items, { by: 'name' });
+        return byName.toSorted((a, b) => a.name.length - b.name.length);
+      },
+    },
+  },
+}
+```
+
+For `.card__title`, `.card__icon`, and `.card__body`, this gives `body`, `icon`,
+then `title`. Each element moves with its own states and modifiers.
+The callback runs on siblings with equal priority. It can't move a title out
+of its card or reorder entries that you gave different priorities.
+
+::: details What does the callback receive?
+
+- `items` contains read-only descriptions in source order. Each has `type`,
+  `name`, `category`, and `sourceIndex`. A family also has its full `key`.
+  Depending on the type, you can read `selector`, `parameter`, `hasBlock`,
+  or a declaration's `value`. In the generic `at-rules` category the name is
+  the directive, such as `include`. In `sass:includes` it's the called mixin.
+- `context.container` describes the actual root, selector, or at-rule.
+  `context.family` gives the BEM owner path, even in flat CSS. `context.category`
+  and, for a named group, `context.group` tell you what's being sorted.
+- `context.sort(items, preset)` applies a built-in sorter. You can pass a
+  subset if your project needs a separate comparison for some items.
+
+Return each original item exactly once. Keep the callback synchronous and
+make sure a second sort produces the same order. The inputs are frozen.
+If a callback throws or returns an invalid result, the rule reports a
+configuration warning before applying any fixes to the stylesheet.
+
+For a TypeScript config, the package exports `OrderSorter`, `OrderSortContext`,
+`OrderSortItem`, and `OrderSortPreset`.
+
+:::
+
+## Diagnostics
+
+An ordering warning points to the first item in a consecutive run that needs to
+move. For example, three adjacent states that belong above a modifier can move
+together, so one message can cover all three. With `unspecified: 'ignore'`,
+warnings describe the items you've asked to order.
+
+### Diagnostic labels
+
+Use `label` to give a matcher a readable name in Stylelint messages.
+In this example, `name: 'media'` selects the directive and `parameter: 'print'`
+selects the query. The warning calls it “Print styles”.
+
+```js
+{
+  order: [
+    { properties: ['display', 'gap'], label: 'Layout' },
+    { type: 'at-rule', name: 'media', parameter: 'print', label: 'Print styles' },
+  ],
+}
+```
+
+```css
+.card {
+  @media print {}
+  display: grid;
+}
+```
+
+Stylelint highlights `display` and uses the configured labels on both sides.
+
+```text
+Expected "Layout" to come before "Print styles". (@morev/bem/order)
+```
+
+Rule and at-rule matchers, property groups, and selector sets all accept
+`label`. Use it on a matcher in [`order`][order-option] or in the
+[`root` configuration][root-option], or set a shared label on the object form
+of a named group, category, or `unspecified` policy. A matcher's own label
+takes precedence over its group's or category's label. Without a label,
+Stylelint uses the source text. When labels repeat, the warning can include a
+value or source location to help you find the right item.
+
+In [spacing messages][group spacing], a label on the group that requests the
+blank line names that group. Selector-list and cascade warnings keep the
+authored selectors and property names alongside their labels.
 
 ## Autofix boundaries {#regions-and-autofix-boundaries}
 
@@ -2007,12 +2035,8 @@ preserved unless you set [`blankLines`][group spacing].
 
 :::
 
-A warning points to the first item in a consecutive run that needs to move.
-For example, three adjacent states that belong above a modifier can move
-together, so one message can cover all three. The rule aims to move as few
-source items as possible, then as few runs as possible. Repeated labels can
-include a value or source location to help you find the right item.
-With `unspecified: 'ignore'`, messages describe the items you've asked to order.
+Autofix aims to move as few source items as possible, then as few consecutive
+runs as possible.
 
 ## Acknowledgments
 
@@ -2022,10 +2046,10 @@ The checks for overlapping properties draw on [Stylelint][stylelint] property da
 [canonical comparison names]: #property-names-and-cascade
 [categories-option]: #categories
 [custom-sorting]: #custom-sorting
+[diagnostic-labels]: #diagnostic-labels
 [group spacing]: #group-spacing
 [groups-option]: #groups
 [layer-statements]: https://www.w3.org/TR/css-cascade-5/#layer-statements
-[named-group-sorting]: #named-group-sorting
 [namespace-placement]: https://www.w3.org/TR/css-namespaces-3/#syntax
 [order-option]: #order
 [outer-matchers]: #matchers-and-equal-ranks
@@ -2033,6 +2057,7 @@ The checks for overlapping properties draw on [Stylelint][stylelint] property da
 [selector-list]: #selectorlist
 [selector-sets]: #selector-sets
 [sorting-presets]: #sorting-presets
+[sorting]: #sorting
 [stylelint-order]: https://github.com/hudochenkov/stylelint-order/blob/master/rules/order/README.md
 [stylelint]: https://github.com/stylelint/stylelint
 [unspecified-option]: #unspecified
