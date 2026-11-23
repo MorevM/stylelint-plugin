@@ -24,6 +24,11 @@ export type PreparedOrderSpacing = OrderGroupSpacing & {
 	 * Distinguishes adjacent groups even if their formatting options coincide.
 	 */
 	key: string;
+
+	/**
+	 * Narrower run selected by a rule or at-rule matcher inside this named group.
+	 */
+	member?: PreparedOrderSpacing;
 };
 
 /**

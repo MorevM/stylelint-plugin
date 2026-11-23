@@ -238,65 +238,6 @@ export type OrderSortPreset = {
 export type OrderSort = OrderSorter | OrderSortPreset;
 
 /**
- * Explicit matcher for authored at-rules.
- */
-export type AtRuleMatcher = DiagnosticLabel & {
-	/**
-	 * Restricts matching to at-rules.
-	 */
-	type: 'at-rule';
-
-	/**
-	 * Exact at-rule name without the leading `@`; omission allows any name.
-	 */
-	name?: string;
-
-	/**
-	 * Exact normalized parameters as a string, or a regular expression pattern.
-	 * Strings are normalized on both sides; patterns receive normalized source parameters.
-	 * The at-rule name is excluded; omission allows any parameters.
-	 */
-	parameter?: string | RegExp;
-
-	/**
-	 * Distinguishes block-form at-rules from statements; omission allows both.
-	 */
-	hasBlock?: boolean;
-
-	/**
-	 * Orders matching at-rules that share a priority.
-	 */
-	sort?: OrderSort;
-};
-
-/**
- * Explicit matcher for authored selectors.
- */
-export type RuleMatcher = DiagnosticLabel & {
-	/**
-	 * Restricts matching to selector rules.
-	 */
-	type: 'rule';
-
-	/**
-	 * Exact authored selector as a string, or a regular expression pattern.
-	 * Omission allows any selector; strings are never compiled as regular expressions.
-	 */
-	selector?: string | RegExp;
-
-	/**
-	 * Parsed selector relative to its BEM subject; mutually exclusive with `selector`.
-	 * Pseudo-elements retain their position, for example `&:hover::before`.
-	 */
-	relativeSelector?: string | RegExp;
-
-	/**
-	 * Orders matching rules or selector families that share a priority.
-	 */
-	sort?: OrderSort;
-};
-
-/**
  * Whether an authored group boundary requires, forbids or preserves empty lines.
  */
 export type BlankLineMode = 'always' | 'never' | 'ignore';
@@ -423,13 +364,72 @@ export type UnspecifiedOrderOptions = DiagnosticLabel & {
 };
 
 /**
- * Optional formatting shared by named and inline groups.
+ * Optional formatting for a named group or a run of items selected by one matcher.
  */
 export type OrderGroupSpacing = DiagnosticLabel & {
 	/**
 	 * Controls empty lines at the group's edges and between its consecutive members.
 	 */
 	blankLines?: BlankLines;
+};
+
+/**
+ * Explicit matcher for authored at-rules.
+ */
+export type AtRuleMatcher = OrderGroupSpacing & {
+	/**
+	 * Restricts matching to at-rules.
+	 */
+	type: 'at-rule';
+
+	/**
+	 * Exact at-rule name without the leading `@`; omission allows any name.
+	 */
+	name?: string;
+
+	/**
+	 * Exact normalized parameters as a string, or a regular expression pattern.
+	 * Strings are normalized on both sides; patterns receive normalized source parameters.
+	 * The at-rule name is excluded; omission allows any parameters.
+	 */
+	parameter?: string | RegExp;
+
+	/**
+	 * Distinguishes block-form at-rules from statements; omission allows both.
+	 */
+	hasBlock?: boolean;
+
+	/**
+	 * Orders matching at-rules that share a priority.
+	 */
+	sort?: OrderSort;
+};
+
+/**
+ * Explicit matcher for authored selectors.
+ */
+export type RuleMatcher = OrderGroupSpacing & {
+	/**
+	 * Restricts matching to selector rules.
+	 */
+	type: 'rule';
+
+	/**
+	 * Exact authored selector as a string, or a regular expression pattern.
+	 * Omission allows any selector; strings are never compiled as regular expressions.
+	 */
+	selector?: string | RegExp;
+
+	/**
+	 * Parsed selector relative to its BEM subject; mutually exclusive with `selector`.
+	 * Pseudo-elements retain their position, for example `&:hover::before`.
+	 */
+	relativeSelector?: string | RegExp;
+
+	/**
+	 * Orders matching rules or selector families that share a priority.
+	 */
+	sort?: OrderSort;
 };
 
 /**
@@ -559,7 +559,7 @@ export type CategorySequence<Matcher extends CategoryMatcher = CategoryMatcher> 
 /**
  * Priorities for authored selector branches, excluding declaration and at-rule matchers.
  */
-export type SelectorListSequence = CategorySequence<string | RegExp | Omit<RuleMatcher, 'sort'>>;
+export type SelectorListSequence = CategorySequence<string | RegExp | Omit<RuleMatcher, 'sort' | 'blankLines'>>;
 
 /**
  * Composes a replacement category order without mutating its built-in defaults.

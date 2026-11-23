@@ -161,20 +161,23 @@ export const createOrderSpacing = (
 	const isContainerEnd = container.nodes?.at(-1) === originalLast;
 	const positions = new Map(sorted.map((item, index) => [item, index]));
 	const boundaries = new Map<number, SpacingBoundary>();
+	const memberBoundaries = new Map<number, SpacingBoundary>();
 	const categoryBoundaries = new Map<number, SpacingBoundary>();
 	const edits: OrderSpacingEdit[] = [];
 	let containerItemCount: number | undefined;
 
 	// Outer scopes own gaps between families; descendants can only claim gaps inside a family.
 	for (const { depth, units } of [...scopes].sort((a, b) => a.depth - b.depth)) {
-		// Category runs can span several property groups or inner ranks at this same semantic depth.
-		const collectBoundaries = (source: 'policy' | 'categorySpacing', target: Map<number, SpacingBoundary>) => {
+		const collectBoundaries = (
+			target: Map<number, SpacingBoundary>,
+			getPolicy: (unit: (typeof units)[number]) => PreparedOrderSpacing,
+		) => {
 			let group: SpacingGroup | undefined;
 			for (const unit of units) {
 				const start = positions.get(unit.items[0])!;
 				const end = positions.get(unit.items.at(-1)!)! + 1;
 				const previous = group?.end === start ? group : undefined;
-				const policy = unit[source] ?? { key: unit.policy.key };
+				const policy = getPolicy(unit);
 
 				if (previous?.policy.key === policy.key) {
 					previous.end = end;
@@ -191,10 +194,14 @@ export const createOrderSpacing = (
 			if (depth === 0 && group && isContainerEnd) target.set(sorted.length, { left: group });
 		};
 
-		if (units.some((unit) => unit.categorySpacing)) {
-			collectBoundaries('categorySpacing', categoryBoundaries);
+		// A matcher and its enclosing group can span different runs of siblings.
+		if (units.some(({ policy }) => policy.member)) {
+			collectBoundaries(memberBoundaries, ({ policy }) => policy.member ?? { key: policy.key });
 		}
-		collectBoundaries('policy', boundaries);
+		if (units.some((unit) => unit.categorySpacing)) {
+			collectBoundaries(categoryBoundaries, (unit) => unit.categorySpacing ?? { key: unit.policy.key });
+		}
+		collectBoundaries(boundaries, (unit) => unit.policy);
 	}
 
 	const countItems = (scope: BlankLineItemScope, group: SpacingGroup) => {
@@ -243,7 +250,13 @@ export const createOrderSpacing = (
 		if (container.type === 'root' && (position === 0 || position === sorted.length)) continue;
 
 		const isTerminal = position === sorted.length;
-		const selected = getBoundaryPolicy(boundary) ?? getBoundaryPolicy(categoryBoundaries.get(position));
+		const member = getBoundaryPolicy(memberBoundaries.get(position));
+		const groupPolicy = getBoundaryPolicy(boundary);
+		// At an outer edge, the following group's before still wins over its neighbor's most specific after.
+		const useGroupBefore = boundary.left !== boundary.right
+			&& groupPolicy?.useFollowingPolicy && !member?.useFollowingPolicy;
+		const groupOrMember = useGroupBefore ? groupPolicy : member ?? groupPolicy;
+		const selected = groupOrMember ?? getBoundaryPolicy(categoryBoundaries.get(position));
 		if (!selected || selected.policy === 'ignore') continue;
 		const { policy, group, useFollowingPolicy } = selected;
 

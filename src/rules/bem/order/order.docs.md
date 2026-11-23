@@ -1544,6 +1544,22 @@ in the group keeps that category's internal priorities.
 
 #### Group spacing {#group-spacing}
 
+Use `blankLines` to control the gaps around a run of matching items and between its members.
+Set it on a rule, at-rule, or property matcher, on a category or named group,
+or on [unmatched items][unspecified-option] with `position` set to `'top'` or `'bottom'`.
+
+For example, to separate print styles from the other media queries inside a component,
+put the print matcher last and give it a blank line before its first match.
+
+```js
+{
+  order: [
+    'css:media',
+    { type: 'at-rule', name: 'media', parameter: 'print', blankLines: { before: 'always' } },
+  ],
+}
+```
+
 A few related custom properties read well together. When a palette grows,
 a gap can make the first property that *uses* it easier to spot. This example
 adds the gap only when there are at least two custom properties above `color`.
@@ -1591,9 +1607,8 @@ Use `after` for the end of a consecutive group and `between` for its members.
 and `'ignore'` keeps the existing gap. These policies also apply when everything
 is already in order.
 
-You can set `blankLines` on a category, a property group, a named group with
-an `order`, or [unmatched items][unspecified-option]. Set [`label`][diagnostic-labels] on a named
-or property group if you'd like the lint message to use a label such as `Layout`.
+Set [`label`][diagnostic-labels] on the matcher or group to give it a name such as
+`Print styles` in spacing diagnostics.
 
 ::: details Keep small blocks compact or let a comment separate groups
 
@@ -1643,9 +1658,10 @@ control the gap next to the brace. File-leading and file-trailing whitespace
 stays as written.
 
 A category's settings cover a run of its members even if they have different
-priorities. A more specific named group, property group, or `unspecified`
-spacing policy can decide the gap. Between whole BEM families, the parent
-decides. Each family's own settings control gaps inside it.
+priorities. A matcher, named group, or `unspecified` policy can override the category
+at a particular gap. For example, a group can keep its members together with
+`between: 'never'` while a rule matcher inside it sets `before: 'always'` for focus states.
+Between whole BEM families, the parent decides. Each family's own settings control gaps inside it.
 
 Group counts use consecutive members at that level, regardless of existing
 blank lines. For example, `width`, `height`, and `color` can count as three

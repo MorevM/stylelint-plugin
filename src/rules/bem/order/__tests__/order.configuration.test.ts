@@ -126,6 +126,9 @@ testRuleConfig({
 	}],
 
 	reject: [{
+		description: 'Rejects blank lines between branches of a selector list',
+		config: [true, { selectorList: { order: [{ type: 'rule', selector: ':hover', blankLines: { before: 'always' } }] } }],
+	}, {
 		description: 'Rejects unknown blank line modes',
 		config: [true, { groups: { layout: { properties: ['display'], blankLines: { before: 'sometimes' } } } }],
 	}, {

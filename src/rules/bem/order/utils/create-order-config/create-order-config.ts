@@ -246,7 +246,7 @@ const isCategoryMatch = (
 /**
  * Prepares spacing metadata with a stable group identity.
  *
- * @param   settings     Spacing policy from a group or category override.
+ * @param   settings     Spacing policy from a matcher, group or category.
  * @param   key          Scope identity used to recognize adjacent members of the same group.
  * @param   groupLabel   Display label inherited from the enclosing named group.
  *
@@ -255,6 +255,24 @@ const isCategoryMatch = (
 const spacing = (settings: OrderGroupSpacing | undefined, key: string, groupLabel?: string): PreparedOrderSpacing => ({
 	key, blankLines: settings?.blankLines, label: settings?.label ?? groupLabel,
 });
+
+/**
+ * Keeps the enclosing group's full run available for gaps the matcher leaves unspecified.
+ *
+ * @param   matcher   Matcher selected at this position.
+ * @param   key       Configuration path identifying consecutive matches.
+ * @param   outer     Spacing inherited at this position.
+ * @param   group     Enclosing named group, if present.
+ *
+ * @returns           Spacing for the selected matcher and its enclosing run.
+ */
+const matcherSpacing = (
+	matcher: OrderGroupSpacing | undefined, key: string, outer: PreparedOrderSpacing, group?: string,
+) => {
+	if (!matcher?.blankLines) return outer;
+	const member = spacing(matcher, key, outer.label);
+	return group ? { ...outer, member } : member;
+};
 
 /**
  * Gives unmatched siblings the same group identity for all placement shorthands.
@@ -362,12 +380,11 @@ const createOrderConfig = (options: SecondaryOption) => {
 	 */
 	const expand = (matcher: OrderMatcher, scope: string): ExpandedMatcher[][] => {
 		if (!isString(matcher) || !matcher.startsWith('group:')) {
-			const property = !isString(matcher) && 'properties' in matcher ? matcher : undefined;
-
+			const object = isString(matcher) ? undefined : matcher;
 			return [[{
 				matcher, scope,
-				sort: isString(matcher) ? undefined : matcherSorter(matcher),
-				spacing: spacing(property, scope),
+				sort: object && matcherSorter(object),
+				spacing: spacing(object, scope),
 			}]];
 		}
 
@@ -382,17 +399,21 @@ const createOrderConfig = (options: SecondaryOption) => {
 
 		const settings = 'order' in definition ? definition : { order: definition };
 		const sort = isUndefined(settings.sort) ? undefined : createOrderSorter(settings.sort);
+		const groupSpacing = spacing(settings, `groups.${group}`);
 
 		return settings.order.map((entry, index) => (isArray(entry) ? [...entry] : [entry]).map((member, memberIndex) => {
 			const memberScope = `groups.${group}.order.${index}.${memberIndex}`;
-			const property = !isString(member) && 'properties' in member ? member : undefined;
-			const memberSort = isString(member) ? undefined : matcherSorter(member);
+			const object = isString(member) ? undefined : member;
+			const property = object && 'properties' in object ? object : undefined;
+			const memberSort = object && matcherSorter(object);
 
 			return {
 				matcher: member, group,
 				scope: property || memberSort ? memberScope : `groups.${group}`,
 				sort: memberSort ?? sort,
-				spacing: property ? spacing(property, memberScope, settings.label) : spacing(settings, `groups.${group}`),
+				spacing: property
+					? spacing(property, memberScope, settings.label)
+					: matcherSpacing(object, memberScope, groupSpacing, group),
 			};
 		}));
 	};
@@ -631,7 +652,8 @@ const createOrderConfig = (options: SecondaryOption) => {
 			};
 		}
 
-		const innerSort = match && !isString(match) && 'type' in match ? matcherSorter(match) : undefined;
+		const nodeMatcher = match && !isString(match) && 'type' in match ? match : undefined;
+		const innerSort = nodeMatcher && matcherSorter(nodeMatcher);
 		const sort = inner === -1 ? undefined : innerSort ?? selected.sort ?? settings?.sort;
 		const sortScope = innerSort ? scope : selected.sort ? selected.scope : `categories.${category}`;
 		const unmatchedSpacing = inner === -1 ? settings?.unspecified.spacing : undefined;
@@ -647,7 +669,9 @@ const createOrderConfig = (options: SecondaryOption) => {
 			sortScope: sort ? `${sortScope}.sort` : undefined,
 			group: selected.group,
 			label: resolveLabel(innerLabel, outerSpacing.label ?? unmatchedSpacing?.label, categoryLabel),
-			spacing: useUnmatchedSpacing ? unmatchedSpacing : outerSpacing,
+			spacing: useUnmatchedSpacing
+				? unmatchedSpacing
+				: matcherSpacing(nodeMatcher, scope, outerSpacing, selected.group),
 			categorySpacing: categoryPolicy,
 		};
 	};

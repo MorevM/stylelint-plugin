@@ -186,7 +186,7 @@ export const sortOrderItems = (
 		categorySpacing: sibling.rank.categorySpacing,
 	}));
 	if (scopes && (scopes.spacing.length !== previousScopeCount
-		|| projection.some((unit) => unit.policy.blankLines ?? unit.categorySpacing))) {
+		|| projection.some((unit) => unit.policy.blankLines ?? unit.policy.member ?? unit.categorySpacing))) {
 		scopes.spacing.push({ depth, units: projection });
 	}
 

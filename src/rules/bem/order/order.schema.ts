@@ -104,30 +104,6 @@ const vOrderSortPreset: v.GenericSchema<OrderSortPreset> = v.union([
 
 const vOrderSort: v.GenericSchema<OrderSort> = v.union([vOrderSorter, vOrderSortPreset]);
 const vLabel = v.optional(v.string());
-const vAtRuleMatcher: v.GenericSchema<AtRuleMatcher> = v.strictObject({
-	type: v.literal('at-rule'),
-	label: vLabel,
-	name: v.optional(v.string()),
-	parameter: v.optional(vStringOrRegExpSchema),
-	hasBlock: v.optional(v.boolean()),
-	sort: v.optional(vOrderSort),
-});
-
-const vRuleSelector = v.strictObject({
-	type: v.literal('rule'),
-	selector: v.optional(vStringOrRegExpSchema),
-	relativeSelector: v.optional(vStringOrRegExpSchema),
-	label: vLabel,
-});
-const vExclusiveSelector = v.check(
-	(matcher: v.InferOutput<typeof vRuleSelector>) => (
-		isUndefined(matcher.selector) || isUndefined(matcher.relativeSelector)
-	),
-	'Use either selector or relativeSelector',
-);
-const vRuleMatcher: v.GenericSchema<RuleMatcher> = v.pipe(
-	v.strictObject({ ...vRuleSelector.entries, sort: v.optional(vOrderSort) }), vExclusiveSelector,
-);
 
 const vItemThreshold = v.pipe(v.number(), v.integer(), v.minValue(0));
 const vItemScope = v.optional(v.picklist(['container', 'group', 'previous-group', 'next-group']));
@@ -168,6 +144,33 @@ const groupSpacingEntries = {
 	blankLines: v.optional(vBlankLines),
 	label: vLabel,
 };
+
+const vAtRuleMatcher: v.GenericSchema<AtRuleMatcher> = v.strictObject({
+	type: v.literal('at-rule'),
+	name: v.optional(v.string()),
+	parameter: v.optional(vStringOrRegExpSchema),
+	hasBlock: v.optional(v.boolean()),
+	sort: v.optional(vOrderSort),
+	...groupSpacingEntries,
+});
+
+const vRuleSelector = v.strictObject({
+	type: v.literal('rule'),
+	selector: v.optional(vStringOrRegExpSchema),
+	relativeSelector: v.optional(vStringOrRegExpSchema),
+	label: vLabel,
+});
+const vExclusiveSelector = v.check(
+	(matcher: v.InferOutput<typeof vRuleSelector>) => (
+		isUndefined(matcher.selector) || isUndefined(matcher.relativeSelector)
+	),
+	'Use either selector or relativeSelector',
+);
+const vRuleMatcher: v.GenericSchema<RuleMatcher> = v.pipe(
+	v.strictObject({ ...vRuleSelector.entries, sort: v.optional(vOrderSort), blankLines: v.optional(vBlankLines) }),
+	vExclusiveSelector,
+);
+
 const vPropertyMatcher = v.union([v.pipe(v.string(), v.minLength(1)), v.instance(RegExp)]);
 const vPropertiesSequence: v.GenericSchema<PropertiesSequence> = v.pipe(vReadonly(v.array(v.union([
 	vPropertyMatcher,

@@ -42,6 +42,119 @@ testRule({
 });
 
 testRule({
+	description: 'Blank lines before print styles',
+	config: [true, {
+		root: { order: [
+			'css:media',
+			{ type: 'at-rule', name: 'media', parameter: 'print', blankLines: { before: 'always' } },
+		] },
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Adds one gap before the print queries and keeps other media queries together',
+		code: `
+			@media screen {}
+			@media (hover: hover) {}
+			@media print {}
+			@media print {}
+		`,
+		fixed: `
+			@media screen {}
+			@media (hover: hover) {}
+
+			@media print {}
+			@media print {}
+		`,
+		warnings: [{ message: messages.expectedEmptyLineBefore('@media print') }],
+	}],
+});
+
+testRule({
+	description: 'Rule matcher spacing within a named group',
+	config: [true, {
+		order: [
+			{ properties: ['display'], blankLines: { after: 'never' } },
+			'group:states',
+			'css:media',
+		],
+		groups: {
+			states: {
+				order: [
+					{ type: 'rule', relativeSelector: '&:hover' },
+					{ type: 'rule', relativeSelector: /^&:focus/u, blankLines: { before: 'always' } },
+				],
+				blankLines: { before: 'always', between: 'never', after: 'always' },
+			},
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Separates focus states while keeping group spacing at the edges and between matches',
+		code: `
+			.card {
+				display: grid;
+				&:hover {}
+				&:focus {}
+
+				&:focus-visible {}
+				@media print {}
+			}
+		`,
+		fixed: `
+			.card {
+				display: grid;
+
+				&:hover {}
+
+				&:focus {}
+				&:focus-visible {}
+
+				@media print {}
+			}
+		`,
+		warnings: [
+			{ message: messages.expectedEmptyLineBefore('&:hover') },
+			{ message: messages.expectedEmptyLineBefore('&:focus') },
+			{ message: messages.unexpectedEmptyLineBefore('&:focus-visible') },
+			{ message: messages.expectedEmptyLineAfter('&:focus-visible') },
+		],
+	}],
+});
+
+testRule({
+	description: 'Matcher spacing within a category',
+	config: [true, {
+		categories: {
+			'css:media': {
+				order: ['*', { type: 'at-rule', parameter: 'print', label: 'Print', blankLines: { between: 'always' } }],
+				blankLines: { between: 'never' },
+			},
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Separates consecutive print queries and uses category spacing for the preceding gap',
+		code: `
+			.card {
+				@media screen {}
+
+				@media print {}
+				@media print {}
+			}
+		`,
+		fixed: `
+			.card {
+				@media screen {}
+				@media print {}
+
+				@media print {}
+			}
+		`,
+		warnings: [
+			{ message: messages.unexpectedEmptyLineBefore('Print') },
+			{ message: messages.expectedEmptyLineBefore('Print') },
+		],
+	}],
+});
+
+testRule({
 	description: 'Spacing for complete modifier families',
 	config: [true, {
 		order: ['declarations', 'base', 'modifiers', 'pseudo-classes'],
