@@ -6,7 +6,7 @@ import { getOrderHeader, getOrderSelectorText } from '../get-order-header/get-or
 import { matchesSelectorSet } from '../matches-selector-set/matches-selector-set';
 import { normalizeParameters } from '../normalize-parameters/normalize-parameters';
 import { normalizeProperty } from '../normalize-property/normalize-property';
-import type { Family, OrderItem, OrderLabel, OrderRank, PreparedOrderSorter, PreparedOrderSpacing } from '../../order.internal-types';
+import type { Family, OrderItem, OrderLabel, OrderRank, PreparedOrderSorter, PreparedOrderSpacing, SelectorOrder } from '../../order.internal-types';
 import type {
 	AtRuleMatcher, CategoryMatcher, CategoryOrder, CategoryOrderOptions, CategorySequence,
 	OrderCategory, OrderGroupSpacing, OrderMatcher, OrderSequence, PropertiesGroup, RuleMatcher,
@@ -44,6 +44,7 @@ type ExpandedMatcher = {
 };
 
 const VARIABLE_PREFIX = /^(?:--|\$)/u;
+const PSEUDO_ELEMENT_STATES = 'pseudo-classes:pseudo-element';
 
 /**
  * Matches optional authored text without carrying regular-expression state between calls.
@@ -203,15 +204,17 @@ const getUnspecifiedRank = (policy: UnspecifiedOrder, length: number) => {
  *
  * @param   matcher     Category-local matcher or equal-rank matcher list.
  * @param   item        Authored unit and its selector metadata.
+ * @param   category    Category whose local conditions are being matched.
  * @param   family      Semantic sibling family, when matching a grouped unit.
  * @param   matchText   Name or normalized query parameters used by the selected category.
  *
  * @returns             Whether the unit or family belongs to this priority slot.
  */
 const isCategoryMatch = (
-	matcher: CategorySequence[number], item: OrderItem, family?: Family, matchText = item.atRuleMember?.name,
+	matcher: CategorySequence[number], item: OrderItem, category?: OrderCategory,
+	family?: Family, matchText = item.atRuleMember?.name,
 ): boolean => {
-	if (isArray(matcher)) return matcher.some((entry) => isCategoryMatch(entry, item, family, matchText));
+	if (isArray(matcher)) return matcher.some((entry) => isCategoryMatch(entry, item, category, family, matchText));
 	if (!isString(matcher) && 'properties' in matcher) return getPropertyRank(matcher, item) !== -1;
 	if (!isString(matcher) && 'selectorSet' in matcher) {
 		return !family && Boolean(item.selector && matchesSelectorSet(matcher.selectorSet, item.selector.localSelectors));
@@ -232,7 +235,8 @@ const isCategoryMatch = (
 
 	if (!isString(matcher)) return 'type' in matcher && matchesObject(matcher, item);
 	if (!family && item.selector?.isList) return false;
-	if (family?.key === matcher || item.selector?.tokens.includes(matcher)) return true;
+	const tokens = category === PSEUDO_ELEMENT_STATES ? item.selector?.pseudoElementStates : item.selector?.tokens;
+	if (family?.key === matcher || tokens?.includes(matcher)) return true;
 
 	const { node } = item;
 
@@ -446,6 +450,12 @@ const createOrderConfig = (options: SecondaryOption) => {
 	const nestedUnspecified = prepareUnspecified('unspecified', options.unspecified);
 	const rootUnspecified = prepareUnspecified('root.unspecified', options.root?.unspecified);
 
+	const getSelectorCategories = (selector: SelectorOrder, isRoot = false): OrderCategory[] => {
+		const order = isRoot ? rootOrder : nestedOrder;
+		if (!selector.pseudoElementStates || !order.matchers.has(PSEUDO_ELEMENT_STATES)) return selector.categories;
+		return selector.categories.map((category) => (category === 'pseudo-classes' ? PSEUDO_ELEMENT_STATES : category));
+	};
+
 	const categoryOrders = new Map<OrderCategory, NonNullable<ReturnType<typeof prepareCategoryOrder>>>();
 	const categorySpacing = new Map<OrderCategory, PreparedOrderSpacing>();
 	const categoryLabels = new Map<OrderCategory, string>();
@@ -473,6 +483,23 @@ const createOrderConfig = (options: SecondaryOption) => {
 		categoryOrders.set(category, prepared);
 	}
 
+	// The subtype keeps its own rank even when it inherits a policy from the parent category.
+	const inheritPseudoClassPolicy = <T>(policies: Map<OrderCategory, T>) => {
+		const shared = policies.get('pseudo-classes');
+		if (!isUndefined(shared) && !policies.has(PSEUDO_ELEMENT_STATES)) {
+			policies.set(PSEUDO_ELEMENT_STATES, shared);
+		}
+	};
+	inheritPseudoClassPolicy(categoryOrders);
+	inheritPseudoClassPolicy(categorySpacing);
+	inheritPseudoClassPolicy(categoryLabels);
+
+	const stateOverride = overrides[PSEUDO_ELEMENT_STATES];
+	if (stateOverride && ('sort' in stateOverride || 'unspecified' in stateOverride) && isUndefined(stateOverride.order)) {
+		const shared = categoryOrders.get('pseudo-classes');
+		if (shared) categoryOrders.get(PSEUDO_ELEMENT_STATES)!.order = shared.order;
+	}
+
 	/**
 	 * Resolves outer, category-local and property-member priorities for one sorting unit.
 	 *
@@ -486,9 +513,11 @@ const createOrderConfig = (options: SecondaryOption) => {
 	const getRank = (item: OrderItem, family?: Family, canMatchObjects = true, isRoot = false): OrderRank => {
 		const { slots: order, matchers, findObject } = isRoot ? rootOrder : nestedOrder;
 		const { node } = item;
+		const selector = family ? undefined : item.selector;
+		const selectorCategories = selector && getSelectorCategories(selector, isRoot);
 		const categories: OrderCategory[] = (() => {
 			if (family) return [family.category, 'rules'];
-			if (node.type === 'rule') return [...(item.selector?.categories ?? []), 'rules'];
+			if (node.type === 'rule') return [...(selectorCategories ?? []), 'rules'];
 			if (node.type === 'atrule') return ['at-rules'];
 			if (node.type !== 'decl') return [];
 			if (node.prop.startsWith('$')) return ['sass:variables'];
@@ -499,18 +528,19 @@ const createOrderConfig = (options: SecondaryOption) => {
 		const object = canMatchObjects ? findObject(item) : undefined;
 		let selected = object?.entry;
 		let rank = object?.rank ?? -1;
-		const selector = family ? undefined : item.selector;
 		const isPlaceholder = categories[0] === 'sass:placeholders';
+		const hasSpecificCategory = node.type === 'atrule' || isPlaceholder || Boolean(selector?.isList)
+			|| Boolean(selectorCategories?.includes(PSEUDO_ELEMENT_STATES));
 		let specificCategories = item.atRuleMember
 			? [item.atRuleMember.category]
-			: selector && (node.type === 'atrule' || selector.isList || isPlaceholder) ? selector.categories : undefined;
-		if (selector?.categories.includes('qualifiers') && matchers.has('qualifiers')) {
-			const hasNarrowQualifier = selector.categories.some((candidate) => {
+			: hasSpecificCategory ? selectorCategories : undefined;
+		if (selectorCategories?.includes('qualifiers') && matchers.has('qualifiers')) {
+			const hasNarrowQualifier = selectorCategories.some((candidate) => {
 				return candidate.startsWith('qualifiers:') && matchers.has(candidate);
 			});
 			specificCategories = hasNarrowQualifier
-				? selector.categories.filter((candidate) => candidate !== 'qualifiers')
-				: selector.categories;
+				? selectorCategories.filter((candidate) => candidate !== 'qualifiers')
+				: selectorCategories;
 		}
 		let category: OrderCategory = selector?.isList && !isPlaceholder ? 'rules' : categories[0];
 		if (rank === -1 || specificCategories) {
@@ -582,9 +612,10 @@ const createOrderConfig = (options: SecondaryOption) => {
 		const matchText = isQueryCategory(category) && node.type === 'atrule' && categoryOrder !== REMAINDER
 			? normalizeParameters(node.params)
 			: item.atRuleMember?.name;
-		const inner = findOrderRank(categoryOrder, (matcher) => isCategoryMatch(matcher, item, family, matchText));
+		const isMatch = (entry: CategorySequence[number]) => isCategoryMatch(entry, item, category, family, matchText);
+		const inner = findOrderRank(categoryOrder, isMatch);
 		const slot = categoryOrder[inner];
-		const matchIndex = isArray(slot) ? slot.findIndex((entry) => isCategoryMatch(entry, item, family, matchText)) : 0;
+		const matchIndex = isArray(slot) ? slot.findIndex(isMatch) : 0;
 		const match = isArray(slot) ? slot[matchIndex] : slot;
 
 		const innerLabel = match && !isString(match) && !isRegExp(match) ? match.label : undefined;
@@ -632,7 +663,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 		return categoryOrders.get(category)?.order ?? DEFAULT_CATEGORY_ORDERS[category] ?? REMAINDER;
 	};
 
-	return { getRank, getCategoryOrder };
+	return { getRank, getCategoryOrder, getSelectorCategories };
 };
 
 export { createOrderConfig, findOrderRank, isCategoryMatch };

@@ -1,5 +1,9 @@
 import type { CategorySequence, OrderSequence } from './order.types';
 
+const PSEUDO_CLASS_ORDER = Object.freeze([
+	':link', ':visited', ':hover', Object.freeze([':focus', ':focus-visible']), ':active', '*',
+]);
+
 export const DEFAULT_ROOT_ORDER: OrderSequence = [
 	[
 		'sass:variables',
@@ -30,6 +34,7 @@ export const DEFAULT_ORDER: OrderSequence = [
 	'at-rules',
 	'qualifiers:type',
 	'pseudo-classes',
+	'pseudo-classes:pseudo-element',
 	'modifiers',
 	'qualifiers:class',
 	'qualifiers:attribute',
@@ -42,9 +47,8 @@ export const DEFAULT_ORDER: OrderSequence = [
 ];
 
 export const DEFAULT_CATEGORY_ORDERS: Readonly<Record<string, CategorySequence>> = {
-	'pseudo-classes': Object.freeze([
-		':link', ':visited', ':hover', Object.freeze([':focus', ':focus-visible']), ':active', '*',
-	]),
+	'pseudo-classes': PSEUDO_CLASS_ORDER,
+	'pseudo-classes:pseudo-element': PSEUDO_CLASS_ORDER,
 	'pseudo-elements': Object.freeze(['::marker', '::before', '::after', '*']),
 };
 

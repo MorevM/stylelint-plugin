@@ -34,6 +34,7 @@ export type OrderCategory =
 	| 'rules'
 	| 'base'
 	| 'pseudo-classes'
+	| 'pseudo-classes:pseudo-element'
 	| 'qualifiers'
 	| 'qualifiers:class'
 	| 'qualifiers:attribute'

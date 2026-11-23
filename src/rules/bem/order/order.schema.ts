@@ -52,6 +52,7 @@ const vOrderCategory = v.picklist([
 	'rules',
 	'base',
 	'pseudo-classes',
+	'pseudo-classes:pseudo-element',
 	'qualifiers',
 	'qualifiers:class',
 	'qualifiers:attribute',

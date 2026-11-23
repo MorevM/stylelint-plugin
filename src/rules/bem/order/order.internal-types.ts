@@ -147,6 +147,12 @@ export type SelectorOrder = {
 	tokens: string[];
 
 	/**
+	 * States attached to the final pseudo-element. A list qualifies only when every branch does.
+	 * Lists expose no individual state tokens for whole-rule matching.
+	 */
+	pseudoElementStates?: string[];
+
+	/**
 	 * Distinct normalized local branches, retaining pseudo-element boundaries for selector-set matching.
 	 */
 	localSelectors: string[];

@@ -275,9 +275,11 @@ An `order` array replaces the default sequence for its scope.
       'at-rules',
       // Keep styles for a specific tag together, including its states.
       'qualifiers:type',
-      // List shared states like :hover and :focus...
+      // List states on the originating element first.
       'pseudo-classes',
-      // ...then show the variants named by BEM modifiers.
+      // Then list states on the pseudo-element itself.
+      'pseudo-classes:pseudo-element',
+      // Follow states with the variants named by BEM modifiers.
       'modifiers',
       // Look for extra classes on the same node first...
       'qualifiers:class',
@@ -321,7 +323,8 @@ An `order` array replaces the default sequence for its scope.
 }
 ```
 
-Every other category uses `['*']`,
+`pseudo-classes:pseudo-element` inherits the `pseudo-classes` order.
+Every other category without a listed order uses `['*']`,
 so items with the same priority keep their original order.
 
 :::
@@ -625,7 +628,17 @@ Built-in categories are the simplest way to refer to parts of a stylesheet by na
     <tr>
       <td><code>pseudo-classes</code></td>
       <td>
-        <code>.card:hover {}</code>
+        <code>.card:hover {}</code>, <code>.card:hover::before {}</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>pseudo-classes:pseudo-element</code></td>
+      <td>
+        <code>.card::before:hover {}</code>, <code>.card:hover::before:active {}</code><br />
+        <small>
+          Use this category to give states on the pseudo-element their own position.
+          See <a href="#pseudo-element-variants">Pseudo-element variants</a>.
+        </small>
       </td>
     </tr>
     <tr>
@@ -1237,23 +1250,38 @@ If none matches, the item follows [`unspecified`][unspecified-option].
 
 #### Pseudo-element variants {#pseudo-element-variants}
 
-If you're looking for the hover effect on a card's `::before`, you'll find it
-next to the `::before` it changes. Here's how that looks with the defaults.
+Each pseudo-element forms a family within its BEM entity.
+Both `&:hover::before` and `&::before:hover` belong to the `::before` family.
+By default, states on the originating element come before states on the pseudo-element.
+Within each group, `:hover` comes before `:active`.
 
 ```scss
 .card {
   &:hover {}
   &::before {}
   &:hover::before {}
+  &:active::before {}
+  &::before:hover {}
+  &::before:active {}
   &::after {}
   &:hover::after {}
 }
 ```
 
 Set `categories['pseudo-elements']` to move a whole pseudo-element family.
-Set `categories['pseudo-classes']` to order states inside it. The position of
-the pseudo-element matters. `&:hover::before` and `&::before:hover` describe
-different conditions.
+To put states on the pseudo-element first instead, swap the two state categories in `order`.
+
+```js
+{
+  order: ['base', 'pseudo-classes:pseudo-element', 'pseudo-classes', '*'],
+}
+```
+
+To group both kinds of states together, include only `pseudo-classes` in your custom `order`.
+Both use the state order from `categories['pseudo-classes']` unless you give
+`categories['pseudo-classes:pseudo-element']` its own order.
+In a mixed selector such as `&:hover::before:active`, `:active` determines the rank
+within the pseudo-element states.
 
 ### `root`
 

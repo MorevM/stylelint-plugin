@@ -5,7 +5,7 @@ import { resolveOrderSelector } from '../resolve-order-selector/resolve-order-se
 import type { Rule } from 'postcss';
 import type { Separators } from '#modules/shared';
 import type { OrderItem } from '../../order.internal-types';
-import type { CategorySequence, SelectorListOrder } from '../../order.types';
+import type { CategorySequence, OrderCategory, SelectorListOrder } from '../../order.types';
 import type { createOrderConfig } from '../create-order-config/create-order-config';
 
 /**
@@ -48,15 +48,17 @@ export const sortSelectorList = (
 	const shouldInherit = options.order === 'inherit'
 		|| (options.order === undefined && options.sort === undefined);
 	let order: CategorySequence = options.order && options.order !== 'inherit' ? options.order : ['*'];
+	let category: OrderCategory | undefined;
 
 	if (shouldInherit) {
 		const first = branches[0].selector;
 		if (!first?.path.length || first.isList) return undefined;
-		const { category } = config.getRank(branches[0].item);
+		category = config.getRank(branches[0].item).category;
+		const categories = config.getSelectorCategories(first);
 		if (branches.some(({ selector, item }) => {
 			if (!selector || selector.isList || !deepEqual(selector.path, first.path)) return true;
 			if (category === 'qualifiers') return config.getRank(item).category !== category;
-			return !deepEqual(selector.categories, first.categories);
+			return !deepEqual(config.getSelectorCategories(selector), categories);
 		})) {
 			return undefined;
 		}
@@ -67,7 +69,7 @@ export const sortSelectorList = (
 		let label: string | undefined;
 		const rank = findOrderRank(order, (entry) => {
 			const match = (isArray(entry) ? entry : [entry]).find((matcher) => {
-				return (isString(matcher) && matcher === branch.name) || isCategoryMatch(matcher, branch.item);
+				return (isString(matcher) && matcher === branch.name) || isCategoryMatch(matcher, branch.item, category);
 			});
 			if (match === undefined) return false;
 			if (!isString(match) && 'label' in match) label = match.label;

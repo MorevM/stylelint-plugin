@@ -98,6 +98,9 @@ const resolveBranch = (
 
 	const localNodes = target.filter((part) => !(part.type === 'class' && subjectClasses.has(part.value)));
 	const conditions = localNodes.filter((part) => !isPseudoElementNode(part));
+	const lastPseudoElement = pseudoElements.at(-1);
+	const pseudoElementStates = lastPseudoElement && target.slice(target.indexOf(lastPseudoElement) + 1)
+		.flatMap((part) => (part.type === 'pseudo' ? [part.value, part.toString()] : []));
 	const categories: OrderCategory[] = [];
 	if (!conditions.length) categories.push('base');
 	if (conditions.some((part) => part.type === 'pseudo')) categories.push('pseudo-classes');
@@ -120,6 +123,7 @@ const resolveBranch = (
 		path,
 		categories,
 		tokens: conditions.flatMap((part) => (part.type === 'pseudo' ? [part.value, part.toString()] : [part.toString()])),
+		pseudoElementStates: pseudoElementStates?.length ? pseudoElementStates : undefined,
 		localSelectors: [isEmpty(localNodes)
 			? ''
 			: normalizeLocalSelector(selectorNodesToString(localNodes)) ?? canonicalSelector(localNodes)],
@@ -184,6 +188,7 @@ const resolveOrderSelector = (
 		...first,
 		categories: categories.toSorted(),
 		tokens: [],
+		pseudoElementStates: selectors.every((selector) => selector!.pseudoElementStates) ? [] : undefined,
 		isList: true,
 		localSelectors: arrayUnique(selectors.flatMap((selector) => selector!.localSelectors)),
 		relativeSelector: selectors.map((selector) => selector!.relativeSelector).join(','),
