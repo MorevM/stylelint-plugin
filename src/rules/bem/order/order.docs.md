@@ -270,6 +270,9 @@ An `order` array replaces the default sequence for its scope.
       ['sass:placeholders', 'rules'],
     ],
 
+    // Name sets of matchers to reuse as `group:name` in either order.
+    groups: {},
+
     // Set the order inside a category wherever that category is used.
     categories: {
       // A pressed link can also be hovered, so put :active after :hover.
@@ -283,9 +286,6 @@ An `order` array replaces the default sequence for its scope.
       // A list item's ::marker comes before its ::before in the element tree.
       'pseudo-elements': ['::marker', '::before', '::after', '*'],
     },
-
-    // Name sets of matchers to reuse as `group:name` in either order.
-    groups: {},
 
     // If you omit 'at-rules' from `order`, a nested @supports goes last.
     unspecified: 'bottom',
@@ -440,10 +440,7 @@ A **BEM family** is a group of selectors for the same block, element, or modifie
 .card__title:hover {}  // This state stays with the title.
 ```
 
-
-<!-- TODO: Не забыть вставить ссылки, уточнить полный ли список -->
-
-Inside `order`, you can reference built-in categories, your custom groups, or a plain rules via an object form.
+In `order`, you can reference [built-in categories] and [named groups] or write [object matchers] directly.
 
 ---
 
@@ -745,12 +742,11 @@ The categories in `order` define the overall structure of your styles.
 Move `pseudo-classes` in `order` to place the whole category before modifiers or after queries.
 To put `:focus-visible` before `:hover` within that category, use [`categories`][categories-option].
 Items left out of `order` follow [`unspecified`][unspecified-option].
-Use [`blankLines`][group spacing] to control blank lines around a group and between its items.
 :::
 
 ---
 
-#### Custom categories
+#### Named groups
 
 You can define a named group when you want related rules to have their own place in `order`.
 For example, you might keep native and class-based validation states together,
@@ -1314,6 +1310,83 @@ Both `&:hover::before` and `&::before:hover` belong to the `::before` family.
 
 ---
 
+### `groups`
+
+`groups` defines named sequences of built-in categories and matchers.
+
+[Built-in categories] describe the structure of a document in terms of entity types. \
+We may also want to order items by **the semantic role** they play in our project.
+
+For example, we might use [custom media queries](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@custom-media)
+and want them to appear in a specific order. Or our convention might be to use a custom mixin for media queries
+while still allowing plain media queries. In that case, we want to control which set comes first and how queries are sorted within each set.
+
+We can list all these entries directly in `order`, but the configuration can get quite verbose.
+When we change it or explain our conventions to someone else, it can be hard to see why we chose this order.
+
+::: details Media query order without groups
+
+```ts{5-8,13,15}
+{
+  order: [
+    'declarations',
+    // Custom media queries
+    { type: 'at-rule', name: 'media', parameter: '(--phone-small)' },
+    { type: 'at-rule', name: 'media', parameter: '(--phone-medium)' },
+    { type: 'at-rule', name: 'media', parameter: '(--phone-large)' },
+    { type: 'at-rule', name: 'media', parameter: '(--tablet-small)' },
+    // ...
+    // ...and many, many more items
+
+    // @include layout.from('tablet-small')
+    { type: 'at-rule', name: 'include', parameter: /^layout\.from\(/u },
+    // Other media queries
+    'css:media',
+  ],
+}
+```
+
+:::
+
+To address this, we can define groups with their own internal order and configure
+[sorting] within each group and [blank lines][blank-lines] around it. \
+Use the `group:` prefix to reference a group in `order` or `root.order`.
+
+```ts{5,6,9,13,21}
+{
+  // This makes it easy to see the reasoning behind the overall order.
+  order: [
+    'declarations',
+    'group:custom-media-queries',
+    'group:other-media-queries',
+  ],
+
+  groups: {
+    // A group can be an array, just like `order`.
+    // It can contain built-in categories, matcher objects,
+    // and equal-priority arrays.
+    'custom-media-queries': [
+      { type: 'at-rule', name: 'media', parameter: '(--phone-small)' },
+      { type: 'at-rule', name: 'media', parameter: '(--phone-medium)' },
+      { type: 'at-rule', name: 'media', parameter: '(--phone-large)' },
+      { type: 'at-rule', name: 'media', parameter: '(--tablet-small)' },
+    ],
+    // Or it can be an object if we need
+    // to set rules for sorting or blank lines.
+    'other-media-queries': {
+      order: [
+        { type: 'at-rule', name: 'include', parameter: /^layout\.from\(/u },
+        'css:media',
+      ],
+      sort: { by: 'dimension', direction: 'asc' },
+      blankLines: { before: 'always' },
+    },
+  },
+}
+```
+
+---
+
 ### `categories`
 
 Say you like where the states appear, but you always look for `:focus-visible`
@@ -1351,7 +1424,7 @@ focus, and active states. The function receives the default list, including its
 nested arrays, once per stylesheet.
 
 Use the object form when you also want to [sort ties][sorting-presets],
-[place unmatched items][unspecified-option], or [add blank lines][group spacing].
+[place unmatched items][unspecified-option], or [add blank lines][blank-lines].
 Here the elements of each block are sorted by name. Each run of container queries
 starts with a blank line, with no empty lines between queries. Setting only
 `blankLines` keeps the existing query order.
@@ -1477,262 +1550,6 @@ once toward `size` and keep their original spelling.
 
 :::
 
-### `groups`
-
-Suppose you use a `@include layout.from(...)` mixin alongside plain `@media`
-queries. You want both in the same part of a file, and the same convention
-inside each component. Give that set a name and list it in both orders.
-
-```js
-{
-  root: { order: ['rules', 'group:breakpoints'] },
-  order: ['declarations', 'pseudo-classes', 'group:breakpoints'],
-  groups: {
-    breakpoints: [
-      { type: 'at-rule', name: 'include', parameter: /^layout\.from\(/u },
-      { type: 'at-rule', name: 'media' },
-    ],
-  },
-}
-```
-
-Here the breakpoint mixins come first, then the media queries. A group keeps
-the order you wrote inside it. You can use categories, matcher objects, and
-equal-priority arrays in its definition. Reference it from `order` or `root.order`.
-Keep each definition self-contained. Group references and a standalone `'*'`
-belong in the outer order.
-
-#### Group sorting {#named-group-sorting}
-
-What if `@include layout.from(960px)` should come *after* `@media (width >= 640px)`?
-Put both matchers in the same nested array and give the group a dimension sorter.
-
-::: code-group
-
-```js [Configuration]
-{
-  order: ['declarations', 'group:breakpoints'],
-  groups: {
-    breakpoints: {
-      order: [[
-        { type: 'at-rule', name: 'include', parameter: /^layout\.from\(/u },
-        { type: 'at-rule', name: 'media' },
-      ]],
-      sort: { by: 'dimension' },
-    },
-  },
-}
-```
-
-```scss [Result]
-.card {
-  display: grid;
-  @media (width >= 640px) {}
-  @include layout.from(960px) {}
-}
-```
-
-:::
-
-With separate entries the sorter works **within** each priority, so all matching
-includes still come before all media queries. You can also give a whole group
-one priority where you use it, with `['group:breakpoints']` nested in the outer
-order. A group's `sort` applies to its equal-priority members and accepts the
-same [presets][sorting-presets] and [callbacks][custom-sorting]. An explicit
-matcher can supply its own sorter. Listing a category such as `'css:media'`
-in the group keeps that category's internal priorities.
-
-#### Group spacing {#group-spacing}
-
-Use `blankLines` to control the gaps around a run of matching items and between its members.
-Set it on a rule, at-rule, or property matcher, on a category or named group,
-or on [unmatched items][unspecified-option] with `position` set to `'top'` or `'bottom'`.
-
-For example, to separate print styles from the other media queries inside a component,
-put the print matcher last and give it a blank line before its first match.
-
-```js
-{
-  order: [
-    'css:media',
-    { type: 'at-rule', name: 'media', parameter: 'print', blankLines: { before: 'always' } },
-  ],
-}
-```
-
-A few related custom properties read well together. When a palette grows,
-a gap can make the first property that *uses* it easier to spot. This example
-adds the gap only when there are at least two custom properties above `color`.
-
-::: code-group
-
-```js [Configuration]
-{
-  order: [
-    'custom-properties',
-    {
-      properties: ['color'],
-      blankLines: {
-        before: {
-          rules: [{
-            when: { minItems: 2, scope: 'previous-group' },
-            mode: 'always',
-          }],
-        },
-      },
-    },
-  ],
-}
-```
-
-```scss [Result]
-.badge {
-  --text: red;
-  color: var(--text);
-}
-
-.card {
-  --text: red;
-  --surface: white;
-
-  color: var(--text);
-}
-```
-
-:::
-
-For an unconditional gap, just use `blankLines: { before: 'always' }`.
-Use `after` for the end of a consecutive group and `between` for its members.
-`'always'` requires at least one empty line, `'never'` removes empty lines,
-and `'ignore'` keeps the existing gap. These policies also apply when everything
-is already in order.
-
-Set [`label`][diagnostic-labels] on the matcher or group to give it a name such as
-`Print styles` in spacing diagnostics.
-
-::: details Keep small blocks compact or let a comment separate groups
-
-Use `{ rules, default }` for any of the three gaps. The first matching rule wins.
-When none matches, the default is `'ignore'` unless you set it explicitly.
-For example, this policy leaves a small block alone, accepts a standalone
-comment as a separator, and otherwise requires a blank line.
-
-```js
-{
-  before: {
-    default: 'always',
-    rules: [
-      { when: 'first-nested', mode: 'never' },
-      { when: { maxItems: 4, scope: 'container' }, mode: 'ignore' },
-      { when: 'separated-by-comment', mode: 'ignore' },
-    ],
-  },
-}
-```
-
-- `first-nested` and `last-nested` test the item's position inside the
-  final block. `inside-single-line-block` checks whether the whole block
-  still fits on one line after the rule applies its changes.
-- `separated-by-comment` matches a leading comment on its own line.
-  A comment at the end of a declaration stays with that declaration.
-  A comment directly above the next one follows it. Any required gap goes
-  between those two, so it doesn't detach either comment.
-- `minItems` and `maxItems` include the stated count. The default `scope` is
-  `'group'`. Use `'container'` for all direct items, or `'previous-group'` and
-  `'next-group'` for the neighboring runs in the final order. Counts skip
-  comments and the contents of nested blocks. An absent neighbor never matches,
-  even for `maxItems`.
-- Combine conditions with `{ any: [...] }`, `{ all: [...] }`, or
-  `{ not: condition }`. Counts take nonnegative integers. Give each `rules`,
-  `any`, or `all` list at least one entry.
-
-:::
-
-::: details When two settings describe the same gap
-
-Between two groups, `before` on the following group wins over `after` on the
-preceding one. This also applies when `before` resolves to `'ignore'`.
-Leave `before` out to let the preceding group decide. Inside one group, use
-`between`. At the start or end of a nested block, `before` and `after` can
-control the gap next to the brace. File-leading and file-trailing whitespace
-stays as written.
-
-A category's settings cover a run of its members even if they have different
-priorities. A matcher, named group, or `unspecified` policy can override the category
-at a particular gap. For example, a group can keep its members together with
-`between: 'never'` while a rule matcher inside it sets `before: 'always'` for focus states.
-Between whole BEM families, the parent decides. Each family's own settings control gaps inside it.
-
-Group counts use consecutive members at that level, regardless of existing
-blank lines. For example, `width`, `height`, and `color` can count as three
-declarations. Giving just `width` and `height` a property group makes that
-group count as two. A container count includes its direct items on both
-sides of a sorting boundary.
-
-If a gap expands a nested block, that block and its ancestors count as
-multiline. A policy that requires a gap *only* while the block is on one line
-can invalidate its own result. The rule reports that configuration.
-
-:::
-
-#### Property dependencies {#property-names-and-cascade}
-
-The order of `margin` and `margin-top` can change what you see on screen.
-An alphabetical sorter keeps their relative order in both of these rules.
-
-```scss
-.card {
-  margin: 32px;
-  margin-top: 16px;
-}
-
-.badge {
-  margin-top: 16px;
-  margin: 32px;
-}
-```
-
-Other independent properties can still move around the pair. If explicit
-priorities or a callback require the pair to switch places, the rule reports
-the conflict and skips the ordering and spacing fixes in that region.
-Other regions can still be fixed.
-
-::: details Which property names and relationships does the rule recognize?
-
-Ordinary property names are compared in lowercase, without known vendor
-prefixes (`-webkit-`, `-moz-`, `-ms-`, `-o-`, `-khtml-`, and `-epub-`).
-A group for `gap` also matches `grid-gap`. The other recognized aliases are
-`grid-row-gap` for `row-gap`, `grid-column-gap` for `column-gap`,
-`word-wrap` for `overflow-wrap`, and `font-stretch` for `font-width`.
-Legacy properties that need a value translation, such as `page-break-before`,
-keep their own names. The rule preserves the authored names and values.
-
-Known dependencies include repeated properties, fallbacks, prefixed variants,
-shorthands and their longhands, and resets such as `border` resetting
-`border-image`. Logical and physical properties can overlap depending on the
-writing mode. `all` also constrains ordinary properties except `direction`
-and `unicode-bidi`. The rule preserves the source order of dependent pairs,
-including a prefixed and an unprefixed version of the same property.
-
-:::
-
-::: warning Review changes across nested selectors
-These checks compare declarations inside the same container. A nested `&` can
-target the same card from a second container.
-
-```scss
-.card {
-  color: red;
-  & { color: blue; }
-  color: green;
-}
-```
-
-The card is green as written. Moving the last declaration above `&` makes it
-blue. Autofix can make that move. Review the diff when nested selectors style
-the same element, or when a mixin supplies styles that a later rule overrides.
-:::
-
 ### `unspecified`
 
 Suppose you only care that `display` comes before `position`. What should
@@ -1800,7 +1617,7 @@ Here the size variables are alphabetical. After `--theme`, the remaining
 variables are alphabetical too. To keep those in source order with a blank
 line before them, drop the star and set
 `unspecified: { position: 'bottom', blankLines: { before: 'always' } }`.
-You can use this object form for `'top'` or `'bottom'` at any of the three levels.
+You can set [`blankLines`][blank-lines] this way for `'top'` or `'bottom'` at any of the three levels.
 
 ### `root`
 
@@ -1933,6 +1750,36 @@ accept a built-in preset or a custom sorter. Items placed by
 [`unspecified`][unspecified-option] keep their source order. To include the
 remaining members in a category's sort, give them a priority with `'*'`.
 
+::: details Sort breakpoint mixins and media queries together
+
+Give the two matchers equal priority in a [named group][groups-option] to sort
+all their matches by width.
+
+```js
+{
+  order: ['declarations', 'group:media-queries'],
+  groups: {
+    'media-queries': {
+      order: [[
+        { type: 'at-rule', name: 'include', parameter: /^layout\.from\(/u },
+        { type: 'at-rule', name: 'media' },
+      ]],
+      sort: { by: 'dimension' },
+    },
+  },
+}
+```
+
+Here `@media (width >= 640px)` comes before `@include layout.from(960px)`
+even when the mixin is written first. With separate priorities, all matching
+mixins would come first and each set would be sorted by width independently.
+
+To give every entry in a group the same outer priority, wrap its reference
+where you use it, as in `order: ['declarations', ['group:media-queries']]`.
+A matcher with its own `sort` uses that sorter in place of the group's.
+
+:::
+
 ### Sorting presets {#sorting-presets}
 
 Alphabetize element names with `elements: { sort: { by: 'name' } }`.
@@ -2043,6 +1890,139 @@ For a TypeScript config, the package exports `OrderSorter`, `OrderSortContext`,
 
 :::
 
+## Blank lines {#group-spacing}
+
+Use `blankLines` to control the gaps around a run of matching items and between its members.
+Set it on a rule, at-rule, or property matcher, on a category or named group,
+or on [unmatched items][unspecified-option] with `position` set to `'top'` or `'bottom'`.
+
+For example, to separate print styles from the other media queries inside a component,
+put the print matcher last and give it a blank line before its first match.
+
+```js
+{
+  order: [
+    'css:media',
+    { type: 'at-rule', name: 'media', parameter: 'print', blankLines: { before: 'always' } },
+  ],
+}
+```
+
+A few related custom properties read well together. When a palette grows,
+a gap can make the first property that *uses* it easier to spot. This example
+adds the gap only when there are at least two custom properties above `color`.
+
+::: code-group
+
+```js [Configuration]
+{
+  order: [
+    'custom-properties',
+    {
+      properties: ['color'],
+      blankLines: {
+        before: {
+          rules: [{
+            when: { minItems: 2, scope: 'previous-group' },
+            mode: 'always',
+          }],
+        },
+      },
+    },
+  ],
+}
+```
+
+```scss [Result]
+.badge {
+  --text: red;
+  color: var(--text);
+}
+
+.card {
+  --text: red;
+  --surface: white;
+
+  color: var(--text);
+}
+```
+
+:::
+
+For an unconditional gap, just use `blankLines: { before: 'always' }`.
+Use `after` for the end of a consecutive group and `between` for its members.
+`'always'` requires at least one empty line, `'never'` removes empty lines,
+and `'ignore'` keeps the existing gap. These policies also apply when everything
+is already in order.
+
+Set [`label`][diagnostic-labels] on the matcher or group to give it a name such as
+`Print styles` in spacing diagnostics.
+
+::: details Keep small blocks compact or let a comment separate groups
+
+Use `{ rules, default }` for any of the three gaps. The first matching rule wins.
+When none matches, the default is `'ignore'` unless you set it explicitly.
+For example, this policy leaves a small block alone, accepts a standalone
+comment as a separator, and otherwise requires a blank line.
+
+```js
+{
+  before: {
+    default: 'always',
+    rules: [
+      { when: 'first-nested', mode: 'never' },
+      { when: { maxItems: 4, scope: 'container' }, mode: 'ignore' },
+      { when: 'separated-by-comment', mode: 'ignore' },
+    ],
+  },
+}
+```
+
+- `first-nested` and `last-nested` test the item's position inside the
+  final block. `inside-single-line-block` checks whether the whole block
+  still fits on one line after the rule applies its changes.
+- `separated-by-comment` matches a leading comment on its own line.
+  A comment at the end of a declaration stays with that declaration.
+  A comment directly above the next one follows it. Any required gap goes
+  between those two, so it doesn't detach either comment.
+- `minItems` and `maxItems` include the stated count. The default `scope` is
+  `'group'`. Use `'container'` for all direct items, or `'previous-group'` and
+  `'next-group'` for the neighboring runs in the final order. Counts skip
+  comments and the contents of nested blocks. An absent neighbor never matches,
+  even for `maxItems`.
+- Combine conditions with `{ any: [...] }`, `{ all: [...] }`, or
+  `{ not: condition }`. Counts take nonnegative integers. Give each `rules`,
+  `any`, or `all` list at least one entry.
+
+:::
+
+::: details When two settings describe the same gap
+
+Between two groups, `before` on the following group wins over `after` on the
+preceding one. This also applies when `before` resolves to `'ignore'`.
+Leave `before` out to let the preceding group decide. Inside one group, use
+`between`. At the start or end of a nested block, `before` and `after` can
+control the gap next to the brace. File-leading and file-trailing whitespace
+stays as written.
+
+A category's settings cover a run of its members even if they have different
+priorities. A matcher, named group, or `unspecified` policy can override the category
+at a particular gap. For example, a group can keep its members together with
+`between: 'never'` while a rule matcher inside it sets `before: 'always'` for focus states.
+Between whole BEM families, the parent decides. Each family's own settings control gaps inside it.
+
+Group counts use consecutive members at that level, regardless of existing
+blank lines. For example, `width`, `height`, and `color` can count as three
+declarations. Giving just `width` and `height` a property group makes that
+group count as two. A container count includes its direct items on both
+sides of a sorting boundary.
+
+If a gap expands a nested block, that block and its ancestors count as
+multiline. A policy that requires a gap *only* while the block is on one line
+can invalidate its own result. The rule reports that configuration.
+
+:::
+
 ## Diagnostics
 
 An ordering warning points to the first item in a consecutive run that needs to
@@ -2086,7 +2066,7 @@ takes precedence over its group's or category's label. Without a label,
 Stylelint uses the source text. When labels repeat, the warning can include a
 value or source location to help you find the right item.
 
-In [spacing messages][group spacing], a label on the group that requests the
+In [spacing messages][blank-lines], a label on the group that requests the
 blank line names that group. Selector-list and cascade warnings keep the
 authored selectors and property names alongside their labels.
 
@@ -2121,7 +2101,7 @@ stays inside it. A standalone section comment works like a divider, too.
 The blank line **after** the comment makes it a section divider. Remove that
 line and the comment belongs to the media query and travels with it. A comment
 at the end of a line follows the preceding item. Existing gaps are otherwise
-preserved unless you set [`blankLines`][group spacing].
+preserved unless you set [`blankLines`][blank-lines].
 
 ::: details Why did this rule stay in place?
 
@@ -2158,19 +2138,80 @@ preserved unless you set [`blankLines`][group spacing].
 Autofix aims to move as few source items as possible, then as few consecutive
 runs as possible.
 
+### Property dependencies {#property-names-and-cascade}
+
+The order of `margin` and `margin-top` can change what you see on screen.
+An alphabetical sorter keeps their relative order in both of these rules.
+
+```scss
+.card {
+  margin: 32px;
+  margin-top: 16px;
+}
+
+.badge {
+  margin-top: 16px;
+  margin: 32px;
+}
+```
+
+Other independent properties can still move around the pair. If explicit
+priorities or a callback require the pair to switch places, the rule reports
+the conflict and skips the ordering and spacing fixes in that region.
+Other regions can still be fixed.
+
+::: details Which property names and relationships does the rule recognize?
+
+Ordinary property names are compared in lowercase, without known vendor
+prefixes (`-webkit-`, `-moz-`, `-ms-`, `-o-`, `-khtml-`, and `-epub-`).
+A group for `gap` also matches `grid-gap`. The other recognized aliases are
+`grid-row-gap` for `row-gap`, `grid-column-gap` for `column-gap`,
+`word-wrap` for `overflow-wrap`, and `font-stretch` for `font-width`.
+Legacy properties that need a value translation, such as `page-break-before`,
+keep their own names. The rule preserves the authored names and values.
+
+Known dependencies include repeated properties, fallbacks, prefixed variants,
+shorthands and their longhands, and resets such as `border` resetting
+`border-image`. Logical and physical properties can overlap depending on the
+writing mode. `all` also constrains ordinary properties except `direction`
+and `unicode-bidi`. The rule preserves the source order of dependent pairs,
+including a prefixed and an unprefixed version of the same property.
+
+:::
+
+::: warning Review changes across nested selectors
+These checks compare declarations inside the same container. A nested `&` can
+target the same card from a second container.
+
+```scss
+.card {
+  color: red;
+  & { color: blue; }
+  color: green;
+}
+```
+
+The card is green as written. Moving the last declaration above `&` makes it
+blue. Autofix can make that move. Review the diff when nested selectors style
+the same element, or when a mixin supplies styles that a later rule overrides.
+:::
+
 ## Acknowledgments
 
 The matcher objects follow the conventions of [`order/order`][stylelint-order].
 The checks for overlapping properties draw on [Stylelint][stylelint] property data.
 
+[blank-lines]: #group-spacing
+[built-in categories]: #built-in-categories
 [canonical comparison names]: #property-names-and-cascade
 [categories-option]: #categories
 [custom-sorting]: #custom-sorting
 [diagnostic-labels]: #diagnostic-labels
-[group spacing]: #group-spacing
 [groups-option]: #groups
 [layer-statements]: https://www.w3.org/TR/css-cascade-5/#layer-statements
+[named groups]: #named-groups
 [namespace-placement]: https://www.w3.org/TR/css-namespaces-3/#syntax
+[object matchers]: #object-matchers
 [order-option]: #order
 [outer-matchers]: #matchers-and-equal-ranks
 [root-option]: #root
