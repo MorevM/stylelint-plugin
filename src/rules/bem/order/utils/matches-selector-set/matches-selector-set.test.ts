@@ -32,4 +32,15 @@ describe(matchesSelectorSet, () => {
 		expect(matchesSelectorSet({ includes: [':hover'], size: 3 }, selectors)).toBe(false);
 		expect(matchesSelectorSet({ includes: [':active'] }, selectors)).toBe(false);
 	});
+
+	it('Applies independent lower and upper bounds alongside required branches', () => {
+		const pair = [':focus-visible', ':hover'];
+
+		expect(matchesSelectorSet({ minSize: 2 }, pair)).toBe(true);
+		expect(matchesSelectorSet({ minSize: 3 }, pair)).toBe(false);
+		expect(matchesSelectorSet({ maxSize: 1 }, [':hover'])).toBe(true);
+		expect(matchesSelectorSet({ includes: [':hover'], maxSize: 2 }, pair)).toBe(true);
+		expect(matchesSelectorSet({ includes: [':hover'], maxSize: 2 }, [...pair, ':active'])).toBe(false);
+		expect(matchesSelectorSet({ includes: [':active'], maxSize: 2 }, pair)).toBe(false);
+	});
 });

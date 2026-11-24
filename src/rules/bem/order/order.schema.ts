@@ -154,6 +154,38 @@ const vAtRuleMatcher: v.GenericSchema<AtRuleMatcher> = v.strictObject({
 	...groupSpacingEntries,
 });
 
+const vLocalSelectors = v.pipe(
+	vReadonly(v.array(v.pipe(v.string(), v.check((value) => !isUndefined(normalizeLocalSelector(value)),
+		'Use a single local selector branch without &')))),
+	v.minLength(1),
+	v.check((selectors) => {
+		return arrayUnique(selectors.map((value) => normalizeLocalSelector(value))).length === selectors.length;
+	}, 'Each selector branch must be distinct'),
+);
+const vBranchCount = v.pipe(v.number(), v.integer(), v.minValue(1));
+const vOptionalBranches = v.optional(vLocalSelectors);
+const vOptionalCount = v.optional(vBranchCount);
+const vSelectorSetRange = v.pipe(
+	v.union([
+		v.strictObject({ includes: vLocalSelectors, minSize: vOptionalCount, maxSize: vOptionalCount }),
+		v.strictObject({ includes: vOptionalBranches, minSize: vBranchCount, maxSize: vOptionalCount }),
+		v.strictObject({ includes: vOptionalBranches, minSize: vOptionalCount, maxSize: vBranchCount }),
+	]),
+	v.check(({ minSize, maxSize }) => isUndefined(maxSize) || (minSize ?? 1) <= maxSize,
+		'minSize must not exceed maxSize'),
+	v.check(({ includes, maxSize }) => isUndefined(maxSize) || (includes?.length ?? 0) <= maxSize,
+		'maxSize must accommodate every required branch'),
+);
+const vSelectorSetMatcher = v.strictObject({
+	label: vLabel,
+	selectorSet: v.union([
+		v.strictObject({ equals: vLocalSelectors }),
+		v.pipe(v.strictObject({ includes: vOptionalBranches, size: vBranchCount }),
+			v.check(({ includes, size }) => (includes?.length ?? 0) <= size, 'Size must accommodate every required branch')),
+		vSelectorSetRange,
+	]),
+}) satisfies v.GenericSchema<SelectorSetMatcher>;
+
 const vRuleSelector = v.strictObject({
 	type: v.literal('rule'),
 	selector: v.optional(vStringOrRegExpSchema),
@@ -167,7 +199,12 @@ const vExclusiveSelector = v.check(
 	'Use either selector or relativeSelector',
 );
 const vRuleMatcher: v.GenericSchema<RuleMatcher> = v.pipe(
-	v.strictObject({ ...vRuleSelector.entries, sort: v.optional(vOrderSort), blankLines: v.optional(vBlankLines) }),
+	v.strictObject({
+		...vRuleSelector.entries,
+		selectorSet: v.optional(vSelectorSetMatcher.entries.selectorSet),
+		sort: v.optional(vOrderSort),
+		blankLines: v.optional(vBlankLines),
+	}),
 	vExclusiveSelector,
 );
 
@@ -201,26 +238,6 @@ const vGroupOrder: v.GenericSchema<GroupOrder> = v.union([
 	vPropertiesGroup,
 	v.strictObject({ order: vGroupSequence, sort: v.optional(vOrderSort), ...groupSpacingEntries }),
 ]);
-
-const vLocalSelectors = v.pipe(
-	vReadonly(v.array(v.pipe(v.string(), v.check((value) => !isUndefined(normalizeLocalSelector(value)),
-		'Use a single local selector branch without &')))),
-	v.minLength(1),
-	v.check((selectors) => {
-		return arrayUnique(selectors.map((value) => normalizeLocalSelector(value))).length === selectors.length;
-	}, 'Each selector branch must be distinct'),
-);
-const vSelectorSetMatcher: v.GenericSchema<SelectorSetMatcher> = v.strictObject({
-	label: vLabel,
-	selectorSet: v.union([
-		v.strictObject({ equals: vLocalSelectors }),
-		v.pipe(v.strictObject({
-			includes: vLocalSelectors,
-			size: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1))),
-		}), v.check((matcher) => isUndefined(matcher.size) || matcher.size >= matcher.includes.length,
-			'Size must accommodate every required branch')),
-	]),
-});
 
 const vCategoryString = v.pipe(v.string(), v.regex(/^(?!group:|@)/u));
 const vCategoryMatcher = v.union([

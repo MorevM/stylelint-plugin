@@ -193,6 +193,11 @@ export type OrderItem = {
 	selector?: SelectorOrder;
 
 	/**
+	 * Distinct authored branch count for rules without local BEM branches, computed when matched by size.
+	 */
+	selectorCount?: number;
+
+	/**
 	 * Category and name used to order CSS and Sass at-rules within their category.
 	 */
 	atRuleMember?: {

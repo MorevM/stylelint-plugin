@@ -187,6 +187,26 @@ testRuleConfig({
 	}],
 	reject: [
 		{
+			description: 'Requires at least one selector-set constraint',
+			config: [true, { order: [{ type: 'rule', selectorSet: {} }] }],
+		},
+		{
+			description: 'Rejects a range alongside an exact size',
+			config: [true, { order: [{ type: 'rule', selectorSet: { size: 2, minSize: 1 } }] }],
+		},
+		{
+			description: 'Rejects reversed size bounds',
+			config: [true, { order: [{ type: 'rule', selectorSet: { minSize: 3, maxSize: 2 } }] }],
+		},
+		{
+			description: 'Requires the upper bound to accommodate all required branches',
+			config: [true, { order: [{ type: 'rule', selectorSet: { includes: [':hover', ':focus'], maxSize: 1 } }] }],
+		},
+		{
+			description: 'Rejects a whole-rule selector set when ordering individual selector branches',
+			config: [true, { selectorList: { order: [{ type: 'rule', selectorSet: { includes: [':hover'] } }] } }],
+		},
+		{
 			description: 'Requires mutually exclusive exact and inclusive requirements',
 			config: [true, { categories: { 'pseudo-classes': [{
 				selectorSet: { equals: [':hover'], includes: [':active'] },

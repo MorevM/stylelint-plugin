@@ -1,3 +1,4 @@
+import type { ExclusifyUnion, RequireAtLeastOne } from 'type-fest';
 import type { Separators } from '#modules/shared';
 
 /**
@@ -406,6 +407,47 @@ export type AtRuleMatcher = OrderGroupSpacing & {
 };
 
 /**
+ * Category shorthand for matching selector-set membership or branch count.
+ */
+export type SelectorSetMatcher = DiagnosticLabel & {
+	/**
+	 * Matches complete branches rather than individual tokens in a compound selector.
+	 * Condition order is ignored within each compound; pseudo-elements retain their boundaries.
+	 */
+	selectorSet: ExclusifyUnion<RequireAtLeastOne<{
+		/**
+		 * Local branches that must be present.
+		 */
+		includes?: readonly string[];
+
+		/**
+		 * Inclusive lower bound on the number of distinct branches.
+		 */
+		minSize?: number;
+
+		/**
+		 * Inclusive upper bound on the number of distinct branches.
+		 */
+		maxSize?: number;
+	}> | {
+		/**
+		 * Exact set of local branches in any order.
+		 */
+		equals: readonly string[];
+	} | {
+		/**
+		 * Exact number of distinct branches.
+		 */
+		size: number;
+
+		/**
+		 * Local branches that must be present.
+		 */
+		includes?: readonly string[];
+	}>;
+};
+
+/**
  * Explicit matcher for authored selectors.
  */
 export type RuleMatcher = OrderGroupSpacing & {
@@ -425,6 +467,12 @@ export type RuleMatcher = OrderGroupSpacing & {
 	 * Pseudo-elements retain their position, for example `&:hover::before`.
 	 */
 	relativeSelector?: string | RegExp;
+
+	/**
+	 * Matches a rule by its distinct branch count or by local branches within one BEM family.
+	 * Can be combined with either authored or relative selector text.
+	 */
+	selectorSet?: SelectorSetMatcher['selectorSet'];
 
 	/**
 	 * Orders matching rules or selector families that share a priority.
@@ -479,47 +527,6 @@ export type OrderSequence = ReadonlyArray<OrderMatcher | readonly OrderMatcher[]
 export type GroupSequence = ReadonlyArray<GroupMatcher | readonly GroupMatcher[]>;
 
 /**
- * Unordered local selector branches belonging to the same semantic family and category.
- */
-export type SelectorSetMatcher = DiagnosticLabel & {
-	/**
-	 * Matches complete branches rather than individual tokens in a compound selector.
-	 * Condition order is ignored within each compound; pseudo-elements retain their boundaries.
-	 */
-	selectorSet: {
-		/**
-		 * Exact set of branches, ignoring their authored order; mutually exclusive with includes.
-		 */
-		equals: readonly string[];
-
-		/**
-		 * An exact set cannot also specify required branches.
-		 */
-		includes?: never;
-
-		/**
-		 * An exact set already determines its size.
-		 */
-		size?: never;
-	} | {
-		/**
-		 * Required complete branches; additional branches are allowed.
-		 */
-		includes: readonly string[];
-
-		/**
-		 * Required distinct branch count, including the listed branches.
-		 */
-		size?: number;
-
-		/**
-		 * Required branches cannot also specify an exact set.
-		 */
-		equals?: never;
-	};
-};
-
-/**
  * Named matcher sequence, optionally sorting equal-rank members claimed by that group.
  */
 export type GroupOrder = GroupSequence | PropertiesGroup | OrderGroupSpacing & {
@@ -559,7 +566,7 @@ export type CategorySequence<Matcher extends CategoryMatcher = CategoryMatcher> 
 /**
  * Priorities for authored selector branches, excluding declaration and at-rule matchers.
  */
-export type SelectorListSequence = CategorySequence<string | RegExp | Omit<RuleMatcher, 'sort' | 'blankLines'>>;
+export type SelectorListSequence = CategorySequence<string | RegExp | Omit<RuleMatcher, 'sort' | 'blankLines' | 'selectorSet'>>;
 
 /**
  * Composes a replacement category order without mutating its built-in defaults.

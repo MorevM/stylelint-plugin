@@ -15,6 +15,115 @@ const states = [
 ] as const satisfies CategorySequence;
 
 testRule({
+	description: 'Selector-set sizes in ordinary CSS',
+	config: [true, {
+		root: {
+			order: [
+				{ type: 'rule', selectorSet: { minSize: 2, maxSize: 3 } },
+				{ type: 'rule', selectorSet: { size: 2 } },
+				'rules',
+			],
+		},
+	}],
+	reject: [{
+		description: 'Counts distinct top-level branches and prefers an exact size over a broader range',
+		code: `
+			h1, h1 {}
+			:is(h1, h2) {} /* One top-level branch because the comma is inside :is(). */
+			h1, h2 {}
+			h3, h4, h5 {}
+		`,
+		fixed: `
+			h3, h4, h5 {}
+			h1, h2 {}
+			h1, h1 {}
+			:is(h1, h2) {} /* One top-level branch because the comma is inside :is(). */
+		`,
+		warnings: [
+			{ message: messages.expectedBefore('h3, h4, h5', 'h1, h1') },
+			{ message: messages.expectedBefore('h1, h2', 'h1, h1') },
+		],
+	}],
+});
+
+testRule({
+	description: 'Selector sets on rule matchers',
+	config: [true, {
+		order: [
+			{ type: 'rule' },
+			{ type: 'rule', selectorSet: { includes: [':hover'] } },
+			'group:button-states',
+		],
+		groups: {
+			'button-states': [{
+				type: 'rule',
+				selector: /^\.button:/u,
+				selectorSet: { equals: [':hover', ':focus-visible'] },
+			}],
+		},
+	}],
+	reject: [{
+		description: 'Prefers the matcher that matches both the authored selector and its local branches',
+		code: `
+			.button {}
+			.button:focus-visible, .button:hover {}
+			.button:hover {}
+			.button:active {}
+			.card {}
+			.card:focus-visible, .card:hover {}
+			.card:hover {}
+		`,
+		fixed: `
+			.button {}
+			.button:active {}
+			.button:hover {}
+			.button:focus-visible, .button:hover {}
+			.card {}
+			.card:focus-visible, .card:hover {}
+			.card:hover {}
+		`,
+		warnings: [
+			{ message: messages.expectedBefore('.button:active', '.button:focus-visible, .button:hover') },
+			{ message: messages.expectedBefore('.button:hover', '.button:focus-visible, .button:hover') },
+		],
+	}],
+});
+
+testRule({
+	description: 'Selector sets with a relative selector inside a category',
+	config: [true, {
+		categories: {
+			'pseudo-classes': [
+				{
+					type: 'rule',
+					relativeSelector: /^&:focus-visible/u,
+					selectorSet: { includes: [':hover'], size: 2 },
+				},
+				'*',
+			],
+		},
+	}],
+	reject: [{
+		description: 'Gives priority only to lists that also match the relative selector',
+		code: `
+			.button {
+				&:hover, &:focus-visible {}
+				&:focus-visible {}
+				&:focus-visible, &:hover {}
+			}
+		`,
+		fixed: `
+			.button {
+				&:focus-visible, &:hover {}
+				&:hover, &:focus-visible {}
+				&:focus-visible {}
+			}
+		`,
+		warnings: [{ message: messages.expectedBefore('&:focus-visible, &:hover', '&:hover, &:focus-visible') }],
+	}],
+});
+
+testRule({
 	description: 'Selector sets alongside simple states',
 	config: [true, { categories: { 'pseudo-classes': states } }],
 	reject: [{

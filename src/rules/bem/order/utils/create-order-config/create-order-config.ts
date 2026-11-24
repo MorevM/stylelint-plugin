@@ -1,9 +1,9 @@
-import { isArray, isFunction, isRegExp, isString, isUndefined, tsObject } from '@morev/utils';
+import { isArray, isEmpty, isFunction, isRegExp, isString, isUndefined, tsObject } from '@morev/utils';
 import selectorParser from 'postcss-selector-parser';
 import { DEFAULT_CATEGORY_ORDERS, DEFAULT_ORDER, DEFAULT_ROOT_ORDER, REMAINDER } from '../../order.constants';
 import { createOrderSorter } from '../create-order-sorter/create-order-sorter';
 import { getOrderHeader, getOrderSelectorText } from '../get-order-header/get-order-header';
-import { matchesSelectorSet } from '../matches-selector-set/matches-selector-set';
+import { hasRequiredBranches, matchesSelectorSet, prepareSelectorSet } from '../matches-selector-set/matches-selector-set';
 import { normalizeParameters } from '../normalize-parameters/normalize-parameters';
 import { normalizeProperty } from '../normalize-property/normalize-property';
 import type { Family, OrderItem, OrderLabel, OrderRank, PreparedOrderSorter, PreparedOrderSpacing, SelectorOrder } from '../../order.internal-types';
@@ -12,6 +12,16 @@ import type {
 	OrderCategory, OrderGroupSpacing, OrderMatcher, OrderSequence, PropertiesGroup, RuleMatcher,
 	SecondaryOption, UnspecifiedOrder, UnspecifiedOrderOptions,
 } from '../../order.types';
+
+/**
+ * Outer rule matchers reuse their normalized selector sets across siblings.
+ */
+type PreparedNodeMatcher = AtRuleMatcher | (Omit<RuleMatcher, 'selectorSet'> & {
+	/**
+	 * Required local branches and their inclusive count bounds.
+	 */
+	selectorSet?: ReturnType<typeof prepareSelectorSet>;
+});
 
 /**
  * Expanded matcher with its own or its enclosing group's sorting policy.
@@ -126,20 +136,48 @@ const getPropertyRank = (group: PropertiesGroup, item: OrderItem) => {
 };
 
 /**
+ * Counts local BEM branches, or distinct authored branches when only the size is constrained.
+ *
+ * @param   matcher   Authored or prepared selector-set constraint.
+ * @param   item      Authored ordering unit.
+ *
+ * @returns           Whether the rule satisfies the selector set.
+ */
+const matchesItemSelectorSet = (matcher: Parameters<typeof matchesSelectorSet>[0], item: OrderItem) => {
+	if (item.selector?.localSelectors.length) return matchesSelectorSet(matcher, item.selector.localSelectors);
+	if (item.node.type !== 'rule') return false;
+
+	const required = 'branches' in matcher ? matcher : prepareSelectorSet(matcher);
+	if (!isEmpty(required.branches)) return false;
+	if (isUndefined(item.selectorCount)) {
+		try {
+			const list = selectorParser().astSync(item.node.selector, { lossless: false });
+			list.walkComments((comment) => { comment.remove(); });
+			item.selectorCount = new Set(list.nodes.map((branch) => branch.toString())).size;
+		} catch {
+			item.selectorCount = 0;
+		}
+	}
+	return hasRequiredBranches(required, [], item.selectorCount);
+};
+
+/**
  * Applies a structured matcher to an authored node and its resolved selector metadata.
  *
  * @param   matcher   Rule or at-rule constraint.
  * @param   item      Authored unit to match.
+ * @param   family    Semantic family when the item represents a whole family.
  *
  * @returns           Whether every supplied constraint is satisfied.
  */
-const matchesObject = (matcher: AtRuleMatcher | RuleMatcher, item: OrderItem) => {
+const matchesObject = (matcher: PreparedNodeMatcher | RuleMatcher, item: OrderItem, family?: Family) => {
 	const { node } = item;
 	if (matcher.type === 'rule') {
 		const selector = getOrderSelectorText(item);
 		return !isUndefined(selector)
 			&& matchesValue(matcher.selector, selector)
-			&& matchesValue(matcher.relativeSelector, item.selector?.relativeSelector);
+			&& matchesValue(matcher.relativeSelector, item.selector?.relativeSelector)
+			&& (!matcher.selectorSet || (!family && matchesItemSelectorSet(matcher.selectorSet, item)));
 	}
 
 	return node.type === 'atrule'
@@ -174,8 +212,12 @@ const coversPattern = (broad?: string | RegExp, narrow?: string | RegExp) => {
  *
  * @returns          Whether the second object is equally specific or a refinement of the first.
  */
-const coversMatcher = (broad: AtRuleMatcher | RuleMatcher, narrow: AtRuleMatcher | RuleMatcher) => {
+const coversMatcher = (broad: PreparedNodeMatcher, narrow: PreparedNodeMatcher) => {
 	if (broad.type === 'rule' && narrow.type === 'rule') {
+		if (broad.selectorSet) {
+			const set = narrow.selectorSet;
+			if (!set || !hasRequiredBranches(broad.selectorSet, set.branches, set.minSize, set.maxSize)) return false;
+		}
 		return coversPattern(broad.selector, narrow.selector)
 			&& coversPattern(broad.relativeSelector, narrow.relativeSelector);
 	}
@@ -215,14 +257,13 @@ const isCategoryMatch = (
 	family?: Family, matchText = item.atRuleMember?.name,
 ): boolean => {
 	if (isArray(matcher)) return matcher.some((entry) => isCategoryMatch(entry, item, category, family, matchText));
-	if (!isString(matcher) && 'properties' in matcher) return getPropertyRank(matcher, item) !== -1;
-	if (!isString(matcher) && 'selectorSet' in matcher) {
-		return !family && Boolean(item.selector && matchesSelectorSet(matcher.selectorSet, item.selector.localSelectors));
+	if (!isString(matcher) && !isRegExp(matcher)) {
+		if ('type' in matcher) return matchesObject(matcher, item, family);
+		if ('properties' in matcher) return getPropertyRank(matcher, item) !== -1;
+		return 'selectorSet' in matcher && !family && matchesItemSelectorSet(matcher.selectorSet, item);
 	}
 
-	if (!isUndefined(matchText) && (isString(matcher) || isRegExp(matcher))) {
-		return matchesValue(matcher, matchText);
-	}
+	if (!isUndefined(matchText)) return matchesValue(matcher, matchText);
 
 	if (isRegExp(matcher)) {
 		if (item.node.type === 'decl') return matchesProperty(matcher, item.node.prop);
@@ -233,7 +274,6 @@ const isCategoryMatch = (
 		return item.node.type !== 'atrule' && matchesValue(matcher, getOrderHeader(item.node));
 	}
 
-	if (!isString(matcher)) return 'type' in matcher && matchesObject(matcher, item);
 	if (!family && item.selector?.isList) return false;
 	const tokens = category === PSEUDO_ELEMENT_STATES ? item.selector?.pseudoElementStates : item.selector?.tokens;
 	if (family?.key === matcher || tokens?.includes(matcher)) return true;
@@ -434,7 +474,11 @@ const createOrderConfig = (options: SecondaryOption) => {
 		const matchers = new Set(ranked.map(({ entry }) => entry.matcher));
 		const nodeMatchers = ranked.flatMap(({ entry, rank }) => {
 			const { matcher } = entry;
-			return !isString(matcher) && 'type' in matcher ? [{ entry, rank, matcher }] : [];
+			if (isString(matcher) || !('type' in matcher)) return [];
+			const prepared = matcher.type === 'rule'
+				? { ...matcher, selectorSet: matcher.selectorSet && prepareSelectorSet(matcher.selectorSet) }
+				: matcher;
+			return [{ entry, rank, matcher: prepared }];
 		});
 		const propertyMatchers = ranked.flatMap(({ entry, rank }) => {
 			const { matcher } = entry;
@@ -447,7 +491,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 			...propertyMatchers.filter(({ pattern }) => pattern === '*'),
 		];
 
-		const findObject = (item: OrderItem) => {
+		const findObject = (item: OrderItem, family?: Family) => {
 			const { node } = item;
 			if (node.type === 'decl') {
 				if (!properties.length || VARIABLE_PREFIX.test(node.prop)) return undefined;
@@ -455,7 +499,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 			}
 
 			if (!nodeMatchers.length) return undefined;
-			const matches = nodeMatchers.filter(({ matcher }) => matchesObject(matcher, item));
+			const matches = nodeMatchers.filter(({ matcher }) => matchesObject(matcher, item, family));
 			if (matches.length < 2) return matches[0];
 
 			// Configuration order breaks ties among the matches that have no stricter refinement.
@@ -546,7 +590,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 			return ['declarations'];
 		})();
 
-		const object = canMatchObjects ? findObject(item) : undefined;
+		const object = canMatchObjects ? findObject(item, family) : undefined;
 		let selected = object?.entry;
 		let rank = object?.rank ?? -1;
 		const isPlaceholder = categories[0] === 'sass:placeholders';
