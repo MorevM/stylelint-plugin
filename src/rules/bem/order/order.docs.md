@@ -217,8 +217,7 @@ To customize the rule, pass an options object after `true`.
 }
 ```
 
-Any options you leave out keep their defaults. \
-An `order` array replaces the default sequence for its scope.
+With no options, the rule uses the default sequences shown below.
 
 ::: details Full default configuration
 
@@ -427,8 +426,9 @@ $card-gap: 16px;
 
 ### `order`
 
-Use `order` to choose what comes first inside a selector or a BEM family. \
-The rule only sorts items at the same level, but the same order applies inside each family.
+Use `order` to choose what comes first at each level of the stylesheet,
+including inside selectors and BEM families.
+Set [`root.order`][root-option] only if you want a different order at the stylesheet level.
 
 A **BEM family** is a group of selectors for the same block, element, or modifier.
 
@@ -1460,256 +1460,410 @@ Use the `group:` prefix to reference a group in `order` or `root.order`.
 
 ### `categories`
 
-Use `categories` to customize a built-in category wherever it appears in the order, including inside a named group.
+Use `categories` to customize the order of items in a [built-in category][built-in categories]. \
+You can also choose where [unmatched items][unspecified-option] go
+and whether to leave [blank lines][blank-lines] before, after, or between items.
 
-Say you like where the states appear, but you always look for `:focus-visible`
-before `:hover`. You only need to change one category.
-
-::: code-group
-
-```js [Configuration]
+```ts{4,9,18,27} line-hints [Configuration]
 {
   categories: {
-    'pseudo-classes': [':focus-visible', ':hover', '*'],
-  },
-}
-```
-
-```scss [Result]
-.card {
-  &:focus-visible {}
-  &:hover {}
-  &:active {}
-}
-```
-
-:::
-
-An array replaces the order inside that category wherever it's used, including
-at the root. The first matching explicit entry wins. Here the final `'*'` matches any
-other states. Use an equal-priority pair like `[':focus', ':focus-visible']`
-when their relative order doesn't matter.
-
-To **keep the defaults** and add one new priority, use a function. For example,
-`'pseudo-classes': (defaults) => [...defaults, ':disabled']` puts disabled states
-last, after the default `'*'`, and keeps the existing order for links, hover,
-focus, and active states. The function receives the default list, including its
-nested arrays, once per stylesheet.
-
-Use the object form when you also want to [sort ties][sorting-presets],
-[place unmatched items][unspecified-option], or [add blank lines][blank-lines].
-Here the elements of each block are sorted by name. Each run of container queries
-starts with a blank line, with no empty lines between queries. Setting only
-`blankLines` keeps the existing query order.
-
-```js
-{
-  categories: {
-    elements: { sort: { by: 'name' } },
-    'css:container': { blankLines: { before: 'always', between: 'never' } },
-  },
-}
-```
-
-#### Category matchers {#category-matchers}
-
-For breakpoints, you usually know the condition you care about. For a mixin,
-you know the name you call. The matcher follows that distinction.
-
-```js
-{
-  categories: {
-    // The phone query first, then compound queries that also mention it.
-    'css:media': ['(--phone)', /\(--phone\)/u, '*'],
-    // Includes both size and style queries on the sidebar container.
-    'css:container': [/^sidebar\s/u, '*'],
-    // Calls from the layout module go before calls from other modules.
-    'sass:include-blocks': [/^layout\./u, '*'],
-  },
-}
-```
-
-For `css:media` and `css:container`, a string matches the full normalized text
-after the directive. A regular expression can match part of it. For containers
-the text includes the container name, when present. Include each category in
-`order` or `root.order` where you want to use it.
-
-::: details Which name or selector should I use?
-
-- For CSS and Sass definitions, use the declared name, such as `'--tone'` or
-  `'respond-to'`. For `@include layout.respond-to(640px)`, use `'layout.respond-to'`.
-  For `@warn`, use `'warn'`.
-- If you split includes into statements and blocks, you can give them different
-  settings. A form with no settings of its own uses `sass:includes`, then
-  `at-rules`. Specific CSS queries, definitions, and Sass diagnostics can also
-  use the shared `at-rules` settings. A spacing-only override keeps that order.
-- In `at-rules`, use an explicit [at-rule matcher][outer-matchers],
-  such as `{ type: 'at-rule', name: 'supports' }`. Place `'*'` where you want
-  the remaining at-rules. Put a pattern in `parameter` to match part of a condition.
-- For a BEM family, use its key, such as `'.card__title'`. Use `':focus'` for
-  a local state or `'::before'` for a pseudo-element family. A selector pattern
-  sees the normalized selector without the contents of its block. You can also
-  use a rule matcher to choose between authored and relative selectors.
-- Within `qualifiers`, use the extra selector itself, such as `'.is-selected'`,
-  `'[aria-busy]'`, `'button'`, or `'#featured'`. Specific qualifier categories
-  inherit the shared order and spacing unless you give them their own.
-- For a variable or property, use its name. Ordinary properties use
-  [comparison names][canonical comparison names]. Custom properties and Sass
-  variables keep their case and their leading dashes or dollar sign.
-
-:::
-
-Inside a built-in category, [`{ selectorSet: … }`][selector-sets] is shorthand for `{ type: 'rule', selectorSet: … }`.
-For example, you can order the individual states and their shared rules within `pseudo-classes`.
-
-::: code-group
-
-```js [Configuration]
-{
-  categories: {
-    'pseudo-classes': [
-      ':hover',
-      ':focus-visible',
-      { selectorSet: { equals: [':hover', ':focus-visible'] } },
-      { selectorSet: { includes: [':hover'], size: 2 } },
+    // Private Sass variables go at the top.
+    // [!hint]
+    // **Valid SCSS example**
+    // ```scss
+    // .card {
+    //   $_gap: 16px;
+    //   $-list-length: 3;
+    //   $size: 240px;
+    // }
+    // ```
+    'sass:variables': [
+      /^\$[_-]/u,
       '*',
     ],
+    // Pseudo-classes appear in the order shown here.
+    // [!hint]
+    // **Valid SCSS example**
+    // ```scss
+    // .link:focus, .link:focus-visible {}
+    // .link:focus {}
+    // .link:focus-visible {}
+    // .link:active {}
+    // .link:visited {}
+    // ```
+    'pseudo-classes': [
+      { selectorSet: { minSize: 2 } },
+      ':focus',
+      ':focus-visible',
+      ':active',
+      '*',
+    ],
+    // BEM elements are sorted by name,
+    // with one blank line between families.
+    // [!hint]
+    // **Valid SCSS example**
+    // ```scss
+    // .card__a {}
+    // .card__a:hover {}
+    //
+    // .card__b {}
+    //
+    // .card__c {}
+    // ```
+    'elements': {
+      sort: { by: 'name' },
+      blankLines: { between: 'always' },
+    },
+    // Custom media queries come first.
+    // The remaining breakpoints are grouped by unit (px first, then em)
+    // and sorted from smallest to largest within each unit.
+    // Leave one blank line before the first query and between queries,
+    // with none after the last.
+    // [!hint]
+    // **Valid SCSS example**
+    // ```scss
+    // .card {
+    //   color: red;
+    //
+    //   @media (--tablet-small) {}
+    //
+    //   @media (width >= 1024px) {}
+    //
+    //   @media (width >= 1280px) {}
+    // }
+    // ```
+    'css:media': {
+      order: [/^\(--/u, '*'],
+      sort: { by: 'dimension', units: ['px', 'em'] },
+      blankLines: {
+        before: 'always',
+        between: 'always',
+        after: 'never',
+      },
+    },
   },
 }
 ```
 
-```scss [Result]
-.button {
-  &:hover {}
-  &:focus-visible {}
-  &:focus-visible, &:hover {}
-  &:hover, &:active {}
-}
-```
+You can combine these options however you like. Use just the ones you need.
+See the sections on [sorting], [placement of unmatched items][unspecified-option],
+and [blank lines][blank-lines] for details.
 
-:::
+#### Matching items within a category
 
-Put exact matches first. Here `equals` matches the hover and focus-visible pair
-in either order. The following matcher accepts hover and one other distinct branch.
-A plain `':hover'` matches the standalone state without claiming every list that mentions it.
+- For ordinary properties, use their [comparison names][canonical comparison names]. \
+  Keep the case and prefix of custom properties and Sass variables.
+
+  ```js
+  'declarations': ['appearance', '*'],    // -webkit-appearance: none;
+  'custom-properties': ['--Accent', '*'], // --Accent: blue;
+  'sass:variables': ['$gap', '*'],        // $gap: 8px;
+  ```
+
+- For functions and mixins, use the declared name.
+
+  ```js
+  'sass:mixins': ['stack', '*'],          // @mixin stack($gap) {}
+  'sass:includes': ['layout.stack', '*'], // @include layout.stack(8px);
+  'sass:diagnostics': ['warn', '*'],      // @warn 'Missing size';
+  ```
+
+- In `css:media` and `css:container`, a string matches the full normalized query, including any container name.
+  Use a regular expression to match just part of it.
+
+  ```js
+  'css:media': ['(--phone)', '*'],       // @media ( --phone ) {}
+  'css:container': [/^sidebar\s/u, '*'], // @container sidebar (width > 40em) {}
+  ```
+
+- In `qualifiers`, use the extra class, attribute, type, or ID.
+
+  ```js
+  qualifiers: [
+    '[aria-busy]', // &[aria-busy]
+    /\[data-/u,    // &[data-size] or &[data-theme]
+    '*',
+  ],
+  ```
+
+- To give a comma-separated rule its own place, use a [selector set][selector-sets].
+
+  ```js
+  'pseudo-classes': [
+    ':hover',                                  // &:hover
+    { selectorSet: { includes: [':hover'] } }, // &:hover, &:focus
+    '*',
+  ],
+  ```
+
+---
 
 ### `unspecified`
 
-Suppose you only care that `display` comes before `position`. What should
-happen to a `color` declaration between them? You have three choices.
+Controls where items go when they match no entry in the configured order.
 
-- `'bottom'` (the default) collects unlisted items below the ones you named.
-- `'top'` collects them above. In both cases they keep their relative order.
-- `'ignore'` leaves each unlisted item in its slot. Listed items can still
-  switch places around it.
-
-::: code-group
+Suppose we want `display` to come before `z-index`.
 
 ```js [Configuration]
 {
   categories: {
     declarations: {
-      order: ['display', 'position'],
+      // Only these two properties have an explicit priority.
+      order: ['display', 'z-index'],
+      // Without '*', `unspecified` handles the remaining declarations.
       unspecified: 'ignore',
     },
   },
 }
 ```
 
-```scss [Before]
+Now consider this CSS.
+
+```scss
 .card {
-  position: relative;
-  color: navy;
-  display: grid;
+  z-index: 100;
+  color: red;
+  border-width: 1px;
+  display: flex;
+  transition: opacity .2s;
 }
 ```
 
-```scss [After]
+What should autofix do with `color`, `border-width`, and `transition`?
+
+You can choose one of three values for `unspecified`.
+
+- `'bottom'` (the default) collects unlisted items below the ones you named.
+- `'top'` collects them above. In both cases they keep their relative order.
+- `'ignore'` leaves each unlisted item in its slot. Listed items switch places **around** it.
+
+::: code-group
+
+```scss{6,9} [Original CSS]
+// The original CSS before applying the rule.
+
+// Here the declarations appear in no particular order.
+// We want `display` to come before `z-index`.
 .card {
-  display: grid;
-  color: navy;
-  position: relative;
+  z-index: 100;
+  color: red;
+  border-width: 1px;
+  display: flex;
+  transition: opacity .2s;
+}
+```
+
+```scss{6,7} [bottom]
+// { order: ['display', 'z-index'], unspecified: 'bottom' }
+
+// Unlisted declarations move to the bottom of the block.
+// They keep their original order.
+.card {
+  display: flex;
+  z-index: 100;
+  color: red;
+  border-width: 1px;
+  transition: opacity .2s;
+}
+```
+
+```scss{9,10} [top]
+// { order: ['display', 'z-index'], unspecified: 'top' }
+
+// Unlisted declarations move to the top of the block.
+// They keep their original order.
+.card {
+  color: red;
+  border-width: 1px;
+  transition: opacity .2s;
+  display: flex;
+  z-index: 100;
+}
+```
+
+```scss{6,9} [ignore]
+// { order: ['display', 'z-index'], unspecified: 'ignore' }
+
+// `display` and `z-index` swap places to follow the configured order.
+// The other three declarations stay on the same lines as in the original CSS.
+.card {
+  display: flex;
+  color: red;
+  border-width: 1px;
+  z-index: 100;
+  transition: opacity .2s;
 }
 ```
 
 :::
 
-Choose the level where you want this to happen. Top-level `unspecified` applies
-inside selectors and BEM families, `root.unspecified` applies at the stylesheet
-level, and `categories.declarations.unspecified` applies among declarations.
-Each defaults independently to `'bottom'`. A family can move as one item even
-when some of the properties inside it keep their slots. Ignoring a family at
-its parent level still lets the rule gather and order its members.
+In all three examples, `color` still comes before `border-width`. \
+Even with `sort: { by: 'name' }`, declarations placed by `unspecified` keep their relative order.
 
-**Should the rest be sorted too?** Place `'*'` where the remaining items should go.
-That gives the remaining items an explicit priority, so they can use the category's
-sorter. Without the star, `unspecified` places them and keeps their source order.
+Suppose we want the remaining declarations to follow `z-index` in alphabetical order.
+Adding the [wildcard] `'*'` after `'z-index'` gives them all the same priority, so the category's [sorter][sorting]
+can order them by name.
 
-```js
+::: code-group
+
+```js{7,10} [Configuration]
 {
   categories: {
-    'custom-properties': {
-      order: [/^--size-/u, '--theme', '*'],
-      sort: { by: 'name' },
+    declarations: {
+      order: [
+        'display',
+        'z-index',
+        '*', // All remaining declarations share this priority.
+      ],
+      sort: {
+        by: 'name', // Alphabetize border-width, color, and transition.
+      },
     },
   },
 }
 ```
 
-Here the size variables are alphabetical. After `--theme`, the remaining
-variables are alphabetical too. To keep those in source order with a blank
-line before them, drop the star and set
-`unspecified: { position: 'bottom', blankLines: { before: 'always' } }`.
-You can set [`blankLines`][blank-lines] this way for `'top'` or `'bottom'` at any of the three levels.
+```css{4-6} [CSS after autofix]
+.card {
+  display: flex;
+  z-index: 100;
+  border-width: 1px;
+  color: red;
+  transition: opacity .2s;
+}
+```
+
+:::
+
+---
 
 ### `root`
 
-At the top of a stylesheet you might want all the block styles together,
-followed by the media queries that override them. Inside a card you might want
-media queries *before* its states. The two orders are independent.
+`root` lets you give the stylesheet its own order for whole selector families and at-rules.
 
-#### `root.order` {#root-order}
+If each SCSS file contains a single component and you nest everything inside its selector,
+[`order`][order-option] is usually all you need. It controls where declarations, media queries,
+states, and elements go inside `.card`. At the top level, `.card` is the only item to place.
+
+In flat CSS, `.card` and `.card:hover` move together as a family. In the diagram below,
+`root.order` places the whole family before `@media print`, and `order` puts `.card` before `.card:hover`.
+
+![root.order places families before @media. Within the .card family, order sorts the base, hover state, and title.][order-scopes-image]
+
+In nested SCSS, `root.order` puts the top-level `@media print` after `.card`.
+Inside `.card`, `order` puts `@media screen` before `&:hover` and `&__title`.
+
+![root.order places .card before the print query. Inside .card, order places the screen query before its state and element.][scss-scopes]
+
+`root.order` accepts the same entries as [`order`][order-option]. If you omit both,
+each level uses its own built-in order. The two levels share [named groups][groups-option]
+and [category settings][categories-option].
+`root.unspecified` accepts the same values as [`unspecified`][unspecified-option]
+and defaults independently to `'bottom'`.
+Stylesheet-level grouping rules such as `@layer`, `@supports`, and `@media` also use the
+stylesheet order for their contents. Once you enter a selector, its children follow `order`.
+
+#### A few practical examples
+
+:::: details Keep keyframes above component rules and media queries below them
 
 ::: code-group
 
 ```js [Configuration]
 {
-  root: { order: ['rules', 'css:media', 'at-rules'] },
-  categories: { 'css:media': ['(--tablet)', '*'] },
+  root: {
+    order: [
+      { type: 'at-rule', name: 'keyframes' },
+      'rules',
+      'css:media',
+    ],
+  },
 }
 ```
 
-```scss [Result]
-.card {}
-.card:hover {}
-@media (--tablet) {}
-@media print {}
-@supports (display: grid) {}
+```css [CSS]
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes slide-in { from { transform: translateY(8px); } }
+
+.toast { animation: fade-in 150ms, slide-in 150ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
 ```
 
 :::
 
-`root.order` puts the card family and the query wrappers in place.
-`order` still puts `.card` before `.card:hover`. A wrapper stays whole,
-even if the selectors inside it belong to different blocks.
+::::
 
-Stylesheet-level `@media`, `@supports`, `@container`, `@layer`, `@scope`,
-`@starting-style`, and `@document` (including `@-moz-document`) use `root.order`
-for their contents too. Once you enter a selector, its children use `order`.
-Bodies such as `@font-face` or `@mixin` also use the nested order.
+:::: details Arrange top-level layer blocks in their declared order
 
-Leaving `root` out keeps the default stylesheet order, even when you replace `order`.
-By default, definitions, Sass calls, and diagnostics share the first position so
-they can keep their source order. Custom properties follow, then selector families,
-media queries, container queries, and the remaining at-rules.
+The opening `@layer` statement sets the cascade order. The rule moves the three layer blocks
+so you can read them in that same order.
 
-#### `root.unspecified` {#root-unspecified}
+::: code-group
 
-If you only want to order some top-level items, set `root.unspecified: 'ignore'`.
-For example, `root: { order: ['rules', 'css:media'], unspecified: 'ignore' }`
-keeps an unlisted `@supports` in its slot while the selectors and media queries
-are ordered around it. The root and nested [`unspecified`][unspecified-option]
-settings each default to `'bottom'` and can be changed independently.
+```js [Configuration]
+{
+  root: {
+    order: [
+      { type: 'at-rule', name: 'layer', parameter: 'reset' },
+      { type: 'at-rule', name: 'layer', parameter: 'components' },
+      { type: 'at-rule', name: 'layer', parameter: 'utilities' },
+    ],
+  },
+}
+```
+
+```css [CSS]
+@layer reset, components, utilities;
+
+@layer reset { * { box-sizing: border-box; } }
+@layer components { .button { display: inline-flex; } }
+@layer utilities { .hidden { display: none; } }
+```
+
+:::
+
+::::
+
+:::: details Put print overrides after other top-level media queries
+
+A printed page can also match the width query. Putting `@media print` last gives the invoice its print layout.
+
+::: code-group
+
+```js [Configuration]
+{
+  root: {
+    order: [
+      'css:media',
+      { type: 'at-rule', name: 'media', parameter: 'print' },
+    ],
+    unspecified: 'ignore',
+  },
+}
+```
+
+```scss [SCSS]
+@media (min-width: 640px) {
+  .invoice { display: grid; }
+}
+
+.invoice { // root.unspecified: 'ignore' keeps this block between the queries.
+  &__total { font-weight: bold; }
+}
+
+@media print {
+  .invoice { display: block; }
+}
+```
+
+:::
+
+::::
+
+---
 
 ### `selectorList`
 
@@ -2256,8 +2410,9 @@ The checks for overlapping properties draw on [Stylelint][stylelint] property da
 [namespace-placement]: https://www.w3.org/TR/css-namespaces-3/#syntax
 [object matchers]: #object-matchers
 [order-option]: #order
-[outer-matchers]: #matchers-and-equal-ranks
+[order-scopes-image]: /images/bem-order-scopes.svg
 [root-option]: #root
+[scss-scopes]: /images/bem-order-scopes-scss.svg
 [selector-list]: #selectorlist
 [selector-sets]: #selector-sets
 [sorting-presets]: #sorting-presets
@@ -2265,3 +2420,4 @@ The checks for overlapping properties draw on [Stylelint][stylelint] property da
 [stylelint-order]: https://github.com/hudochenkov/stylelint-order/blob/master/rules/order/README.md
 [stylelint]: https://github.com/stylelint/stylelint
 [unspecified-option]: #unspecified
+[wildcard]: #wildcard-placement
