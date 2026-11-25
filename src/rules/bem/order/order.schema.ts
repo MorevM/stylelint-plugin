@@ -1,6 +1,6 @@
 import { arrayUnique, isArray, isFunction, isString, isUndefined, tsObject } from '@morev/utils';
 import * as v from 'valibot';
-import { vFunction, vReadonly, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
+import { vReadonly, vSeparatorsSchema, vStringOrRegExpSchema } from '#modules/rule-utils';
 import { normalizeLocalSelector } from './utils/normalize-local-selector/normalize-local-selector';
 import type {
 	AtRuleCategoryMatcher,
@@ -245,7 +245,7 @@ const vCategoryMatcher = v.union([
 ]);
 
 /**
- * Validates category-specific matchers in direct sequences and transformer results.
+ * Validates the matchers allowed in a category's priority sequence.
  *
  * @param   matcher   Constraints accepted by this category.
  *
@@ -256,12 +256,11 @@ const createCategoryOrderSchema = <Matcher extends CategoryMatcher>(matcher: v.G
 		matcher,
 		vReadonly(v.array(matcher)),
 	]))), v.check((sequence) => hasValidRemainder(sequence), remainderMessage));
-	const order = v.union([sequence, vFunction([sequence], sequence)]);
 
 	return v.union([
-		order,
+		sequence,
 		v.strictObject({
-			order: v.optional(order),
+			order: v.optional(sequence),
 			label: vLabel,
 			unspecified: v.optional(vUnspecifiedOrderOptions),
 			sort: v.optional(vOrderSort),

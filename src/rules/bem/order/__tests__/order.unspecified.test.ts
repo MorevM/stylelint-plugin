@@ -134,9 +134,9 @@ testRule({
 });
 
 testRule({
-	description: 'Unspecified priorities and transformed sequences',
+	description: 'Unspecified declaration priorities',
 	config: [true, {
-		categories: { declarations: { order: () => ['color'], unspecified: 'top' } },
+		categories: { declarations: { order: ['color'], unspecified: 'top' } },
 	}],
 	reject: [{
 		description: 'Places unspecified properties first in their original order',
@@ -165,7 +165,7 @@ testRule({
 		order: ['*', 'declarations'],
 		categories: {
 			declarations: {
-				order: (defaults) => ['display', ...defaults, 'z-index'],
+				order: ['display', '*', 'z-index'],
 				unspecified: 'ignore',
 			},
 		},

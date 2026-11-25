@@ -1,11 +1,6 @@
-import { assert, isFunction, isUndefined } from '@morev/utils';
-import * as v from 'valibot';
 import { createDefineRules } from '../../../../create-define-rules';
 import rule from '../order';
-import { schema } from '../order.schema';
-import type {
-	AtRuleCategoryMatcher, CategorySequence, GroupSequence, OrderSortItem, SecondaryOption,
-} from '../order.types';
+import type { GroupSequence, OrderSortItem, SecondaryOption } from '../order.types';
 
 const { ruleName } = rule;
 const testRuleConfig = createTestRuleConfig({ ruleName });
@@ -310,26 +305,12 @@ testRuleConfig({
 				{ type: 'at-rule', name: 'media', parameter: /^\(min-width:/u },
 			] } }],
 		},
-		{
-			description: 'Accepts explicit at-rule matchers returned by transformers',
-			config: [true, {
-				categories: {
-					'at-rules': (defaults: CategorySequence<AtRuleCategoryMatcher>) => [
-						...defaults, { type: 'at-rule', name: 'supports' },
-					],
-				},
-			}],
-		},
 	],
 	reject: [
 		{ description: 'Rejects other strings in at-rule orders', config: [true, { categories: { 'at-rules': ['media'] } }] },
 		{
 			description: 'Rejects non-at-rule objects in at-rule orders',
 			config: [true, { categories: { 'at-rules': [{ type: 'rule', selector: '.card' }] } }],
-		},
-		{
-			description: 'Rejects equal-rank remainders returned by at-rule transformers',
-			config: [true, { categories: { 'at-rules': () => [['*']] } }],
 		},
 	],
 });
@@ -352,10 +333,6 @@ testRuleConfig({
 			description: 'Rejects equal-rank references in category orders',
 			config: [true, { categories: { 'pseudo-classes': [['group:custom']] } }],
 		},
-		{
-			description: 'Validates group references returned by transformers',
-			config: [true, { categories: { 'pseudo-classes': () => ['group:custom'] } }],
-		},
 		{ description: 'Requires defined outer groups', config: [true, { order: ['group:missing'] }] },
 		{ description: 'Requires defined root groups', config: [true, { root: { order: ['group:missing'] } }] },
 	],
@@ -366,53 +343,24 @@ testRuleConfig({
 	reject: [
 		{ description: 'Rejects two remainder positions', config: [true, { order: ['*', 'base', '*'] }] },
 		{ description: 'Rejects equal-rank remainders', config: [true, { order: [['*']] }] },
-		{
-			description: 'Validates remainder markers returned by transformers',
-			config: [true, { categories: { declarations: () => [['*']] } }],
-		},
 	],
 });
 
-describe('bem/order configuration types and transformations', () => {
-	it('Composes defaults without flattening equal-rank entries', () => {
+describe('bem/order configuration types', () => {
+	it('Infers category sorter items in a typed configuration', () => {
 		const defineRules = createDefineRules();
-		const rules = defineRules({
+		defineRules({
 			'@morev/bem/order': [true, {
 				categories: {
-					'elements': {
+					elements: {
 						sort: (items) => {
 							expectTypeOf(items).toEqualTypeOf<readonly OrderSortItem[]>();
 
 							return items;
 						},
 					},
-					'sass:variables': (defaults) => {
-						expectTypeOf(defaults).toEqualTypeOf<CategorySequence>();
-
-						return [/^\$_/, ...defaults];
-					},
-					'at-rules': {
-						order: (defaults) => {
-							expectTypeOf(defaults).toEqualTypeOf<CategorySequence<AtRuleCategoryMatcher>>();
-
-							return [{ type: 'at-rule', name: 'media' }, ...defaults];
-						},
-					},
 				},
 			}],
 		});
-		const parsed = v.parse(schema.secondary, rules['@morev/bem/order'][1]);
-		const transform = parsed?.categories?.['sass:variables'];
-		const atRules = parsed?.categories?.['at-rules'];
-		const defaults = [['$size', '$gap'], '*'] as const;
-
-		assert(isFunction(transform));
-
-		expect(transform(defaults)).toStrictEqual([/^\$_/, ['$size', '$gap'], '*']);
-		expect(defaults).toStrictEqual([['$size', '$gap'], '*']);
-
-		assert(!isUndefined(atRules) && 'order' in atRules && isFunction(atRules.order));
-
-		expect(atRules.order(['*'])).toStrictEqual([{ type: 'at-rule', name: 'media' }, '*']);
 	});
 });

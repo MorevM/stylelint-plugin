@@ -1,4 +1,4 @@
-import { isArray, isEmpty, isFunction, isRegExp, isString, isUndefined, tsObject } from '@morev/utils';
+import { isArray, isEmpty, isRegExp, isString, isUndefined, tsObject } from '@morev/utils';
 import selectorParser from 'postcss-selector-parser';
 import { DEFAULT_CATEGORY_ORDERS, DEFAULT_ORDER, DEFAULT_ROOT_ORDER, REMAINDER } from '../../order.constants';
 import { createOrderSorter } from '../create-order-sorter/create-order-sorter';
@@ -349,37 +349,28 @@ const getConfiguredCategory = (
 };
 
 /**
- * Resolves a category override using defaults compatible with its matcher contract.
+ * Prepares the order and sorting policies for a configured category.
  *
- * @param   override    Optional sequence, transformer or expanded category settings.
- * @param   defaults    Built-in matchers accepted by the same category.
- * @param   category    Category that owns the local groups.
- * @param   normalize   Optional normalization for exact string matchers in the configured order.
+ * @param   override   Priority sequence or expanded category settings.
+ * @param   category   Category that owns the local groups.
  *
- * @returns             Prepared matchers and policies, or undefined for omitted categories.
+ * @returns            Prepared matchers and policies.
  */
-const prepareCategoryOrder = <Matcher extends CategoryMatcher>(
-	override: CategoryOrder<Matcher> | undefined,
-	defaults: CategorySequence<Matcher>,
-	category: OrderCategory,
-	normalize?: (value: string) => string,
-) => {
-	if (isUndefined(override)) return undefined;
-
-	const settings: CategoryOrderOptions<Matcher> = isArray(override) || isFunction(override)
+const prepareCategoryOrder = (override: CategoryOrder, category: OrderCategory) => {
+	const settings: CategoryOrderOptions = isArray(override)
 		? { order: override }
-		: override as CategoryOrderOptions<Matcher>;
-	const sequence = settings.order ?? defaults;
-	const order = isFunction(sequence) ? sequence(defaults) : sequence;
+		: override as CategoryOrderOptions;
+	const { order } = settings;
 
-	const normalizeMatcher = <T>(matcher: T) => (normalize && isString(matcher) ? normalize(matcher) : matcher);
 	return {
-		order: normalize && order !== defaults
+		order: order && isQueryCategory(category)
 			? order.map((entry) => {
-				if (isArray<Matcher>(entry)) return entry.map((matcher) => normalizeMatcher(matcher));
-				return normalizeMatcher(entry);
+				if (isArray<CategoryMatcher>(entry)) {
+					return entry.map((matcher) => (isString(matcher) ? normalizeParameters(matcher) : matcher));
+				}
+				return isString(entry) ? normalizeParameters(entry) : entry;
 			})
-			: order,
+			: order ?? DEFAULT_CATEGORY_ORDERS[category] ?? REMAINDER,
 		unspecified: prepareUnspecified(`categories.${category}.unspecified`, settings.unspecified),
 		sort: isUndefined(settings.sort) ? undefined : createOrderSorter(settings.sort),
 	};
@@ -521,25 +512,21 @@ const createOrderConfig = (options: SecondaryOption) => {
 		return selector.categories.map((category) => (category === 'pseudo-classes' ? PSEUDO_ELEMENT_STATES : category));
 	};
 
-	const categoryOrders = new Map<OrderCategory, NonNullable<ReturnType<typeof prepareCategoryOrder>>>();
+	const categoryOrders = new Map<OrderCategory, ReturnType<typeof prepareCategoryOrder>>();
 	const categorySpacing = new Map<OrderCategory, PreparedOrderSpacing>();
 	const categoryLabels = new Map<OrderCategory, string>();
 	const overrides = options.categories ?? {};
 	for (const category of tsObject.keys(overrides)) {
 		const override = overrides[category];
-		if (override && ('blankLines' in override || 'label' in override)) {
+		if (isUndefined(override)) continue;
+		if ('blankLines' in override || 'label' in override) {
 			if (!isUndefined(override.label)) categoryLabels.set(category, override.label);
 			if (override.blankLines) categorySpacing.set(category, spacing(override, `categories.${category}`));
 			// Formatting and labels leave an inherited category order in effect.
 			if (isUndefined(override.order) && isUndefined(override.sort) && isUndefined(override.unspecified)) continue;
 		}
 
-		const prepared = category === 'at-rules'
-			? prepareCategoryOrder(overrides[category], REMAINDER, category)
-			: isQueryCategory(category)
-				? prepareCategoryOrder(overrides[category], REMAINDER, category, normalizeParameters)
-				: prepareCategoryOrder(overrides[category], DEFAULT_CATEGORY_ORDERS[category] ?? REMAINDER, category);
-		if (isUndefined(prepared)) continue;
+		const prepared = prepareCategoryOrder(override, category);
 
 		if (category !== 'declarations' && prepared.order.flat().some((entry) => !isString(entry) && 'properties' in entry)) {
 			throw new Error('Property groups are only supported within declarations');

@@ -1,5 +1,4 @@
 import rule from '../order';
-import type { CategorySequence } from '../order.types';
 
 const { ruleName, messages } = rule;
 const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
@@ -479,7 +478,7 @@ testRule({
 	description: 'Category overrides',
 	config: [true, {
 		categories: {
-			'sass:variables': (defaults: CategorySequence) => [/^\$_/u, ...defaults],
+			'sass:variables': [/^\$_/u, '*'],
 			'at-rules': [
 				{ type: 'at-rule', name: 'include', hasBlock: false },
 				{ type: 'at-rule', name: 'include', hasBlock: true },
@@ -490,7 +489,7 @@ testRule({
 		},
 	}],
 	reject: [{
-		description: 'Transforms defaults and orders at-rule forms within independent regions',
+		description: 'Orders Sass variables and at-rule forms within independent regions',
 		code: `
 			.card {
 				$public: 1;

@@ -154,7 +154,7 @@ testRule({
 
 testRule({
 	description: 'Inclusive selector sets',
-	config: [true, { categories: { 'pseudo-classes': () => states } }],
+	config: [true, { categories: { 'pseudo-classes': states } }],
 	reject: [{
 		description: 'Distinguishes exact size, arbitrary extra branches, and compound pseudo-classes',
 		code: `

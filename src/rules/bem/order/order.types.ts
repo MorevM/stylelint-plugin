@@ -569,25 +569,13 @@ export type CategorySequence<Matcher extends CategoryMatcher = CategoryMatcher> 
 export type SelectorListSequence = CategorySequence<string | RegExp | Omit<RuleMatcher, 'sort' | 'blankLines' | 'selectorSet'>>;
 
 /**
- * Composes a replacement category order without mutating its built-in defaults.
- * This callback transforms configuration data rather than matching CSS nodes.
- *
- * @param   defaults   Readonly built-in order, including equal-rank entries.
- *
- * @returns            Replacement order for the same category.
- */
-export type OrderTransformer<Matcher extends CategoryMatcher = CategoryMatcher> = (
-	defaults: CategorySequence<Matcher>,
-) => CategorySequence<Matcher>;
-
-/**
  * Ordering and formatting for a built-in category.
  */
 export type CategoryOrderOptions<Matcher extends CategoryMatcher = CategoryMatcher> = DiagnosticLabel & {
 	/**
-	 * Replaces the category defaults, optionally deriving a sequence from them.
+	 * Replaces the category's built-in order.
 	 */
-	order?: CategorySequence<Matcher> | OrderTransformer<Matcher>;
+	order?: CategorySequence<Matcher>;
 
 	/**
 	 * Positions unmatched members or preserves their category-local slots.
@@ -632,10 +620,10 @@ export type SelectorListOrder = {
 };
 
 /**
- * Replaces a category's defaults directly or derives a replacement from them.
+ * Configures a category with a priority sequence or expanded settings.
  */
 export type CategoryOrder<Matcher extends CategoryMatcher = CategoryMatcher> =
-	CategorySequence<Matcher> | OrderTransformer<Matcher> | CategoryOrderOptions<Matcher>;
+	CategorySequence<Matcher> | CategoryOrderOptions<Matcher>;
 
 /**
  * Enables semantic ordering and autofix within authored containers.
