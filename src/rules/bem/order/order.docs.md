@@ -1867,74 +1867,120 @@ A printed page can also match the width query. Putting `@media print` last gives
 
 ### `selectorList`
 
-By default the rule moves a comma-separated list as a whole and leaves the
-selector text alone. If you'd also like the branches to follow your usual
-state order, turn on `selectorList`.
+Controls the order of comma-separated selectors within a single rule.
+
+By default the rule moves a comma-separated list as a whole.
+If you'd also like the branches to follow your usual
+state order, turn on `selectorList`. \
+The default for the option itself is `false`.
 
 ::: code-group
 
-```js [Configuration]
+```ts{2} [Configuration]
 {
   selectorList: { order: 'inherit' },
-  categories: { 'pseudo-classes': [':hover', ':focus-visible', '*'] },
+  categories: {
+    'pseudo-classes': [':hover', ':focus-visible', '*']
+  },
 }
 ```
 
 ```scss [Before]
-.button:focus-visible, .button:hover {}
+// You can write the selectors in either order.
+.button:focus-visible,
+.button:hover {
+  color: navy;
+  text-decoration: underline;
+}
 ```
 
 ```scss [After]
-.button:hover, .button:focus-visible {}
+// Autofix puts :hover before :focus-visible.
+.button:hover,
+.button:focus-visible {
+  color: navy;
+  text-decoration: underline;
+}
 ```
 
 :::
 
 `'inherit'` reuses category priorities when every branch resolves to the same
-BEM family and category. If nesting gives a branch several owners, its list
-stays as written. `selectorList: {}` is shorthand for inherited order.
-The default for the option itself is `false`.
+BEM family and category.
 
-To alphabetize whole lists, including selectors like `h2, h1`, set just
-`selectorList: { sort: { by: 'name' } }`. You can also give the list priorities of its own.
+To sort selectors by name, set `selectorList.sort` on its own. For example, when headings
+share a style, this puts `h1` before `h2` in the selector list.
 
-```js
+::: code-group
+
+```ts{2} [Configuration]
+{
+  selectorList: { sort: { by: 'name' } },
+}
+```
+
+```scss [Before]
+h2, h1 {
+  text-wrap: balance;
+}
+```
+
+```scss [After]
+h1, h2 {
+  text-wrap: balance;
+}
+```
+
+:::
+
+You can also give the list priorities of its own.
+
+::: code-group
+
+```ts{3,4} [Configuration]
 {
   selectorList: {
     order: [':hover', [':focus', ':focus-visible'], '*'],
-    sort: { by: 'name' },
+    sort: { by: 'name', direction: 'asc' },
     unspecified: 'ignore',
   },
 }
 ```
 
-The [name preset][sorting-presets] is the only sorter available for `selectorList.sort`.
-It breaks ties between branches. Use `direction: 'desc'` to reverse the comparison.
-Strings match a complete normalized branch or a local
-condition. Regular expressions and rule matchers with `selector` or
-`relativeSelector` work too. Here `'*'` also ranks the remaining branches.
-Omit it to let `unspecified` keep their slots (`'ignore'`, the default), or
-choose `'top'` or `'bottom'`.
-
-Only complete branches move. Comments, duplicate selectors, and the spacing
-of the list are preserved. The rule leaves compounds and commas inside
-functions like `:is(...)` alone. [Selector sets][selector-sets] control where
-the whole rule goes.
-
-### `separators`
-
-If your project writes `.card_size_small` for the small card, tell the rule
-how to recognize it. The element separator can keep its default.
-
-```js
-{
-  separators: { modifier: '_', modifierValue: '_' },
+```scss [Before]
+// :active matches '*'. The two focus states have equal priority.
+.button:active,
+.button:focus-visible,
+.button:hover,
+.button:focus {
+  color: navy;
 }
 ```
 
-Now `.card_size_small` and `.card__title` both belong to `.card`.
-The default separators are `__` for `element`, `--` for `modifier`, and `--`
-for `modifierValue`. Set only the ones your project changes.
+```scss [After]
+// :hover comes first, then the focus states in name order, then :active.
+.button:hover,
+.button:focus,
+.button:focus-visible,
+.button:active {
+  color: navy;
+}
+```
+
+:::
+
+The [name preset][sorting-presets] is the only sorter available for `selectorList.sort`.
+
+Only complete branches move. Comments, duplicate selectors, and the spacing
+of the list are preserved. The rule leaves compounds and commas inside
+functions like `:is(...)` alone. \
+[Selector sets][selector-sets] control where the whole rule goes.
+
+---
+
+### `separators`
+
+<!-- @include: @/docs/_parts/separators.md -->
 
 ## Sorting
 
