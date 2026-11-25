@@ -944,7 +944,6 @@ For other ways to order matches, see
 ##### Rules
 
 Use `type: 'rule'` to give style rules their own place in `order`.
-Choose either `relativeSelector` or `selector` to narrow the match.
 
 ###### Relative selectors {#authored-and-relative-selectors}
 
@@ -1086,6 +1085,78 @@ button:focus {}
 
 </div>
 </div>
+
+---
+
+###### Selector sets {#selector-sets}
+
+A button might have one hover rule, one focus rule, and a third rule for styles
+the two states share. Give that third rule its own position with `selectorSet`.
+
+The rule must satisfy every constraint in the matcher.
+
+::: code-group
+
+```js{5-9} line-hints [Configuration]
+{
+  order: [
+    'base',
+    'pseudo-classes',
+    {
+      type: 'rule',
+      selector: /^\.button:/u, // optional
+      // [!hint] Use it by itself or alongside `selector` or `relativeSelector`.
+      selectorSet: { equals: [':hover', ':focus-visible'] },
+    },
+  ],
+}
+```
+
+```scss [Valid CSS example]
+
+.button {}
+.button:hover {}
+.button:hover, .button:focus-visible {}
+```
+
+:::
+
+`selectorSet` matches a selector list by which branches it contains, how many distinct branches it has, or both.
+
+- `equals` matches exactly the listed local branches in any order. Use it on its own.
+
+  ```js
+  selectorSet: { equals: [':hover', ':focus'] }, // &:focus, &:hover
+  ```
+
+- `includes` requires every listed local branch and allows others. \
+  Use `size` or range bounds to limit the total.
+
+  ```js
+  selectorSet: { includes: [':hover'] }, // &:hover, &:active
+  ```
+
+- `size` matches an exact number of **distinct** branches.
+
+  ```js
+  selectorSet: { size: 1 }, // h1, h1
+  selectorSet: { size: 3 }, // h1, h2, h3
+  ```
+
+- `minSize` and `maxSize` set inclusive lower and upper bounds on the number of **distinct** branches.
+  Use either bound or both.
+
+  ```js
+  selectorSet: { minSize: 3, maxSize: 4 }, // h1, h2, h3
+  selectorSet: { minSize: 3, maxSize: 4 }, // h1, h2, h3, h4
+  ```
+
+Write local branches without `&`.
+
+::: info Info
+This moves the **whole rule**. To change the order on either side of the comma,
+use [`selectorList`][selector-list].
+:::
 
 ---
 
@@ -1389,6 +1460,8 @@ Use the `group:` prefix to reference a group in `order` or `root.order`.
 
 ### `categories`
 
+Use `categories` to customize a built-in category wherever it appears in the order, including inside a named group.
+
 Say you like where the states appear, but you always look for `:focus-visible`
 before `:hover`. You only need to change one category.
 
@@ -1486,10 +1559,8 @@ the text includes the container name, when present. Include each category in
 
 :::
 
-#### Selector sets {#selector-sets}
-
-A button might have one hover rule, one focus rule, and a third rule for styles
-the two states share. Give that third rule its own position with `selectorSet`.
+Inside a built-in category, [`{ selectorSet: … }`][selector-sets] is shorthand for `{ type: 'rule', selectorSet: … }`.
+For example, you can order the individual states and their shared rules within `pseudo-classes`.
 
 ::: code-group
 
@@ -1518,37 +1589,9 @@ the two states share. Give that third rule its own position with `selectorSet`.
 
 :::
 
-`equals` matches exactly the listed branches in either order. `includes` allows
-others. Here `size: 2` asks for hover and one other distinct branch. Leave out
-`size` to accept any number, including a single hover branch. Put exact matches
-first. A plain `':hover'` matches the standalone state without claiming every
-list that mentions it.
-
-This moves the **whole rule**. To change the order on either side of the comma,
-use [`selectorList`][selector-list].
-
-::: details Which selector lists can move together?
-
-The branches must have the same BEM owner and family path. `.card:hover, .button:focus`
-stays in place. A list with only ordinary selectors, like `h1, h2`, can move as
-one rule in `rules`.
-
-For compatible branches the rule first looks for a category they all share.
-For example, `.card:hover.is-selected, .card:focus` shares `pseudo-classes`.
-If the branches have different kinds of conditions, as in `.card:hover, .card[hidden]`,
-the first eligible category in `order` wins. A specific category takes precedence
-over `rules` in either branch order. Put the `selectorSet` in the winning category.
-Compatible lists can still move without a matching set, according to that
-category's `'*'` or `unspecified` setting.
-
-A set compares complete branches. `:hover:focus` is a single branch. Commas
-inside `:is(...)` or a quoted attribute stay inside it. Within a compound,
-`.selected:hover` and `:hover.selected` match the same condition. Repetition,
-pseudo-element positions, and the arguments to functions still matter.
-List each branch once in the configuration. Duplicates in the stylesheet count
-once toward `size` and keep their original spelling.
-
-:::
+Put exact matches first. Here `equals` matches the hover and focus-visible pair
+in either order. The following matcher accepts hover and one other distinct branch.
+A plain `':hover'` matches the standalone state without claiming every list that mentions it.
 
 ### `unspecified`
 
