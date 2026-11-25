@@ -502,7 +502,9 @@ const createOrderConfig = (options: SecondaryOption) => {
 	};
 
 	const nestedOrder = expandOrder(options.order ?? DEFAULT_ORDER, 'order');
-	const rootOrder = expandOrder(options.root?.order ?? DEFAULT_ROOT_ORDER, 'root.order');
+	const rootOrder = options.order && !options.root?.order
+		? nestedOrder
+		: expandOrder(options.root?.order ?? DEFAULT_ROOT_ORDER, 'root.order');
 	const nestedUnspecified = prepareUnspecified('unspecified', options.unspecified);
 	const rootUnspecified = prepareUnspecified('root.unspecified', options.root?.unspecified);
 

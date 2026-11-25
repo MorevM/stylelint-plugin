@@ -636,7 +636,7 @@ export type PrimaryOption = true;
  */
 export type SecondaryOption = {
 	/**
-	 * Applies recursively inside selectors and semantic families.
+	 * Applies inside selectors and semantic families, and at stylesheet level unless `root.order` overrides it.
 	 * Inapplicable categories are skipped; peer families retain first-appearance order.
 	 * Pseudo-element variants stay in their pseudo-element family, including `&:hover::before`.
 	 */
@@ -656,9 +656,8 @@ export type SecondaryOption = {
 	root?: {
 		/**
 		 * Positions whole selector families and at-rule wrappers.
-		 * Does not replace the main order inside a semantic family.
 		 *
-		 * @default Sass constructs, custom properties, selector families, media queries, container queries, then other at-rules.
+		 * @default The configured `order`, or the built-in stylesheet order if both are omitted.
 		 */
 		order?: OrderSequence;
 

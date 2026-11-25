@@ -188,6 +188,28 @@ testRule({
 });
 
 testRule({
+	description: 'Shared document and family order',
+	config: [true, { order: ['css:media', 'pseudo-classes', 'base', 'rules'] }],
+	reject: [{
+		description: 'Uses one order for a top-level media query and the members of a flat CSS family',
+		code: `
+			.card {}
+			.card:hover {}
+			@media print {}
+		`,
+		fixed: `
+			@media print {}
+			.card:hover {}
+			.card {}
+		`,
+		warnings: [
+			{ message: messages.expectedBefore('@media print', '.card') },
+			{ message: messages.expectedBefore('.card:hover', '.card') },
+		],
+	}],
+});
+
+testRule({
 	description: 'Explicit document order',
 	config: [true, {
 		root: { order: ['group:conditions', 'rules'] },
