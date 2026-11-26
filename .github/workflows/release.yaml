@@ -58,7 +58,14 @@ jobs:
           body: ${{steps.latest-changelog-entry.outputs.result}}
 
       - name: Publish package
-        run: pnpm publish --provenance --access public --no-git-checks
+        run: |
+          version=${GITHUB_REF_NAME%%+*}
+          case "${version#*-}" in
+            rc|rc.*) dist_tag=rc ;;
+            *) dist_tag=latest ;;
+          esac
+
+          pnpm publish --tag "$dist_tag" --provenance --access public --no-git-checks
         env:
           # Explicitly clear placeholder set by setup-node to enable OIDC
           NODE_AUTH_TOKEN: ''
