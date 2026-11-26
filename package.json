@@ -94,7 +94,7 @@
 		"@morev/stylelint-testing-library": "^1.2.0",
 		"@release-it/conventional-changelog": "^12.0.2",
 		"@total-typescript/ts-reset": "^0.6.1",
-		"@types/node": "^26.6.6",
+		"@types/node": "^26.6.10",
 		"@vitest/coverage-v8": "^5.1.0",
 		"cspell": "^10.4.0",
 		"eslint": "^10.14.0",
