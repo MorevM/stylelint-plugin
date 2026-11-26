@@ -140,6 +140,14 @@ describe(resolveNestedSelector, () => {
 
 	// Tests from https://github.com/csstools/postcss-resolve-nested-selector/blob/main/test/api.test.mjs
 	describe('CSS features', () => {
+		it('Resolves CSS nesting without scanning the stylesheet for Sass variables', () => {
+			const node = getRuleBySelector('.block { &__item {} }', '&__item');
+			const rootIterator = vi.spyOn(node.root().nodes, Symbol.iterator);
+
+			expect(resolveNestedSelector({ node })[0].resolved).toBe('.block__item');
+			expect(rootIterator).not.toHaveBeenCalled();
+		});
+
 		it('Resolves top-level declarations', () => {
 			const code = `
 				a {}

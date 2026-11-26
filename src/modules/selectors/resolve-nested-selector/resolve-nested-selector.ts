@@ -506,13 +506,18 @@ const resolveNodeVariables = (
  */
 const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 	const trees = getTrees(options.node, options.source);
-	// All branches have the same root, so we pick it once.
-	const root = getRoot(trees[0][0].node);
-	const rootVariables = resolveNodeVariables(root);
+	let rootVariables: SassVariableBindings | undefined;
 
 	const resolvedTrees: ResolvedPathItem[][] = trees.map((pathItems) => {
+		// Raw nesting and `#{&}` use the selector context directly.
+		// Only a variable interpolation can read declarations from an outer scope.
+		const lastVariableIndex = pathItems.findLastIndex(({ value }) => /#{\s*\$/.test(value));
 		let context = '';
-		let nodeVariables = { ...rootVariables };
+		let nodeVariables: SassVariableBindings = {};
+		if (lastVariableIndex !== -1) {
+			rootVariables ??= resolveNodeVariables(getRoot(options.node));
+			nodeVariables = rootVariables;
+		}
 
 		return pathItems.map((pathItem, index) => {
 			const usedVariables: Record<string, string> = {};
@@ -553,13 +558,13 @@ const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 				pathItems[index - 1],
 			);
 
-			// Declarations inside a rule belong to its descendants.
-			// Resolve them after the current selector context is known.
-			// Keep inherited variables available during resolution.
-			nodeVariables = {
-				...nodeVariables,
-				...resolveNodeVariables(pathItem.node, context, nodeVariables),
-			};
+			// Declarations belong to descendants and see the declaring selector's resolved context.
+			if (index < lastVariableIndex) {
+				nodeVariables = {
+					...nodeVariables,
+					...resolveNodeVariables(pathItem.node, context, nodeVariables),
+				};
+			}
 
 			return {
 				...resolvedPathItem,
