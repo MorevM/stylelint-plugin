@@ -23,20 +23,20 @@ plugins:
           section: Tests
         - type: docs
           section: Documentation
+        - type: ci
+          section: CI improvements
         - type: chore
           section: Chores
         - type: release
-          hidden: true
+          effect: hidden
         - type: revert
-          hidden: true
+          effect: hidden
         - type: build
-          hidden: true
-        - type: ci
-          section: CI improvements
+          effect: hidden
         - type: wip
-          hidden: true
+          effect: hidden
         - type: nvm
-          hidden: true
+          effect: hidden
 
 hooks:
   before:init:
