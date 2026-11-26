@@ -258,6 +258,9 @@ testRuleConfig({
 		{ description: 'Requires distinct units regardless of case', config: [true, { categories: { 'at-rules': {
 			sort: { by: 'dimension', units: ['rem', 'REM'] },
 		} } }] },
+		{ description: 'Rejects a second unit wildcard', config: [true, { categories: { 'at-rules': {
+			sort: { by: 'dimension', units: ['*', 'px', '*'] },
+		} } }] },
 		{ description: 'Rejects units in name presets', config: [true, { categories: { 'at-rules': {
 			sort: { by: 'name', units: ['rem'] },
 		} } }] },

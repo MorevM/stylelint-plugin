@@ -87,7 +87,7 @@ const vOrderSorter = v.custom<OrderSorter>(isFunction, 'Expected a synchronous s
 const vUnspecifiedOrder: v.GenericSchema<UnspecifiedOrder> = v.picklist(['top', 'bottom', 'ignore']);
 const vDirection = v.optional(v.picklist(['asc', 'desc']));
 const vUnits = v.pipe(
-	vReadonly(v.array(v.pipe(v.string(), v.regex(/^[a-z]+$/iu)))),
+	vReadonly(v.array(v.union([v.literal('*'), v.pipe(v.string(), v.regex(/^[a-z]+$/iu))]))),
 	v.check((units) => arrayUnique(units.map((unit) => unit.toLowerCase())).length === units.length,
 		'Each unit must have exactly one priority'),
 );

@@ -2159,12 +2159,14 @@ Each of these queries is **unresolved**.
 @media (--wide) {}                          // A custom media name.
 ```
 
+With an explicit `units` list, unlisted units are also unresolved unless you give them a place with `'*'`.
+
 ```js line-hints
 {
   by: 'dimension',
-  // [!hint] Unit names are case-insensitive. Omit `units` or pass `[]` to
-  // accept all units and keep each unit in its original slots.
-  units: ['vw', 'px'],  // A value in em is now unresolved too.
+  // [!hint] Unit names are case-insensitive. Within `'*'`, each unit sorts
+  // in its own slots. Omitting `units` or passing `[]` works like `['*']`.
+  units: ['vw', '*', 'px'], // vw first, other units in the middle, px last.
   // [!hint] Set `'top'` or `'bottom'` to collect unresolved items at either
   // end of their current priority. Give `print` its own entry in `order`
   // if it needs a specific position, as in the [first example][sorting].

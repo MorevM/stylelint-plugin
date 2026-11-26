@@ -6,6 +6,7 @@ const testRule = createTestRule({ ruleName, customSyntax: 'postcss-scss' });
 for (const preset of [
 	{ description: 'Omitted unit priorities', sort: { by: 'dimension' } },
 	{ description: 'Empty unit priorities', sort: { by: 'dimension', units: [] } },
+	{ description: 'Wildcard as the only unit priority', sort: { by: 'dimension', units: ['*'] } },
 ] as const) {
 	testRule({
 		description: preset.description,
@@ -130,6 +131,35 @@ testRule({
 			{ message: messages.expectedBefore('@media (width >= 1rem)', '@media (width >= 2rem) and (hover: hover)') },
 			{ message: messages.expectedBefore('@media (hover: hover) and (width >= 3rem)', '@media (width >= 16px)') },
 			{ message: messages.expectedAfter('@media (width >= 40px)', '@media (width >= 16px)') },
+		],
+	}],
+});
+
+testRule({
+	description: 'Wildcard dimension unit priority',
+	config: [true, { categories: { 'at-rules': { sort: { by: 'dimension', units: ['vw', '*', 'px'] } } } }],
+	reject: [{
+		description: 'Sorts unlisted units in their own slots between explicit units and keeps print in place',
+		code: `
+			@media (width >= 1px) {}
+			@media (width >= 20em) {}
+			@media (width >= 3vw) {}
+			@media (width >= 1vh) {}
+			@media print {}
+			@media (width >= 2em) {}
+		`,
+		fixed: `
+			@media (width >= 3vw) {}
+			@media (width >= 2em) {}
+			@media (width >= 1vh) {}
+			@media (width >= 20em) {}
+			@media print {}
+			@media (width >= 1px) {}
+		`,
+		warnings: [
+			{ message: messages.expectedBefore('@media (width >= 2em)', '@media (width >= 1vh)') },
+			{ message: messages.expectedAfter('@media (width >= 20em)', '@media (width >= 1vh)') },
+			{ message: messages.expectedAfter('@media (width >= 1px)', '@media (width >= 1vh)') },
 		],
 	}],
 });

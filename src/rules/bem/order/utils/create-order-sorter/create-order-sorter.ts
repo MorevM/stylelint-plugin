@@ -84,21 +84,22 @@ export const createOrderSorter = (option: OrderSort): PreparedOrderSorter => {
 		}), (item) => (item.type === 'declaration' ? item.name : undefined)) };
 	}
 
-	const units = (option.units ?? []).map((unit) => unit.toLowerCase());
-	const hasUnitPriorities = !isEmpty(units);
+	const units = option.units?.length ? option.units : ['*'];
+	const unitRanks = new Map(units.map((unit, rank) => [unit.toLowerCase(), rank]));
+	const wildcardRank = unitRanks.get('*');
 
 	/**
-	 * Resolves literal dimensions, restricting units only when priorities are supplied.
+	 * Explicit units take precedence over the wildcard regardless of its position.
 	 *
 	 * @param   item   Description whose parameters or value may contain a dimension.
 	 *
-	 * @returns        Dimension with its explicit unit rank, or undefined for an unresolved value.
+	 * @returns        Dimension with its unit priority, or undefined for an unresolved value.
 	 */
 	const resolve = (item: OrderSortItem) => {
 		const dimension = resolveDimension(item);
 		if (!dimension || isEmpty(dimension.unit)) return undefined;
-		if (hasUnitPriorities && !units.includes(dimension.unit)) return undefined;
-		return { ...dimension, rank: units.indexOf(dimension.unit) };
+		const rank = unitRanks.get(dimension.unit) ?? wildcardRank;
+		return isUndefined(rank) ? undefined : { ...dimension, rank };
 	};
 
 	const unresolved = option.unresolved ?? 'ignore';
@@ -115,30 +116,23 @@ export const createOrderSorter = (option: OrderSort): PreparedOrderSorter => {
 		 */
 		run: (items) => {
 			const rows = items.map((item) => ({ item, dimension: resolve(item) }));
-			let known = rows.filter((row) => !isUndefined(row.dimension));
+			const known = rows.filter((row) => !isUndefined(row.dimension));
 			const unknown = rows.filter((row) => isUndefined(row.dimension)).map(({ item }) => item);
 
-			if (hasUnitPriorities) {
-				known = known.toSorted((a, b) => {
-					return a.dimension!.rank - b.dimension!.rank || (a.dimension!.value - b.dimension!.value) * direction;
-				});
-			} else {
-				// Sort each unit independently, then refill only the slots originally occupied by that unit.
-				const groups = new Map<string, typeof known>();
-				for (const row of known) {
-					const { unit } = row.dimension!;
-					const group = groups.get(unit) ?? [];
-					group.push(row);
-					groups.set(unit, group);
-				}
-
-				const ordered = new Map([...groups].map(([unit, group]) => [unit, group.toSorted((a, b) => {
-					return (a.dimension!.value - b.dimension!.value) * direction;
-				}).values()]));
-				known = known.map(({ dimension }) => ordered.get(dimension!.unit)!.next().value!);
+			const groups = new Map<string, typeof known>();
+			for (const row of known) {
+				const { unit } = row.dimension!;
+				const group = groups.get(unit) ?? [];
+				group.push(row);
+				groups.set(unit, group);
 			}
 
-			const resolvedItems = known.map(({ item }) => item);
+			const ordered = new Map([...groups].map(([unit, group]) => [unit, group.toSorted((a, b) => {
+				return (a.dimension!.value - b.dimension!.value) * direction;
+			}).values()]));
+			// A stable rank sort keeps different wildcard units in their relative slots.
+			const slots = unitRanks.size > 1 ? known.toSorted((a, b) => a.dimension!.rank - b.dimension!.rank) : known;
+			const resolvedItems = slots.map(({ dimension }) => ordered.get(dimension!.unit)!.next().value!.item);
 
 			let index = 0;
 			const preferred = unresolved === 'top'
@@ -148,14 +142,17 @@ export const createOrderSorter = (option: OrderSort): PreparedOrderSorter => {
 					: rows.map(({ item, dimension }) => (isUndefined(dimension) ? item : resolvedItems[index++]));
 
 			const sorted = preservePropertyOrder(items, preferred, (item) => (item.type === 'declaration' ? item.name : undefined));
-			if (unresolved === 'ignore' && items.some((item, position) => isUndefined(resolve(item)) && sorted[position] !== item)) {
+			if (unresolved === 'ignore' && rows.some(({ item, dimension }, position) => {
+				return isUndefined(dimension) && sorted[position] !== item;
+			})) {
 				return [...items];
 			}
 
 			// Cascade constraints must not make another unit occupy a reserved numeric slot.
-			if (!hasUnitPriorities && preferred.some((item, position) => {
+			if (!isUndefined(wildcardRank) && preferred.some((item, position) => {
+				if (sorted[position] === item) return false;
 				const dimension = resolve(item);
-				return !isUndefined(dimension) && resolve(sorted[position])?.unit !== dimension.unit;
+				return dimension?.rank === wildcardRank && resolve(sorted[position])?.unit !== dimension.unit;
 			})) return [...items];
 
 			return sorted;

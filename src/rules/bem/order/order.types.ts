@@ -213,8 +213,9 @@ export type OrderSortPreset = {
 	by: 'dimension';
 
 	/**
-	 * Units in priority order; values are compared only within the same unit, without conversion.
-	 * Omission or an empty list sorts each unit within its existing slots.
+	 * Units in priority order. A single `'*'` gives all unlisted units a shared priority.
+	 * Within that priority, each unit sorts numerically in its own slots.
+	 * An omitted or empty list behaves like `['*']`.
 	 */
 	units?: readonly string[];
 
