@@ -1,8 +1,48 @@
 import postcssScss from 'postcss-scss';
-import { resolveSassDeclarations } from './resolve-sass-declarations';
-import type { Rule } from 'postcss';
+import { getRootSassVariables, resolveSassDeclarations, withRootSassScope } from './resolve-sass-declarations';
+import type { Declaration, Rule } from 'postcss';
 
 describe(resolveSassDeclarations, () => {
+	it('Scans the root once for complete bindings and source-order lookups', () => {
+		const root = postcssScss.parse('$name: first; .one {} $name: second; .two {}');
+		const [, firstRule, secondDeclaration, lastRule] = root.nodes;
+		const iterator = vi.spyOn(root.nodes, Symbol.iterator);
+
+		withRootSassScope(root, 'read', () => {
+			expect(getRootSassVariables(root).$name).toBe('second');
+			expect(resolveSassDeclarations(root, { stopBefore: firstRule }).variables.$name).toBe('first');
+			expect(resolveSassDeclarations(root, { stopBefore: secondDeclaration }).variables.$name).toBe('first');
+			expect(resolveSassDeclarations(root, { stopBefore: lastRule }).variables.$name).toBe('second');
+			expect(getRootSassVariables(root).$name).toBe('second');
+		});
+
+		expect(iterator).toHaveBeenCalledTimes(1);
+	});
+
+	it('Reads changes during a fix, after the fix and after the rule returns', () => {
+		const root = postcssScss.parse('$name: first; $name: last;');
+		const first = root.first as Declaration;
+		const last = root.last as Declaration;
+
+		withRootSassScope(root, 'read', () => {
+			expect(getRootSassVariables(root).$name).toBe('last');
+
+			withRootSassScope(root, 'edit', () => {
+				root.prepend(last.remove());
+
+				expect(getRootSassVariables(root).$name).toBe('first');
+
+				first.value = 'edited';
+			});
+
+			expect(getRootSassVariables(root).$name).toBe('edited');
+		});
+
+		first.remove();
+
+		expect(getRootSassVariables(root).$name).toBe('last');
+	});
+
 	it('Resolves direct declarations sequentially and stops at the requested child', () => {
 		const root = postcssScss.parse(`
 			.block {

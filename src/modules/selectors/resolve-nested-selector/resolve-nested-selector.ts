@@ -1,8 +1,8 @@
 import { assert, isEmpty, isNullish, tsObject } from '@morev/utils';
-import { getRoot, isAtRule, isRoot, isRule, resolveSassDeclarations } from '#modules/postcss';
+import { getRoot, getRootSassVariables, isAtRule, isRoot, isRule, resolveSassDeclarations } from '#modules/postcss';
 import { normalizeSassMemberName } from '#modules/sass';
 import { split } from './utils';
-import type { AtRule, ChildNode, Node, Root, Rule } from 'postcss';
+import type { AtRule, ChildNode, Node, Rule } from 'postcss';
 import type { SassVariableBindings } from '#modules/sass';
 import type {
 	Options,
@@ -482,11 +482,11 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
  * @returns                      Variables declared directly in the node.
  */
 const resolveNodeVariables = (
-	node: ChildNode | Root | null,
+	node: ChildNode,
 	context?: string,
 	inheritedVariables: SassVariableBindings = {},
 ): SassVariableBindings => {
-	if (!node || !('nodes' in node)) return {};
+	if (!('nodes' in node)) return {};
 	return resolveSassDeclarations(node, { context, inheritedVariables }).variables;
 };
 
@@ -506,13 +506,18 @@ const resolveNodeVariables = (
  */
 const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 	const trees = getTrees(options.node, options.source);
-	// All branches have the same root, so we pick it once.
-	const root = getRoot(trees[0][0].node);
-	const rootVariables = resolveNodeVariables(root);
+	let rootVariables: SassVariableBindings | undefined;
 
 	const resolvedTrees: ResolvedPathItem[][] = trees.map((pathItems) => {
+		// Raw nesting and `#{&}` use the selector context directly.
+		// Only a variable interpolation can read declarations from an outer scope.
+		const lastVariableIndex = pathItems.findLastIndex(({ value }) => /#{\s*\$/.test(value));
 		let context = '';
-		let nodeVariables = { ...rootVariables };
+		let nodeVariables: SassVariableBindings = {};
+		if (lastVariableIndex !== -1) {
+			rootVariables ??= getRootSassVariables(getRoot(options.node));
+			nodeVariables = rootVariables;
+		}
 
 		return pathItems.map((pathItem, index) => {
 			const usedVariables: Record<string, string> = {};
@@ -553,13 +558,13 @@ const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 				pathItems[index - 1],
 			);
 
-			// Declarations inside a rule belong to its descendants.
-			// Resolve them after the current selector context is known.
-			// Keep inherited variables available during resolution.
-			nodeVariables = {
-				...nodeVariables,
-				...resolveNodeVariables(pathItem.node, context, nodeVariables),
-			};
+			// Declarations belong to descendants and see the declaring selector's resolved context.
+			if (index < lastVariableIndex) {
+				nodeVariables = {
+					...nodeVariables,
+					...resolveNodeVariables(pathItem.node, context, nodeVariables),
+				};
+			}
 
 			return {
 				...resolvedPathItem,

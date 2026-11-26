@@ -147,10 +147,10 @@ const resolveOrderSelector = (
 	node: Rule | AtRule,
 	separators: Separators,
 	knownTargets: Set<string>,
-	input?: string | ReturnType<typeof resolveSelectorNodes>,
+	input?: string | ReturnType<typeof resolveSelectorNodes<'source'>>,
 ): SelectorOrder | null | undefined => {
 	const source = isString(input) ? input : undefined;
-	const branches = isArray(input) ? input : resolveSelectorNodes({ node, source });
+	const branches = isArray(input) ? input : resolveSelectorNodes({ node, source }, ['source']);
 	if (branches.some(({ resolved }) => selectorNodesToString(resolved).includes('#{'))) return null;
 
 	const authored = source ?? (node.type === 'rule' ? node.selector : node.params);

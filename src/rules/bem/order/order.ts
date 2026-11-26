@@ -55,13 +55,13 @@ export default createRule({
 	const hasContentInsertion = createContentInsertionChecker();
 	const knownTargets = new Set<string>();
 	const selectors = new Map<ChildNode, SelectorOrder | null | undefined>();
-	const selectorBranches = new Map<Rule | AtRule, ReturnType<typeof resolveSelectorNodes>>();
+	const selectorBranches = new Map<Rule | AtRule, ReturnType<typeof resolveSelectorNodes<'source'>>>();
 
 	// Collect unambiguous BEM targets before resolving selectors with multiple possible owners.
 	root.walk((node) => {
 		if (node.type !== 'rule' && !isAtRule(node, ['at-root'])) return;
 		if (node.type === 'atrule' && (!node.nodes || !node.params || node.params.startsWith('('))) return;
-		const branches = resolveSelectorNodes({ node });
+		const branches = resolveSelectorNodes({ node }, ['source']);
 		selectorBranches.set(node, branches);
 		const authored = node.type === 'rule' ? node.selector : node.params;
 		if (branches.length !== 1 || (authored.includes('%') && hasSassPlaceholder(branches[0].source))) return;

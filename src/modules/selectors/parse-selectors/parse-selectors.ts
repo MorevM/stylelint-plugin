@@ -1,6 +1,8 @@
 import parser from 'postcss-selector-parser';
 import { selectorNodesToString } from '#modules/selectors/selector-nodes-to-string/selector-nodes-to-string';
 
+const selectorParser = parser();
+
 /**
  * Adds a custom `.toString()` implementation to an array of selector nodes.
  *
@@ -263,19 +265,19 @@ const splitInterpolatedNestingNodes = (nodes: parser.Node[]) => {
  */
 export const parseSelectors = (selector: string): parser.Node[][] => {
 	try {
-		let nodes: parser.Node[][] = [];
-		const { maskedSelector, substitutions } = maskSassInterpolations(selector);
+		const masked = selector.includes('#{') ? maskSassInterpolations(selector) : null;
+		const root = selectorParser.astSync(masked?.maskedSelector ?? selector);
 
-		parser((root: parser.Root) => {
-			if (maskedSelector !== selector) {
-				restoreSourcePositions(root, maskedSelector, selector);
-			}
-			restoreSassInterpolations(root, substitutions);
-			nodes = root.nodes.map((selectorNode: parser.Selector) =>
-				setCustomToString(splitInterpolatedNestingNodes(selectorNode.nodes)));
-		}).processSync(maskedSelector);
+		if (masked?.substitutions.size) {
+			restoreSourcePositions(root, masked.maskedSelector, selector);
+			restoreSassInterpolations(root, masked.substitutions);
+		}
 
-		return nodes;
+		// The parser also decodes CSS escapes in identifiers before we inspect their values.
+		const canContainInterpolatedNesting = selector.includes('#{&}') || selector.includes('\\');
+		return root.nodes.map(({ nodes }) => setCustomToString(
+			canContainInterpolatedNesting ? splitInterpolatedNestingNodes(nodes) : nodes,
+		));
 	} catch {
 		// It crashes on invalid syntax while writing,
 		// e.g. for `*::` - Error: Pseudo-class or pseudo-element expected
