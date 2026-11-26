@@ -90,7 +90,7 @@ export default createRule({
 
 		const reportedViolations = new Set<string>();
 
-		resolveSelectorNodes({ node }).forEach(({ lexicalParent, replacements, resolved }) => {
+		resolveSelectorNodes({ node }, ['lexicalParent']).forEach(({ lexicalParent, replacements, resolved }) => {
 			const target = resolveBemSelectorTarget(resolved, separators);
 			if (target.status !== 'resolved') return;
 

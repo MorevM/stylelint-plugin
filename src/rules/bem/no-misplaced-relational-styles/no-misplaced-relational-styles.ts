@@ -77,7 +77,8 @@ export default createRule({
 		// Selector lists and parent selector lists expand into separate resolved branches.
 		// Each misplaced target is checked independently, e.g.
 		// `.block__link { &:hover .block__label, &:focus .block__icon {} }`.
-		resolveSelectorNodes({ node }).forEach(({ lexicalParent, replacements, resolved, source }) => {
+		const branches = resolveSelectorNodes({ node }, ['source', 'lexicalParent']);
+		branches.forEach(({ lexicalParent, replacements, resolved, source }) => {
 			const resolvedSelector = selectorNodesToString(resolved);
 			// Unknown interpolation such as `#{$unknown}` cannot provide a reliable BEM target.
 			if (resolvedSelector.includes('#{')) return;

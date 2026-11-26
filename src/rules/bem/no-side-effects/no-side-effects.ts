@@ -40,7 +40,7 @@ export default createRule({
 		// All other constructs are irrelevant to selector analysis.
 		if (!isSelectorOwnerNode(node)) return;
 
-		resolveSelectorNodes({ node }).forEach(({ resolved }) => {
+		resolveSelectorNodes({ node }, []).forEach(({ resolved }) => {
 			// Incomplete input
 			if (isEmpty(resolved)) return;
 

@@ -23,6 +23,23 @@ describe(resolveSelectorNodes, () => {
 	});
 
 	describe('Structure tests', () => {
+		it('Maps a flat selector without constructing a separate source tree', () => {
+			const node = getRuleBySelector('.block:hover {}');
+			const [branch] = resolveSelectorNodes({ node }, []);
+			const [full] = resolveSelectorNodes({ node });
+
+			expect(branch).not.toHaveProperty('source');
+			expect(getSourceMatches(branch.resolved)).toStrictEqual(getSourceMatches(full.resolved));
+		});
+
+		it('Returns just the requested lexical parent for a nested selector', () => {
+			const node = getRuleBySelector('.block { &__item {} }', '&__item');
+			const [branch] = resolveSelectorNodes({ node }, ['lexicalParent']);
+
+			expect(branch.lexicalParent?.toString()).toBe('.block');
+			expect(branch).not.toHaveProperty('parent');
+		});
+
 		it('Source and resolved nodes count is equal if selector is flat', () => {
 			const node = getRuleBySelector(`
 				.block__element:has(.foo, .bar.is-active):hover::before {}

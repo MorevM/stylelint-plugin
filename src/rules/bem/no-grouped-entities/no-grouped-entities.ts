@@ -85,7 +85,7 @@ const analyzeSelectorList = (
 ): SelectorListAnalysis | null => {
 	const branches = new Map<string, BranchAnalysis>();
 
-	for (const { resolved } of resolveSelectorNodes({ node })) {
+	for (const { resolved } of resolveSelectorNodes({ node }, [])) {
 		const branchRange = getResolvedNodesSourceRange(resolved);
 		if (!branchRange) continue;
 
