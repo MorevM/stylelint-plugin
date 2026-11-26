@@ -110,6 +110,6 @@
 		"vite-tsconfig-paths": "^6.1.1",
 		"vitepress": "^1.6.4",
 		"vitest": "5.1.2",
-		"vue": "3.5.20"
+		"vue": "3.5.46"
 	}
 }
