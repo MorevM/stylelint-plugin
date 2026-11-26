@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="688" height="340" viewBox="0 0 688 340">
+	<title>Ordering a flat CSS stylesheet</title>
+	<desc>
+		root.order places selector families before the print media query.
+		order places the base selector, hover state, and title element within the card family.
+		An explicit order applies at both levels when root.order is omitted.
+	</desc>
+	<style>
+		svg {
+			--surface: #fafafb;
+			--edge: #d7d9df;
+			--ink: #252831;
+			--muted: #505662;
+			--root: #5840a2;
+			--root-fill: #f0ecfa;
+			--family: #166458;
+			--family-fill: #e8f4ef;
+			font-family: system-ui, sans-serif;
+			fill: var(--ink);
+		}
+		@media (prefers-color-scheme: dark) {
+			svg {
+				--surface: #202127;
+				--edge: #42454f;
+				--ink: #f2f1f6;
+				--muted: #c2c3cf;
+				--root: #c9b9ff;
+				--root-fill: #332e44;
+				--family: #92ddc9;
+				--family-fill: #233a35;
+			}
+		}
+		.scope-code { font-family: ui-monospace, monospace; }
+	</style>
+	<rect x=".5" y=".5" width="687" height="339" rx="14" fill="var(--surface)" stroke="var(--edge)"/>
+
+	<g font-size="26" font-weight="700" class="scope-code">
+		<text x="24" y="43" fill="var(--root)">root.order</text>
+		<text x="352" y="43" fill="var(--family)">order</text>
+	</g>
+	<g font-size="18" fill="var(--muted)">
+		<text x="24" y="69">Across the stylesheet</text>
+		<text x="352" y="69">Within the .card family</text>
+	</g>
+
+	<g fill="var(--root-fill)">
+		<rect x="24" y="90" width="260" height="112" rx="8"/>
+		<rect x="24" y="218" width="260" height="68" rx="8"/>
+	</g>
+	<g class="scope-code">
+		<g font-size="16" fill="var(--root)" font-weight="600">
+			<text x="42" y="117">rules</text>
+			<text x="42" y="244">css:media</text>
+		</g>
+		<g font-size="20">
+			<text x="42" y="152">.card <tspan font-family="system-ui, sans-serif">family</tspan></text>
+			<text x="42" y="183">.button <tspan font-family="system-ui, sans-serif">family</tspan></text>
+			<text x="42" y="273">@media print {}</text>
+		</g>
+	</g>
+
+	<rect x="352" y="90" width="312" height="196" rx="8" fill="var(--family-fill)"/>
+	<g stroke="var(--family)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M 194 146 H 342 M 336 140 l 6 6 -6 6"/>
+		<circle cx="190" cy="146" r="3" fill="var(--family)"/>
+	</g>
+	<g class="scope-code">
+		<g font-size="16" fill="var(--family)" font-weight="600">
+			<text x="370" y="116">base</text>
+			<text x="370" y="180">pseudo-classes</text>
+			<text x="370" y="244">bem:elements</text>
+		</g>
+		<g font-size="21">
+			<text x="370" y="145">.card {}</text>
+			<text x="370" y="209">.card:hover {}</text>
+			<text x="370" y="273">.card__title {}</text>
+		</g>
+	</g>
+
+	<text x="24" y="321" font-size="17" fill="var(--muted)">With only <tspan class="scope-code">order</tspan> configured, it applies at both levels.</text>
+</svg>
