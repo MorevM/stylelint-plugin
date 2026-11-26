@@ -1,4 +1,3 @@
-import stylelint from 'stylelint';
 import rule from '../order';
 import type { SecondaryOption } from '../order.types';
 
@@ -1454,39 +1453,28 @@ testRule({
 	}],
 });
 
-describe('Invalid conditional spacing', () => {
-	// TODO[@morev/stylelint-testing-library@>=1.2.0]: Assert invalidOptionWarnings with testRule.
-	it('Reports a policy whose required gap would invalidate its own condition', async () => {
-		const code = '.card { color: red; }';
-		// The rule-testing helper rejects invalid-option warnings before checking the resulting CSS.
-		const result = await stylelint.lint({
-			code,
-			fix: true,
-			config: {
-				plugins: [stylelint.createPlugin(ruleName, rule)],
-				rules: {
-					[ruleName]: [true, {
-						categories: {
-							declarations: [{
-								properties: ['color'],
-								blankLines: {
-									before: {
-										default: 'never',
-										rules: [{ when: 'inside-single-line-block', mode: 'always' }],
-									},
-								},
-							}],
-						},
-					} satisfies SecondaryOption],
+testRule({
+	description: 'Invalid conditional spacing',
+	config: [true, {
+		categories: {
+			declarations: [{
+				properties: ['color'],
+				blankLines: {
+					before: {
+						default: 'never',
+						rules: [{ when: 'inside-single-line-block', mode: 'always' }],
+					},
 				},
-			},
-		});
-
-		expect(result.code).toBe(code);
-		expect(result.results[0].invalidOptionWarnings).toHaveLength(1);
-		expect(result.results[0].invalidOptionWarnings[0].text)
-			.toContain('require a gap only while the block is on one line');
-	});
+			}],
+		},
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Reports a policy whose required gap would invalidate its own condition',
+		code: '.card { color: red; }',
+		fixed: '.card { color: red; }',
+		warnings: [],
+		invalidOptionWarnings: [/require a gap only while the block is on one line/u],
+	}],
 });
 
 testRule({

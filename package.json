@@ -91,7 +91,7 @@
 		"@morev/commitlint-config": "^0.2.2",
 		"@morev/eslint-config": "^43.0.0",
 		"@morev/stylelint-config": "^9.0.2",
-		"@morev/stylelint-testing-library": "^1.1.1",
+		"@morev/stylelint-testing-library": "^1.2.0",
 		"@release-it/conventional-changelog": "8",
 		"@total-typescript/ts-reset": "^0.6.1",
 		"@types/node": "22",

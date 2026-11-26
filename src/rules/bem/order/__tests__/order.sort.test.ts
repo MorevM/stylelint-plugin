@@ -1,5 +1,4 @@
-import { assert, isUndefined, stripIndent } from '@morev/utils';
-import stylelint from 'stylelint';
+import { assert, isUndefined } from '@morev/utils';
 import rule from '../order';
 import type { GroupSequence, OrderSorter, SecondaryOption } from '../order.types';
 
@@ -359,36 +358,25 @@ testRule({
 	}],
 });
 
-describe('Custom sorter validation', () => {
-	it('Rejects an invalid later permutation without applying earlier fixes', async () => {
-		const code = stripIndent(`
-			.card {
-				&:active {}
-				&:hover {}
-			}
-			.button__title {}
-			.button__icon {}
-		`);
-		// The rule-testing helper rejects invalid-option warnings before checking the resulting CSS.
-		const result = await stylelint.lint({
-			code,
-			fix: true,
-			customSyntax: 'postcss-scss',
-			config: {
-				plugins: [stylelint.createPlugin(ruleName, rule)],
-				rules: {
-					[ruleName]: [true, {
-						categories: { 'bem:elements': { sort: ((items) => [items[0], items[0]]) satisfies OrderSorter } },
-					}],
-				},
-			},
-		});
+const invalidPermutationCode = `
+	.card {
+		&:active {}
+		&:hover {}
+	}
+	.button__title {}
+	.button__icon {}
+`;
 
-		expect(result.code).toBe(code);
-		expect(result.results[0].warnings).toStrictEqual([]);
-		expect(result.results[0].invalidOptionWarnings).toHaveLength(1);
-		expect(result.results[0].invalidOptionWarnings[0].text).toContain(
-			'categories.bem:elements.sort: Return every original item exactly once',
-		);
-	});
+testRule({
+	description: 'Custom sorter validation',
+	config: [true, {
+		categories: { 'bem:elements': { sort: (items) => [items[0], items[0]] } },
+	} satisfies SecondaryOption],
+	reject: [{
+		description: 'Rejects an invalid later permutation without applying earlier fixes',
+		code: invalidPermutationCode,
+		fixed: invalidPermutationCode,
+		warnings: [],
+		invalidOptionWarnings: [/categories\.bem:elements\.sort: Return every original item exactly once/u],
+	}],
 });
