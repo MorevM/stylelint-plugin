@@ -3,7 +3,7 @@ import { normalizeProperty } from '../normalize-property/normalize-property';
 import { LOGICAL_PROPERTIES, SHORTHAND_PROPERTIES } from './property-data';
 
 const shorthands = new Map(tsObject.entries(SHORTHAND_PROPERTIES));
-const resettable = Symbol('properties affected by all');
+const RESETTABLE_PROPERTIES = Symbol('properties affected by all');
 
 /**
  * Effect keys used to detect competing writes, including CSS resets.
@@ -51,7 +51,7 @@ for (const name of new Set([...shorthands.keys(), ...counterparts.keys()])) {
 	for (const effect of direct) {
 		for (const counterpart of counterparts.get(effect) ?? []) conflicts.add(counterpart);
 	}
-	knownEffects.set(name, { writes: [...direct, resettable], conflicts: [...conflicts, 'all'] });
+	knownEffects.set(name, { writes: [...direct, RESETTABLE_PROPERTIES], conflicts: [...conflicts, 'all'] });
 }
 
 /**
@@ -61,15 +61,15 @@ for (const name of new Set([...shorthands.keys(), ...counterparts.keys()])) {
  *
  * @returns            Effect keys shared by the conflict detector and dependency-preserving sorters.
  */
-export const getPropertyEffects = (property: string): PropertyEffects => {
+const getPropertyEffects = (property: string): PropertyEffects => {
 	const name = normalizeProperty(property);
 	const known = knownEffects.get(name);
 	if (known) return known;
-	if (name === 'all') return { writes: [name], conflicts: [name, resettable] };
+	if (name === 'all') return { writes: [name], conflicts: [name, RESETTABLE_PROPERTIES] };
 	if (name.startsWith('--') || name.startsWith('$') || name === 'direction' || name === 'unicode-bidi') {
 		return { writes: [name], conflicts: [name] };
 	}
-	return { writes: [name, resettable], conflicts: [name, 'all'] };
+	return { writes: [name, RESETTABLE_PROPERTIES], conflicts: [name, 'all'] };
 };
 
 /**
@@ -81,8 +81,10 @@ export const getPropertyEffects = (property: string): PropertyEffects => {
  *
  * @returns          Whether the relative order must be retained.
  */
-export const doPropertiesOverlap = (first: string, second: string): boolean => {
+const doPropertiesOverlap = (first: string, second: string): boolean => {
 	const { writes } = getPropertyEffects(first);
 	const { conflicts } = getPropertyEffects(second);
 	return writes.some((effect) => conflicts.includes(effect));
 };
+
+export { doPropertiesOverlap, getPropertyEffects, RESETTABLE_PROPERTIES };

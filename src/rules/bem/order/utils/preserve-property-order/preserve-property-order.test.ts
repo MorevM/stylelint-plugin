@@ -32,6 +32,14 @@ describe(preservePropertyOrder, () => {
 		expect(preferred).toStrictEqual(['width', 'color', 'display']);
 	});
 
+	it('Lets independent writers change places on either side of a reset', () => {
+		const original = ['color', 'display', 'all', 'margin', 'padding', '--accent'];
+		const preferred = ['--accent', 'padding', 'margin', 'all', 'display', 'color'];
+
+		expect(preservePropertyOrder(original, preferred, (name) => name))
+			.toStrictEqual(['--accent', 'display', 'color', 'all', 'padding', 'margin']);
+	});
+
 	it('Allows non-declaration nodes to move without dropping declaration dependencies', () => {
 		const root = scss.parse(`
 			.card {
