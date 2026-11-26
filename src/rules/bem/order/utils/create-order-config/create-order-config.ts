@@ -120,22 +120,6 @@ const findOrderRank = <T>(sequence: readonly T[], isMatch: (entry: T) => boolean
 };
 
 /**
- * Locates an ordinary declaration within an explicit property group.
- *
- * @param   group   Ordered property matchers, including equal-rank entries.
- * @param   item    Authored unit to classify.
- *
- * @returns         First matching group index, or -1 for unmatched nodes and variables.
- */
-const getPropertyRank = (group: PropertiesGroup, item: OrderItem) => {
-	const { node } = item;
-	if (node.type !== 'decl' || VARIABLE_PREFIX.test(node.prop)) return -1;
-
-	return findOrderRank(group.properties, (entry) => (isArray(entry) ? entry : [entry])
-		.some((matcher) => matchesProperty(matcher, node.prop)));
-};
-
-/**
  * Counts local BEM branches, or distinct authored branches when only the size is constrained.
  *
  * @param   matcher   Authored or prepared selector-set constraint.
@@ -259,7 +243,12 @@ const isCategoryMatch = (
 	if (isArray(matcher)) return matcher.some((entry) => isCategoryMatch(entry, item, category, family, matchText));
 	if (!isString(matcher) && !isRegExp(matcher)) {
 		if ('type' in matcher) return matchesObject(matcher, item, family);
-		if ('properties' in matcher) return getPropertyRank(matcher, item) !== -1;
+		if ('properties' in matcher) {
+			const { node } = item;
+			return node.type === 'decl' && !VARIABLE_PREFIX.test(node.prop) && matcher.properties.some((slot) => {
+				return slot === '*' || [slot].flat().some((pattern) => matchesProperty(pattern, node.prop));
+			});
+		}
 		return 'selectorSet' in matcher && !family && matchesItemSelectorSet(matcher.selectorSet, item);
 	}
 
@@ -284,40 +273,80 @@ const isCategoryMatch = (
 };
 
 /**
- * Indexes literal property priorities while retaining the configured precedence of patterns and groups.
+ * Matches declaration names in precedence order. Each literal only competes with earlier regular expressions.
  *
- * @param   order   Category-local declaration priorities, including equal-rank slots.
+ * @param   entries   Property patterns and their results, with each fallback placed after its explicit matches.
  *
- * @returns         Lookup for the first matching slot and member, or the remainder.
+ * @returns           The first match for an authored property name.
  */
-const prepareDeclarationOrder = (order: CategorySequence) => {
-	const literals = new Map<string, { rank: number; member: number }>();
-	const patterns: Array<{ rank: number; member: number; matcher: CategoryMatcher }> = [];
+const indexPropertyPatterns = <T>(entries: Array<{ pattern: string | RegExp; value: T }>) => {
+	const literals = new Map<string, { value: T; priorPatterns: number }>();
+	const patterns: Array<{ pattern: RegExp; value: T }> = [];
+	let remainder: T | undefined;
+	for (const { pattern, value } of entries) {
+		if (pattern === '*') {
+			remainder = value;
+			break;
+		}
+		if (isRegExp(pattern)) {
+			patterns.push({ pattern, value });
+		} else {
+			const name = normalizeProperty(pattern);
+			if (!literals.has(name)) literals.set(name, { value, priorPatterns: patterns.length });
+		}
+	}
+
+	return (name: string) => {
+		const literal = literals.get(normalizeProperty(name));
+		const limit = literal?.priorPatterns ?? patterns.length;
+		for (let index = 0; index < limit; index++) {
+			const { pattern, value } = patterns[index];
+			if (matchesProperty(pattern, name)) return value;
+		}
+		return literal?.value ?? remainder;
+	};
+};
+
+/**
+ * Visits explicit matchers before the remainder, retaining each member's authored rank.
+ *
+ * @param    order   Category or property-group sequence.
+ *
+ * @yields          Matcher with its slot and equal-rank member index.
+ */
+function* declarationSlots<T extends CategoryMatcher>(order: CategorySequence<T>) {
 	let remainder = -1;
 	for (const [rank, slot] of order.entries()) {
 		if (slot === '*') {
 			remainder = rank;
 			continue;
 		}
-		for (const [member, matcher] of [slot].flat().entries()) {
-			if (isString(matcher)) {
-				const name = normalizeProperty(matcher);
-				if (!literals.has(name)) literals.set(name, { rank, member });
-			} else {
-				patterns.push({ rank, member, matcher });
+		const members = isArray<T>(slot) ? slot : [slot as T];
+		for (const [member, matcher] of members.entries()) yield { rank, member, matcher };
+	}
+	if (remainder !== -1) yield { rank: remainder, member: 0, matcher: '*' as const };
+}
+
+/**
+ * Indexes category priorities and the ranks within their property groups in a single lookup.
+ *
+ * @param   order   Declaration priorities, including equal-rank slots and property groups.
+ *
+ * @returns         The matching category slot, member and property rank.
+ */
+const prepareDeclarationOrder = (order: CategorySequence) => {
+	const entries = [];
+	for (const { rank, member, matcher } of declarationSlots(order)) {
+		if (isString(matcher) || isRegExp(matcher)) {
+			entries.push({ pattern: matcher, value: { rank, member, propertyRank: 0 } });
+		} else if ('properties' in matcher) {
+			for (const { rank: propertyRank, matcher: pattern } of declarationSlots(matcher.properties)) {
+				entries.push({ pattern, value: { rank, member, propertyRank } });
 			}
 		}
 	}
-
-	return (name: string, isMatch: (matcher: CategoryMatcher) => boolean) => {
-		const literal = literals.get(normalizeProperty(name));
-		for (const pattern of patterns) {
-			if (literal && (pattern.rank > literal.rank
-				|| (pattern.rank === literal.rank && pattern.member > literal.member))) break;
-			if (isMatch(pattern.matcher)) return pattern;
-		}
-		return literal ?? { rank: remainder, member: 0 };
-	};
+	const lookup = indexPropertyPatterns(entries);
+	return (name: string) => lookup(name) ?? { rank: -1, member: 0, propertyRank: -1 };
 };
 
 /**
@@ -424,6 +453,7 @@ const prepareCategoryOrder = (override: CategoryOrder, category: OrderCategory) 
  * @throws  {Error}    If a property group is configured outside the declaration category.
  */
 const createOrderConfig = (options: SecondaryOption) => {
+	const propertyOrders = new Map<PropertiesGroup, ReturnType<typeof prepareDeclarationOrder>>();
 	const sorters = new WeakMap<AtRuleMatcher | RuleMatcher | PropertiesGroup, PreparedOrderSorter>();
 
 	/**
@@ -512,19 +542,23 @@ const createOrderConfig = (options: SecondaryOption) => {
 		const propertyMatchers = ranked.flatMap(({ entry, rank }) => {
 			const { matcher } = entry;
 			if (isString(matcher) || !('properties' in matcher)) return [];
-			return matcher.properties.flat().map((pattern) => ({ entry, rank, pattern }));
+			if (!propertyOrders.has(matcher)) propertyOrders.set(matcher, prepareDeclarationOrder(matcher.properties));
+			return matcher.properties.flat().map((pattern) => ({ pattern, value: { entry, rank } }));
 		});
-		const properties = [
-			...propertyMatchers.filter(({ pattern }) => isString(pattern) && pattern !== '*'),
-			...propertyMatchers.filter(({ pattern }) => isRegExp(pattern)),
-			...propertyMatchers.filter(({ pattern }) => pattern === '*'),
-		];
+		// An outer literal selects its group ahead of any matching pattern in another group.
+		const findProperty = propertyMatchers.length
+			? indexPropertyPatterns([
+				...propertyMatchers.filter(({ pattern }) => isString(pattern) && pattern !== '*'),
+				...propertyMatchers.filter(({ pattern }) => isRegExp(pattern)),
+				...propertyMatchers.filter(({ pattern }) => pattern === '*'),
+			])
+			: undefined;
 
 		const findObject = (item: OrderItem, family?: Family) => {
 			const { node } = item;
 			if (node.type === 'decl') {
-				if (!properties.length || VARIABLE_PREFIX.test(node.prop)) return undefined;
-				return properties.find(({ pattern }) => pattern === '*' || matchesProperty(pattern, node.prop));
+				if (!findProperty || VARIABLE_PREFIX.test(node.prop)) return undefined;
+				return findProperty(node.prop);
 			}
 
 			if (!nodeMatchers.length) return undefined;
@@ -687,8 +721,9 @@ const createOrderConfig = (options: SecondaryOption) => {
 			: undefined;
 		if (!isString(selected.matcher)) {
 			const property = 'properties' in selected.matcher ? selected.matcher : undefined;
+			const inner = property && node.type === 'decl' ? propertyOrders.get(property)!(node.prop).rank : 0;
 			return {
-				outer: rank, inner: property ? getPropertyRank(property, item) : 0, member: 0, category,
+				outer: rank, inner, member: 0, category,
 				innerScope: property ? selected.scope : undefined,
 				sort: selected.sort, sortScope: selected.sort ? `${selected.scope}.sort` : undefined, group: selected.group,
 				label: resolveLabel(selected.matcher.label, outerSpacing.label, categoryLabel),
@@ -705,7 +740,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 			? normalizeParameters(node.params)
 			: item.atRuleMember?.name;
 		const isMatch = (entry: CategorySequence[number]) => isCategoryMatch(entry, item, category, family, matchText);
-		const declaration = node.type === 'decl' ? settings?.declarationOrder?.(node.prop, isMatch) : undefined;
+		const declaration = node.type === 'decl' ? settings?.declarationOrder?.(node.prop) : undefined;
 		const inner = declaration?.rank ?? findOrderRank(categoryOrder, isMatch);
 		const slot = categoryOrder[inner];
 		const matchIndex = declaration?.member ?? (isArray(slot) ? slot.findIndex(isMatch) : 0);
@@ -716,7 +751,7 @@ const createOrderConfig = (options: SecondaryOption) => {
 		const scope = `categories.${category}.order.${inner}.${matchIndex}`;
 		if (property) {
 			return {
-				outer: rank, inner, innerScope, member: getPropertyRank(property, item), category,
+				outer: rank, inner, innerScope, member: declaration!.propertyRank, category,
 				memberScope: scope,
 				label: resolveLabel(property.label, outerSpacing.label, categoryLabel),
 				sort: matcherSorter(property), sortScope: `${scope}.sort`,

@@ -23,6 +23,17 @@ describe(createOrderConfig, () => {
 		expect(ranks[2].label?.text).toBe('Native controls');
 	});
 
+	it('Keeps a property group remainder local to its group', () => {
+		const root = scss.parse('grid-gap: 0; display: block; color: red;');
+		const config = createOrderConfig({
+			categories: { declarations: ['*', { properties: ['*', /^grid-/u, 'gap'] }, 'display'] },
+		});
+
+		const ranks = root.nodes.map((node) => config.getRank({ node, nodes: [node] }));
+
+		expect(ranks.map(({ inner, member }) => [inner, member])).toStrictEqual([[1, 1], [1, 0], [1, 0]]);
+	});
+
 	it('Normalizes literal parameter spacing in outer matchers and category orders', () => {
 		const root = scss.parse(`
 			@media (--tablet) {}
