@@ -1984,113 +1984,262 @@ functions like `:is(...)` alone. \
 
 ## Sorting
 
-`order` assigns priorities to sibling items. `sort` orders items that share a
-priority. For example, a dimension sorter can put smaller breakpoints first
-while keeping all media queries in the position assigned by `order`.
+Use [`order`][order-option] to decide which siblings come first and `sort` to break ties.
+Categories, [named groups][groups-option], property groups, and rule or at-rule matchers
+accept either a [preset][sorting-presets] or a [custom sorter][custom-sorting].
 
-Categories, named groups, property groups, and matchers for rules and at-rules
-accept a built-in preset or a custom sorter. Items placed by
-[`unspecified`][unspecified-option] keep their source order. To include the
-remaining members in a category's sort, give them a priority with `'*'`.
+::: code-group
+
+```js{9} line-hints [Configuration]
+{
+  order: ['declarations', 'css:media'], // Media queries follow declarations.
+  categories: {
+    'css:media': {
+      order: [
+        // [!hint] Without the [wildcard], [`unspecified`][unspecified-option]
+        // places the remaining queries in their original order.
+        '*', // Give the remaining queries a shared priority so sort can run.
+        { type: 'at-rule', name: 'media', parameter: 'print' }, // Print last.
+      ],
+      sort: { by: 'dimension' }, // 640px comes before 960px.
+    },
+  },
+}
+```
+
+```scss [Before]
+.card {
+  @media print { display: block; }
+  @media (min-width: 960px) { gap: 24px; }
+  display: grid;
+  @media (min-width: 640px) { gap: 16px; }
+}
+```
+
+```scss [After]
+.card {
+  display: grid;
+  @media (min-width: 640px) { gap: 16px; }
+  @media (min-width: 960px) { gap: 24px; }
+  @media print { display: block; }
+}
+```
+
+:::
 
 ::: details Sort breakpoint mixins and media queries together
 
-Give the two matchers equal priority in a [named group][groups-option] to sort
-all their matches by width.
-
-```js
+```js line-hints
 {
   order: ['declarations', 'group:media-queries'],
   groups: {
     'media-queries': {
-      order: [[
-        { type: 'at-rule', name: 'include', parameter: /^layout\.from\(/u },
-        { type: 'at-rule', name: 'media' },
-      ]],
+      // [!hint] With separate entries, the mixins would all come first.
+      // The group would sort each set by width independently.
+      order: [
+        [ // Both matchers share one priority.
+          { type: 'at-rule', name: 'include', parameter: /^layout\.from\(/u },
+          { type: 'at-rule', name: 'media' },
+        ],
+      ],
+      // [!hint] A matcher can set its own `sort` for the items it matches.
+      // Other items still use the group sorter.
       sort: { by: 'dimension' },
     },
   },
 }
 ```
 
-Here `@media (width >= 640px)` comes before `@include layout.from(960px)`
-even when the mixin is written first. With separate priorities, all matching
-mixins would come first and each set would be sorted by width independently.
-
-To give every entry in a group the same outer priority, wrap its reference
-where you use it, as in `order: ['declarations', ['group:media-queries']]`.
-A matcher with its own `sort` uses that sorter in place of the group's.
+```scss
+.card {
+  display: grid;
+  @media (width >= 640px) {} // Moves ahead of the 960px mixin.
+  @include layout.from(960px) {}
+}
+```
 
 :::
 
 ### Sorting presets {#sorting-presets}
 
-Alphabetize element names with `'bem:elements': { sort: { by: 'name' } }`.
-For `.card__title-icon`, the name being compared is `title-icon`.
-Set `direction: 'desc'` for reverse order. Name comparison is case-sensitive
-and gives the same result regardless of the machine's language settings.
-
-For mobile-first styles, sort media queries by their numeric breakpoint.
-This example leaves `print` in place while sorting the widths around it.
+Use `name` to alphabetize BEM elements or `dimension` to put smaller breakpoints first.
 
 ::: code-group
 
-```js [Configuration]
+```js line-hints [Configuration]
 {
   categories: {
+    // [!hint] Names are case-sensitive and compare the same way in every
+    // locale. Set `direction: 'desc'` to reverse the order.
+    'bem:elements': { sort: { by: 'name' } },
     'css:media': { sort: { by: 'dimension' } },
   },
 }
 ```
 
 ```scss [Before]
+.card__title-icon {} // Compared as "title-icon".
+.card__icon {}
+
 @media (min-width: 960px) {}
-@media print {}
+@media print {} // No numeric breakpoint. This query keeps its slot.
 @media (min-width: 640px) {}
 ```
 
 ```scss [After]
+.card__icon {}
+.card__title-icon {} // Compared as "title-icon".
+
 @media (min-width: 640px) {}
-@media print {}
+@media print {} // No numeric breakpoint. This query keeps its slot.
 @media (min-width: 960px) {}
 ```
 
 :::
 
-The sorter compares values with the same unit. It never assumes a conversion
-between `vw` and `px`. Without `units`, each unit keeps its slots, so
-`40px, 2vw, 16px, 1vw` becomes `16px, 1vw, 40px, 2vw`.
-To group all `vw` values before all `px` values, set `units: ['vw', 'px']`.
-The same input then becomes `1vw, 2vw, 16px, 40px`. Descending order reverses
-the numbers within each unit. Ties keep their source order.
+The dimension preset compares values within each unit without converting between units.
+Ties keep their source order.
+
+::: code-group
+
+```scss [Before]
+// The breakpoints alternate between px and vw.
+@container (width >= 40px) {}
+@container (width >= 2vw) {}
+@container (width >= 16px) {}
+@container (width >= 1vw) {}
+```
+
+```scss [Default unit order]
+// sort: { by: 'dimension' }
+@container (width >= 16px) {} // px keeps the first and third slots.
+@container (width >= 1vw) {}  // vw keeps the second and fourth slots.
+@container (width >= 40px) {}
+@container (width >= 2vw) {}
+```
+
+```scss line-hints [Explicit unit order]
+// sort: { by: 'dimension', units: ['vw', 'px'] }
+// [!hint] With `direction: 'desc'`, the result is `2vw, 1vw, 40px, 16px`.
+// Only the numbers within each unit reverse.
+@container (width >= 1vw) {} // All vw values come before all px values.
+@container (width >= 2vw) {}
+@container (width >= 16px) {}
+@container (width >= 40px) {}
+```
+
+:::
 
 ::: details Which values can the dimension sorter read?
 
-It looks for **one literal number with a unit** in an at-rule's parameters or a
-declaration's value. That can be a width, duration, angle, or resolution.
-`(width >= 640px) and (hover: hover)`, `sidebar (width >= 640px)`, and
-`@include respond(640px)` each have a single value it can use.
+The sorter reads one literal number with a unit from an at-rule's parameters or a declaration's value.
 
-A range with two bounds, alternative or negated queries, an extra numeric
-literal, a unitless number, or a value inside `calc()` gives no single size
-to sort by. The rule also leaves Sass variables and custom media names
-unresolved. With an explicit `units` list, unlisted units are unresolved too.
-Unit names are case-insensitive. An empty `units` list works like omitting it.
+```scss
+@media (width >= 640px) and (hover: hover) {} // One width.
+@container sidebar (width >= 640px) {}        // The container name is fine.
+@include respond(640px);                      // One mixin argument.
+@media (resolution >= 2dppx) {}               // Resolution works too.
 
-`unresolved` defaults to `'ignore'`, which keeps those items in their slots.
-Choose `'top'` or `'bottom'` to collect them at either end of the **current
-priority**. To put `print` in a specific place, give it an entry in `order`.
-For declarations, [cascade dependencies][canonical comparison names] still apply.
-If keeping a dependency would displace a unit from its slots, the rule can
-leave the whole batch in source order.
+.icon {
+  transition-duration: 150ms; // A duration.
+  rotate: 45deg;              // An angle.
+}
+```
+
+Each of these queries is **unresolved**.
+
+```scss
+@media (400px < width < 800px) {}           // Two bounds.
+@media (width >= 640px), (hover: hover) {}  // Alternative queries.
+@media not (width >= 640px) {}              // A negated query.
+@media (width >= 640px) and (color: 8) {}   // An extra numeric literal.
+@media (color: 8) {}                        // A unitless number.
+@media (width >= calc(50vw - 8px)) {}       // A calculated value.
+@media (width >= $tablet) {}                // A Sass variable.
+@media (--wide) {}                          // A custom media name.
+```
+
+```js line-hints
+{
+  by: 'dimension',
+  // [!hint] Unit names are case-insensitive. Omit `units` or pass `[]` to
+  // accept all units and keep each unit in its original slots.
+  units: ['vw', 'px'],  // A value in em is now unresolved too.
+  // [!hint] Set `'top'` or `'bottom'` to collect unresolved items at either
+  // end of their current priority. Give `print` its own entry in `order`
+  // if it needs a specific position, as in the [first example][sorting].
+  unresolved: 'ignore', // The default keeps unresolved items in place.
+}
+```
 
 :::
 
 ### Custom sorters {#custom-sorting}
 
-Suppose short element names should come first, then names of the same length
-should appear alphabetically. Use the built-in name comparison for the tie
-and add just the comparison that's specific to your project.
+Use a synchronous `sort(items, context)` callback to order siblings that share a priority.
+The rule passes their frozen descriptions in source order. Return every original item exactly once,
+in an order that stays the same on a second pass.
+
+:::: details Keep each BEM element with its hyphenated extensions
+
+In this project, `element-title` and `element-title-inner` are separate elements named after `element`.
+Group names by the part before the first hyphen and keep those groups in first-appearance order.
+Within each group, sort by name so each element precedes its extensions.
+
+```js line-hints
+{
+  categories: {
+    'bem:elements': {
+      sort(items, context) {
+        const groups = new Map(); // Keep groups in first-appearance order.
+        for (const item of items) {
+          // [!hint] `item.name` is the local element name. For
+          // `.card__element-title-inner` it is `element-title-inner`.
+          const [stem] = item.name.split('-');
+          if (!groups.has(stem)) groups.set(stem, []);
+          groups.get(stem).push(item);
+        }
+
+        // [!hint] The [name preset][sorting-presets] accepts a subset.
+        // It puts `element-title` before `element-title-inner`.
+        return [...groups.values()].flatMap((group) => {
+          return context.sort(group, { by: 'name' });
+        });
+      },
+    },
+  },
+}
+```
+
+::: code-group
+
+```scss [Before]
+.card {
+  &__element-title-inner {}
+  &__foo-value {}
+  &__element {}
+
+  &__foo {}
+  &__element-title {}
+}
+```
+
+```scss [After]
+.card {
+  &__element {}
+  &__element-title {}
+  &__element-title-inner {}
+
+  &__foo {}
+  &__foo-value {}
+}
+```
+
+:::
+
+::::
+
+:::: details Put shorter element names first and break ties alphabetically
 
 ```js
 {
@@ -2098,6 +2247,7 @@ and add just the comparison that's specific to your project.
     'bem:elements': {
       sort(items, context) {
         const byName = context.sort(items, { by: 'name' });
+        // The stable sort keeps equal-length names in alphabetical order.
         return byName.toSorted((a, b) => a.name.length - b.name.length);
       },
     },
@@ -2105,59 +2255,168 @@ and add just the comparison that's specific to your project.
 }
 ```
 
-For `.card__title`, `.card__icon`, and `.card__body`, this gives `body`, `icon`,
-then `title`. Each element moves with its own states and modifiers.
-The callback runs on siblings with equal priority. It can't move a title out
-of its card or reorder entries that you gave different priorities.
+::: code-group
 
-::: details What does the callback receive?
+```scss [Before]
+.card__title {}
+.card__title:hover {}
+.card__icon {}
+.card__body {}
+```
 
-- `items` contains read-only descriptions in source order. Each has `type`,
-  `name`, `category`, and `sourceIndex`. A family also has its full `key`.
-  Depending on the type, you can read `selector`, `parameter`, `hasBlock`,
-  or a declaration's `value`. In the generic `at-rules` category the name is
-  the directive, such as `include`. In `sass:includes` it's the called mixin.
-- `context.container` describes the actual root, selector, or at-rule.
-  `context.family` gives the BEM owner path, even in flat CSS. `context.category`
-  and, for a named group, `context.group` tell you what's being sorted.
-- `context.sort(items, preset)` applies a built-in sorter. You can pass a
-  subset if your project needs a separate comparison for some items.
-
-Return each original item exactly once. Keep the callback synchronous and
-make sure a second sort produces the same order. The inputs are frozen.
-If a callback throws or returns an invalid result, the rule reports a
-configuration warning before applying any fixes to the stylesheet.
-
-For a TypeScript config, the package exports `OrderSorter`, `OrderSortContext`,
-`OrderSortItem`, and `OrderSortPreset`.
+```scss [After]
+.card__body {}
+.card__icon {}
+.card__title {}
+.card__title:hover {}
+```
 
 :::
 
+Each element moves with its states and modifiers, even in flat CSS. The callback only receives
+elements of the current owner and priority, so each block keeps its own elements.
+
+::::
+
+:::: details Sort z-index tokens by their numeric values
+
+In this token file, each `--z-*` property holds a unitless integer.
+
+```js
+{
+  categories: {
+    'custom-properties': {
+      order: [/^--z-/u], // Only z-index tokens share this priority.
+      unspecified: 'ignore', // Other tokens keep their slots.
+      sort(items) {
+        return items.toSorted((a, b) => Number(a.value) - Number(b.value));
+      },
+    },
+  },
+}
+```
+
+::: code-group
+
+```scss [Before]
+:root {
+  --z-toast: 100;
+  --surface: white;
+  --z-dropdown: 2;
+  --z-modal: 10;
+}
+```
+
+```scss [After]
+:root {
+  --z-dropdown: 2;
+  --surface: white;
+  --z-modal: 10;
+  --z-toast: 100;
+}
+```
+
+:::
+
+::::
+
+:::: details What does the callback receive?
+
+If a flat stylesheet starts with `.card__title {}` and `.card__icon {}`, the first item
+in the `bem:elements` callback represents the `title` family. Its owner is `.card`.
+
+::: code-group
+
+```js line-hints [items]
+const item = items[0];
+// [!hint] Other item types are `rule`, `at-rule`, and `declaration`.
+// At-rules expose `parameter` and `hasBlock`. Declarations expose `value`.
+item.type;        // 'family'
+// [!hint] In `at-rules`, this is the directive (e.g. `include`).
+// In `sass:includes`, it is the called mixin (e.g. `layout.from`).
+item.name;        // 'title'
+item.category;    // 'bem:elements'
+item.sourceIndex; // 0 (its original position among siblings).
+item.key;         // '.card__title' (full family identity).
+item.selector;    // '.card__title' (as written).
+```
+
+```js line-hints [context]
+// [!hint] The physical container can be the root, a style rule, or an at-rule.
+context.container; // { type: 'root' } in this flat stylesheet.
+context.family;    // [{ name: 'card', key: '.card', category: 'rules' }]
+context.category;  // 'bem:elements'
+context.group;     // The named group, if one is being sorted.
+
+// Apply a built-in preset to all items or a subset of the originals.
+context.sort(items, { by: 'name' });
+```
+
+:::
+
+If the callback throws or returns an invalid result, the rule reports a configuration warning
+before applying any fixes to the stylesheet.
+
+TypeScript configs can import `OrderSorter`, `OrderSortItem`, `OrderSortContext`, and `OrderSortPreset`
+from `@morev/stylelint-plugin`.
+
+::::
+
 ## Blank lines {#group-spacing}
 
-Use `blankLines` to control the gaps around a run of matching items and between its members.
-Set it on a rule, at-rule, or property matcher, on a category or named group,
-or on [unmatched items][unspecified-option] with `position` set to `'top'` or `'bottom'`.
+Use `blankLines` to control the space around consecutive matches (`before` and `after`)
+and between them (`between`). Spacing applies even when everything is already in order.
 
-For example, to separate print styles from the other media queries inside a component,
-put the print matcher last and give it a blank line before its first match.
+Set it on a rule, at-rule, or property matcher, on a category or named group, or on
+[unmatched items][unspecified-option] with `position: 'top'` or `'bottom'`. Use a
+[`label`][diagnostic-labels] to name the group in a spacing warning.
+
+:::: details Separate print styles from screen styles
 
 ```js
 {
   order: [
     'css:media',
-    { type: 'at-rule', name: 'media', parameter: 'print', blankLines: { before: 'always' } },
+    {
+      type: 'at-rule', name: 'media', parameter: /^print\b/u,
+      label: 'Print styles', // Expected an empty line before "Print styles".
+      blankLines: {
+        before: 'always', // At least one empty line before the first match.
+        between: 'never', // Remove empty lines between print queries.
+        after: 'ignore',  // Keep the existing space after the last match.
+      },
+    },
   ],
 }
 ```
 
-A few related custom properties read well together. When a palette grows,
-a gap can make the first property that *uses* it easier to spot. This example
-adds the gap only when there are at least two custom properties above `color`.
-
 ::: code-group
 
-```js [Configuration]
+```css [Before]
+.card {
+  @media screen { display: grid; }
+  @media print { display: block; }
+
+  @media print and (orientation: landscape) { width: 80%; }
+}
+```
+
+```css [After]
+.card {
+  @media screen { display: grid; }
+
+  @media print { display: block; }
+  @media print and (orientation: landscape) { width: 80%; }
+}
+```
+
+:::
+
+::::
+
+:::: details Add a gap once the palette has at least two tokens
+
+```js line-hints
 {
   order: [
     'custom-properties',
@@ -2166,9 +2425,12 @@ adds the gap only when there are at least two custom properties above `color`.
       blankLines: {
         before: {
           rules: [{
+            // [!hint] Counts use consecutive members in the final order.
+            // Existing blank lines, comments, and nested contents don't count.
             when: { minItems: 2, scope: 'previous-group' },
-            mode: 'always',
+            mode: 'always', // Put the gap above the first use of the palette.
           }],
+          default: 'ignore', // Also the default when omitted.
         },
       },
     },
@@ -2176,268 +2438,259 @@ adds the gap only when there are at least two custom properties above `color`.
 }
 ```
 
-```scss [Result]
+```css
 .badge {
   --text: red;
-  color: var(--text);
+  color: var(--text); /* One token keeps its original spacing. */
 }
 
 .card {
   --text: red;
   --surface: white;
 
-  color: var(--text);
+  color: var(--text); /* Two tokens are enough to require the gap. */
 }
 ```
 
-:::
+`minItems` and `maxItems` take nonnegative integers and include the stated count. The default scope,
+`'group'`, counts the current run. Use `'previous-group'` or `'next-group'` for its neighbors,
+or `'container'` for all direct items, including those across a sorting boundary.
+A missing neighbor never matches, even with `maxItems: 0`.
 
-For an unconditional gap, just use `blankLines: { before: 'always' }`.
-Use `after` for the end of a consecutive group and `between` for its members.
-`'always'` requires at least one empty line, `'never'` removes empty lines,
-and `'ignore'` keeps the existing gap. These policies also apply when everything
-is already in order.
+::::
 
-Set [`label`][diagnostic-labels] on the matcher or group to give it a name such as
-`Print styles` in spacing diagnostics.
+:::: details Let a comment separate groups and keep one-line blocks compact
 
-::: details Keep small blocks compact or let a comment separate groups
+For any of the three gaps, give `rules` a nonempty list. The first match decides the spacing.
 
-Use `{ rules, default }` for any of the three gaps. The first matching rule wins.
-When none matches, the default is `'ignore'` unless you set it explicitly.
-For example, this policy leaves a small block alone, accepts a standalone
-comment as a separator, and otherwise requires a blank line.
-
-```js
-{
-  before: {
-    default: 'always',
-    rules: [
-      { when: 'first-nested', mode: 'never' },
-      { when: { maxItems: 4, scope: 'container' }, mode: 'ignore' },
-      { when: 'separated-by-comment', mode: 'ignore' },
-    ],
-  },
-}
-```
-
-- `first-nested` and `last-nested` test the item's position inside the
-  final block. `inside-single-line-block` checks whether the whole block
-  still fits on one line after the rule applies its changes.
-- `separated-by-comment` matches a leading comment on its own line.
-  A comment at the end of a declaration stays with that declaration.
-  A comment directly above the next one follows it. Any required gap goes
-  between those two, so it doesn't detach either comment.
-- `minItems` and `maxItems` include the stated count. The default `scope` is
-  `'group'`. Use `'container'` for all direct items, or `'previous-group'` and
-  `'next-group'` for the neighboring runs in the final order. Counts skip
-  comments and the contents of nested blocks. An absent neighbor never matches,
-  even for `maxItems`.
-- Combine conditions with `{ any: [...] }`, `{ all: [...] }`, or
-  `{ not: condition }`. Counts take nonnegative integers. Give each `rules`,
-  `any`, or `all` list at least one entry.
-
-:::
-
-::: details When two settings describe the same gap
-
-Between two groups, `before` on the following group wins over `after` on the
-preceding one. This also applies when `before` resolves to `'ignore'`.
-Leave `before` out to let the preceding group decide. Inside one group, use
-`between`. At the start or end of a nested block, `before` and `after` can
-control the gap next to the brace. File-leading and file-trailing whitespace
-stays as written.
-
-A category's settings cover a run of its members even if they have different
-priorities. A matcher, named group, or `unspecified` policy can override the category
-at a particular gap. For example, a group can keep its members together with
-`between: 'never'` while a rule matcher inside it sets `before: 'always'` for focus states.
-Between whole BEM families, the parent decides. Each family's own settings control gaps inside it.
-
-Group counts use consecutive members at that level, regardless of existing
-blank lines. For example, `width`, `height`, and `color` can count as three
-declarations. Giving just `width` and `height` a property group makes that
-group count as two. A container count includes its direct items on both
-sides of a sorting boundary.
-
-If a gap expands a nested block, that block and its ancestors count as
-multiline. A policy that requires a gap *only* while the block is on one line
-can invalidate its own result. The rule reports that configuration.
-
-:::
-
-## Diagnostics
-
-An ordering warning points to the first item in a consecutive run that needs to
-move. For example, three adjacent states that belong above a modifier can move
-together, so one message can cover all three. With `unspecified: 'ignore'`,
-warnings describe the items you've asked to order.
-
-### Diagnostic labels
-
-Use `label` to give a matcher a readable name in Stylelint messages.
-In this example, `name: 'media'` selects the directive and `parameter: 'print'`
-selects the query. The warning calls it “Print styles”.
-
-```js
+```js line-hints
 {
   order: [
-    { properties: ['display', 'gap'], label: 'Layout' },
-    { type: 'at-rule', name: 'media', parameter: 'print', label: 'Print styles' },
+    'custom-properties',
+    {
+      properties: ['color'],
+      blankLines: {
+        before: {
+          rules: [
+            // [!hint] Keep the first item next to the opening brace.
+            // Use `last-nested` with `after` for the closing brace.
+            // The rule preserves whitespace at either end of the file.
+            { when: 'first-nested', mode: 'never' },
+            {
+              // [!hint] `any` needs one match and `all` needs every match.
+              // Both take a nonempty list. Use `not` to invert a condition.
+              when: { any: [
+                'inside-single-line-block',
+                'separated-by-comment', // A leading comment on its own line.
+              ] },
+              mode: 'ignore',
+            },
+          ],
+          default: 'always', // Separate the groups everywhere else.
+        },
+      },
+    },
   ],
 }
 ```
 
 ```css
+.badge { --text: red; color: var(--text); }
+
 .card {
-  @media print {}
-  display: grid;
+  --text: red;
+  /* Text color on the card surface. */
+  color: var(--text);
 }
 ```
 
-Stylelint highlights `display` and uses the configured labels on both sides.
+A comment directly above a declaration travels with it. A trailing comment travels with the
+preceding item. Any required gap goes after the trailing comment and before the next item's
+leading comment.
 
-```text
-Expected "Layout" to come before "Print styles". (@morev/bem/order)
+`inside-single-line-block` looks at the final layout, including nested blocks. If adding a gap
+makes the block multiline and reverses the same spacing decision, the rule reports the conflict.
+
+::::
+
+:::: details Which setting wins when two groups share a gap?
+
+```js line-hints
+{
+  categories: {
+    declarations: [
+      { properties: ['display'], blankLines: { after: 'always' } },
+      // [!hint] An explicit `before: 'ignore'` also wins and keeps the gap
+      // as written. Leave out `before` to let the preceding group decide.
+      { properties: ['color'], blankLines: { before: 'never' } },
+    ],
+  },
+}
 ```
 
-Rule and at-rule matchers, property groups, and selector sets all accept
-`label`. Use it on a matcher in [`order`][order-option] or in the
-[`root` configuration][root-option], or set a shared label on the object form
-of a named group, category, or `unspecified` policy. A matcher's own label
-takes precedence over its group's or category's label. Without a label,
-Stylelint uses the source text. When labels repeat, the warning can include a
-value or source location to help you find the right item.
+```css
+.card {
+  display: grid;
+  color: red; /* Its before setting closes the gap after display. */
+}
+```
 
-In [spacing messages][blank-lines], a label on the group that requests the
-blank line names that group. Selector-list and cascade warnings keep the
-authored selectors and property names alongside their labels.
+A category's spacing spans its priorities. A matcher, named group, or `unspecified` policy can
+override it for a particular gap. For example, a group can set `between: 'never'` and a matcher
+inside it can require a blank line before `&:focus`. Between whole BEM families, the parent
+controls the gap. Each family's settings govern the space inside it.
+
+::::
+
+## Diagnostics
+
+The rule looks for the fewest items to move, then the fewest consecutive runs.
+Each warning highlights the first item in a run and names the item it needs to cross. With
+[`unspecified: 'ignore'`][unspecified-option], warnings describe only the items you've asked to order.
+
+:::: details Read a warning that covers two declarations
+
+```js
+{
+  categories: {
+    declarations: ['display', 'position', 'inset', 'color', 'opacity'],
+  },
+}
+```
+
+::: code-group
+
+```css{2} [Before]
+.card {
+  color: red;
+  opacity: .5;
+
+  display: block;
+  position: relative;
+  inset: 0;
+}
+```
+
+```css{6,7} [After]
+.card {
+  display: block;
+  position: relative;
+  inset: 0;
+
+  color: red;
+  opacity: .5;
+}
+```
+
+:::
+
+Stylelint highlights `color`. Moving it together with `opacity` fixes the whole block.
+
+```text
+Expected declarations "color", "opacity" to come after "inset".
+```
+
+::::
+
+### Diagnostic labels
+
+Use `label` to name a matcher, group, or category in a warning. By default the rule uses
+the source text. If two items would have the same name, it can add a value or source location.
+
+:::: details Name the layout declarations and the print query
+
+```js line-hints
+{
+  order: [
+    // [!hint] A matcher's own label takes precedence over the label
+    // on its named group or category.
+    { properties: ['display', 'gap'], label: 'Layout' },
+    {
+      type: 'at-rule', name: 'media', parameter: 'print',
+      label: 'Print styles', // Names this query in both warnings below.
+      blankLines: { before: 'always' },
+    },
+  ],
+}
+```
+
+::: code-group
+
+```css{4} [Wrong order]
+.card {
+  @media print {}
+
+  display: grid;
+}
+
+/* Expected "Layout" to come before "Print styles". */
+```
+
+```css{4} [Missing blank line]
+.card {
+  display: grid;
+  gap: 8px;
+  @media print {}
+}
+
+/* Expected an empty line before "Print styles". */
+```
+
+:::
+
+::::
+
+Rule and at-rule matchers, selector sets, and property groups accept `label` in
+[`order`][order-option] and [`root.order`][root-option]. The object forms of named groups,
+categories, and `unspecified` also accept a shared label. Selector-list and cascade warnings
+retain the authored selectors and property names.
 
 ## Autofix boundaries {#regions-and-autofix-boundaries}
 
-::: warning Autofix changes source order
-Although I've built safeguards into autofix, static analysis can't guarantee that every fix is safe.
-Autofix keeps code in its original scope and preserves the order of
-known overlapping properties, fallbacks, and vendor-prefixed variants. It also avoids moving code across
-Sass control flow or content insertion points.
+::: warning Review the diff when selectors can style the same element
+Autofix preserves known property dependencies within each block. Moving a nested selector or
+a mixin call can still change which declaration wins.
 
-If two selectors match the same element, moving one can change which style wins. \
-**Review the diff before accepting fixes in an existing stylesheet.**
-:::
-
-
-Autofix keeps each rule inside the braces where you wrote it. A media query can
-move as a whole. Its contents can also change order, but a selector inside it
-stays inside it. A standalone section comment works like a divider, too.
-
-```scss
-.card {
-  &:hover {}
-  &:focus-visible {}
-
-  // Print styles
-
-  @media print {}
-}
-```
-
-The blank line **after** the comment makes it a section divider. Remove that
-line and the comment belongs to the media query and travels with it. A comment
-at the end of a line follows the preceding item. Existing gaps are otherwise
-preserved unless you set [`blankLines`][blank-lines].
-
-::: details Why did this rule stay in place?
-
-- **Stylesheet directives.** `@charset`, `@import`, `@namespace`, and
-  statement-form `@layer` declarations stay where they were written, even if
-  `order` would put them elsewhere. Keep the [namespace][namespace-placement]
-  and [layer][layer-statements] declarations in the order the stylesheet needs.
-- **Sass execution.** Module directives such as `@use` and `@forward` divide
-  the enclosing block, as do control-flow directives such as `@if`. The rule
-  can still sort content on either side and inside mixins and control-flow blocks.
-- **Sass `@at-root`.** Inline qualifiers follow the same order as sibling
-  selectors. For example, if `$b` is `.button`, `@at-root a#{$b} {}` matches
-  `qualifiers:type` and `@at-root #{$b}.is-loading {}` matches `qualifiers:class`.
-  Sass variable assignments keep their position relative to these directives.
-  Other forms, including `@at-root { ... }` and `@at-root (without: media)`,
-  divide the enclosing block. Their contents can still be sorted.
-- **Definitions and insertion points.** A stylesheet-level `@function` or
-  `@mixin` can move as a whole. A nested definition is a boundary.
-  The rule leaves function bodies and keyframe contents alone.
-  `@content` and `@contents` stay in place, as do wrappers around them up to
-  the nearest definition. The definition itself can still move at stylesheet level.
-- **Ambiguous selectors.** The most specific BEM entity in the rightmost
-  compound identifies the owner. If several are possible, the rule looks for
-  a single one with an unambiguous declaration elsewhere in the stylesheet.
-  Classes inside function arguments never supply the owner. If the owner
-  remains unclear, interpolation can't be resolved, or list branches mix
-  incompatible BEM families or BEM and ordinary selectors, the rule stays put.
-- **Stylelint directives.** Disabled ranges and nodes containing a Stylelint
-  directive divide the file into regions. Neither ordering nor spacing fixes
-  cross these boundaries.
-
-:::
-
-Autofix aims to move as few source items as possible, then as few consecutive
-runs as possible.
-
-### Property dependencies {#property-names-and-cascade}
-
-The order of `margin` and `margin-top` can change what you see on screen.
-An alphabetical sorter keeps their relative order in both of these rules.
-
-```scss
-.card {
-  margin: 32px;
-  margin-top: 16px;
-}
-
-.badge {
-  margin-top: 16px;
-  margin: 32px;
-}
-```
-
-Other independent properties can still move around the pair. If explicit
-priorities or a callback require the pair to switch places, the rule reports
-the conflict and skips the ordering and spacing fixes in that region.
-Other regions can still be fixed.
-
-::: details Which property names and relationships does the rule recognize?
-
-Ordinary property names are compared in lowercase, without known vendor
-prefixes (`-webkit-`, `-moz-`, `-ms-`, `-o-`, `-khtml-`, and `-epub-`).
-A group for `gap` also matches `grid-gap`. The other recognized aliases are
-`grid-row-gap` for `row-gap`, `grid-column-gap` for `column-gap`,
-`word-wrap` for `overflow-wrap`, and `font-stretch` for `font-width`.
-Legacy properties that need a value translation, such as `page-break-before`,
-keep their own names. The rule preserves the authored names and values.
-
-Known dependencies include repeated properties, fallbacks, prefixed variants,
-shorthands and their longhands, and resets such as `border` resetting
-`border-image`. Logical and physical properties can overlap depending on the
-writing mode. `all` also constrains ordinary properties except `direction`
-and `unicode-bidi`. The rule preserves the source order of dependent pairs,
-including a prefixed and an unprefixed version of the same property.
-
-:::
-
-::: warning Review changes across nested selectors
-These checks compare declarations inside the same container. A nested `&` can
-target the same card from a second container.
-
-```scss
+```css
 .card {
   color: red;
   & { color: blue; }
-  color: green;
+  color: green; /* Moving this above & turns the card blue. */
 }
 ```
-
-The card is green as written. Moving the last declaration above `&` makes it
-blue. Autofix can make that move. Review the diff when nested selectors style
-the same element, or when a mixin supplies styles that a later rule overrides.
 :::
+
+- **Scope and comments.** Items move within their original braces. A media query can move as
+  a whole. Attached comments travel with their items. A section comment followed by a blank line
+  acts as a divider. Existing gaps are preserved unless you configure [`blankLines`][blank-lines].
+- **Stylesheet directives.** `@charset`, `@import`, [`@namespace`][namespace-placement], and
+  [statement-form `@layer`][layer-statements] stay in place.
+- **Sass execution.** `@use`, `@forward`, and control flow such as `@if` split the enclosing block.
+  Inline qualifiers such as `@at-root #{$b}.is-loading {}` sort alongside sibling selectors
+  and stay on their side of any Sass variable assignment. Block and query forms of `@at-root`
+  act as dividers. Their contents can still be sorted.
+- **Definitions and insertion points.** Top-level mixins and functions can move as a whole.
+  Nested definitions, `@content`, `@contents`, and their enclosing wrappers up to the nearest
+  definition stay in place. Function bodies and keyframe contents keep their source order.
+- **Selectors.** The rule looks for a BEM owner in the rightmost compound, outside function
+  arguments. A unique declaration elsewhere can resolve a tie. An ambiguous owner, unresolved
+  interpolation, or incompatible selector-list branches keep the selector in place.
+- **Stylelint directives.** Disabled ranges and nodes containing a Stylelint directive divide
+  the stylesheet into separate regions for ordering and spacing.
+
+### Property dependencies {#property-names-and-cascade}
+
+- **Built-in sorters** preserve the order of overlapping declarations, including fallbacks,
+  prefixed variants, shorthands and their longhands, resets such as `border` and `border-image`,
+  and logical and physical properties that can target the same side. `all` overlaps ordinary
+  properties except `direction` and `unicode-bidi`.
+- **Explicit priorities and custom sorters** can request a conflicting order. If they reverse
+  a dependent pair, the rule reports both properties and skips ordering and spacing fixes in
+  that region. Other regions can still be fixed.
+- **Property matching** ignores case and known vendor prefixes for ordinary properties.
+  It recognizes the `grid-gap`, `grid-row-gap`, and `grid-column-gap` aliases, `word-wrap` for
+  `overflow-wrap`, and `font-stretch` for `font-width`. Properties that require a value translation,
+  such as `page-break-before`, keep their own names. Fixes preserve authored names and values.
 
 ## Acknowledgments
 
