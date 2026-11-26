@@ -50,6 +50,8 @@ export const sortOrderItems = (
 	scopes?: OrderScopes,
 ): OrderItem[] => {
 	const { isRoot, depth } = environment;
+	const sourceIndexes = new Map(items.map((item, index) => [item, index]));
+	const sourceOrder = (a: OrderItem, b: OrderItem) => sourceIndexes.get(a)! - sourceIndexes.get(b)!;
 	const siblings: Sibling[] = [];
 	const families = new Map<string, Sibling>();
 
@@ -74,10 +76,8 @@ export const sortOrderItems = (
 	 * @param   sorted   Target leaf sequence for one comparison.
 	 */
 	const recordSequence = (sorted: OrderItem[]) => {
-		if (!scopes) return;
-		const included = new Set(sorted);
-		const source = items.filter((item) => included.has(item));
-		if (source.some((item, index) => item !== sorted[index])) scopes.sequences.push({ items: source, sorted });
+		if (!scopes || sorted.every((item, index) => index === 0 || sourceOrder(sorted[index - 1], item) < 0)) return;
+		scopes.sequences.push({ items: sorted.toSorted(sourceOrder), sorted });
 	};
 
 	const original = siblings.map((sibling, sourceIndex) => {
@@ -110,12 +110,15 @@ export const sortOrderItems = (
 	const sortSiblings = (candidates: typeof original, dimension: 'outer' | 'inner' | 'member') => {
 		const managed = candidates.filter((sibling) => sibling.rank[dimension] !== null);
 		if (scopes && managed.length !== candidates.length) scopes.hasIgnored = true;
+		if (managed.every((sibling) => sibling.rank[dimension] === managed[0].rank[dimension])) return candidates;
 		const ordered = managed.toSorted((a, b) => a.rank[dimension]! - b.rank[dimension]!);
-		const ranks = new Map(managed.flatMap((sibling) => {
-			return sibling.items.map((item) => [item, sibling.rank[dimension]!] as const);
-		}));
-		// Stable leaf projections explain only this rank comparison, not another level's family order.
-		recordSequence(items.filter((item) => ranks.has(item)).toSorted((a, b) => ranks.get(a)! - ranks.get(b)!));
+		if (scopes) {
+			const ranks = new Map(managed.flatMap((sibling) => {
+				return sibling.items.map((item) => [item, sibling.rank[dimension]!] as const);
+			}));
+			// Leaves in equal-rank families retain their authored order in this diagnostic.
+			recordSequence([...ranks.keys()].sort((a, b) => ranks.get(a)! - ranks.get(b)! || sourceOrder(a, b)));
+		}
 		let index = 0;
 		return candidates.map((sibling) => (sibling.rank[dimension] === null ? sibling : ordered[index++]));
 	};

@@ -10,6 +10,14 @@ describe(findPropertyOrderConflict, () => {
 			.toStrictEqual(['margin', 'margin-top']);
 	});
 
+	it('Reports the earliest source pair when several cascade dependencies are reversed', () => {
+		const original = ['margin-top', 'margin-bottom', 'margin-inline', 'all'];
+		const sorted = ['all', 'margin-inline', 'margin-top', 'margin-bottom'];
+
+		expect(findPropertyOrderConflict(original, sorted, (name) => name))
+			.toStrictEqual(['margin-top', 'margin-inline']);
+	});
+
 	it('Does not report conflicts when independent properties move', () => {
 		const original = ['margin', 'color', 'margin-top'];
 

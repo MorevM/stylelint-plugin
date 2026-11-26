@@ -284,6 +284,43 @@ const isCategoryMatch = (
 };
 
 /**
+ * Indexes literal property priorities while retaining the configured precedence of patterns and groups.
+ *
+ * @param   order   Category-local declaration priorities, including equal-rank slots.
+ *
+ * @returns         Lookup for the first matching slot and member, or the remainder.
+ */
+const prepareDeclarationOrder = (order: CategorySequence) => {
+	const literals = new Map<string, { rank: number; member: number }>();
+	const patterns: Array<{ rank: number; member: number; matcher: CategoryMatcher }> = [];
+	let remainder = -1;
+	for (const [rank, slot] of order.entries()) {
+		if (slot === '*') {
+			remainder = rank;
+			continue;
+		}
+		for (const [member, matcher] of [slot].flat().entries()) {
+			if (isString(matcher)) {
+				const name = normalizeProperty(matcher);
+				if (!literals.has(name)) literals.set(name, { rank, member });
+			} else {
+				patterns.push({ rank, member, matcher });
+			}
+		}
+	}
+
+	return (name: string, isMatch: (matcher: CategoryMatcher) => boolean) => {
+		const literal = literals.get(normalizeProperty(name));
+		for (const pattern of patterns) {
+			if (literal && (pattern.rank > literal.rank
+				|| (pattern.rank === literal.rank && pattern.member > literal.member))) break;
+			if (isMatch(pattern.matcher)) return pattern;
+		}
+		return literal ?? { rank: remainder, member: 0 };
+	};
+};
+
+/**
  * Prepares spacing metadata with a stable group identity.
  *
  * @param   settings     Spacing policy from a matcher, group or category.
@@ -363,6 +400,7 @@ const prepareCategoryOrder = (override: CategoryOrder, category: OrderCategory) 
 	const { order } = settings;
 
 	return {
+		declarationOrder: category === 'declarations' && order ? prepareDeclarationOrder(order) : undefined,
 		order: order && isQueryCategory(category)
 			? order.map((entry) => {
 				if (isArray<CategoryMatcher>(entry)) {
@@ -667,9 +705,10 @@ const createOrderConfig = (options: SecondaryOption) => {
 			? normalizeParameters(node.params)
 			: item.atRuleMember?.name;
 		const isMatch = (entry: CategorySequence[number]) => isCategoryMatch(entry, item, category, family, matchText);
-		const inner = findOrderRank(categoryOrder, isMatch);
+		const declaration = node.type === 'decl' ? settings?.declarationOrder?.(node.prop, isMatch) : undefined;
+		const inner = declaration?.rank ?? findOrderRank(categoryOrder, isMatch);
 		const slot = categoryOrder[inner];
-		const matchIndex = isArray(slot) ? slot.findIndex(isMatch) : 0;
+		const matchIndex = declaration?.member ?? (isArray(slot) ? slot.findIndex(isMatch) : 0);
 		const match = isArray(slot) ? slot[matchIndex] : slot;
 
 		const innerLabel = match && !isString(match) && !isRegExp(match) ? match.label : undefined;

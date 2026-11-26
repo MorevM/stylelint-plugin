@@ -3,28 +3,73 @@ import { normalizeProperty } from '../normalize-property/normalize-property';
 import { LOGICAL_PROPERTIES, SHORTHAND_PROPERTIES } from './property-data';
 
 const shorthands = new Map(tsObject.entries(SHORTHAND_PROPERTIES));
-const logicalProperties = new Map(tsObject.entries(LOGICAL_PROPERTIES));
+const resettable = Symbol('properties affected by all');
 
-const propertyEffects = new Map<string, ReadonlySet<string>>();
 /**
- * Collects and caches normalized property names affected by a declaration, including nested shorthands.
- *
- * @param   property   Authored property name to expand.
- *
- * @returns            Shared cached effect set, which callers must not mutate.
+ * Effect keys used to detect competing writes, including CSS resets.
  */
-const getPropertyEffects = (property: string): ReadonlySet<string> => {
-	const name = normalizeProperty(property);
-	const cached = propertyEffects.get(name);
-	if (cached) return cached;
+type PropertyEffects = {
+	/**
+	 * Direct writes registered when this declaration is encountered.
+	 */
+	writes: ReadonlyArray<string | symbol>;
 
-	const effects = new Set([name]);
-	propertyEffects.set(name, effects);
+	/**
+	 * Previous writes that can make a reorder observable.
+	 */
+	conflicts: ReadonlyArray<string | symbol>;
+};
 
-	for (const related of shorthands.get(name) ?? []) {
-		for (const effect of getPropertyEffects(related)) effects.add(effect);
+// Keep each logical edge distinct even when two logical properties can affect the same physical side.
+const counterparts = new Map<string, Set<string>>();
+for (const [logical, physicalNames] of tsObject.entries(LOGICAL_PROPERTIES)) {
+	for (const physical of physicalNames) {
+		if (!counterparts.has(physical)) counterparts.set(physical, new Set());
+		counterparts.get(physical)!.add(logical);
 	}
-	return effects;
+	counterparts.set(logical, new Set(physicalNames));
+}
+
+/**
+ * Expands nested shorthands into all the properties they directly affect.
+ *
+ * @param   name      Canonical property or shorthand to expand.
+ * @param   effects   Direct effects collected for the outermost declaration.
+ */
+const expandShorthand = (name: string, effects: Set<string>) => {
+	if (effects.has(name)) return;
+	effects.add(name);
+	for (const related of shorthands.get(name) ?? []) expandShorthand(normalizeProperty(related), effects);
+};
+
+// Only names from the CSS property tables are cached across stylesheets.
+const knownEffects = new Map<string, PropertyEffects>();
+for (const name of new Set([...shorthands.keys(), ...counterparts.keys()])) {
+	const direct = new Set<string>();
+	expandShorthand(name, direct);
+	const conflicts = new Set(direct);
+	for (const effect of direct) {
+		for (const counterpart of counterparts.get(effect) ?? []) conflicts.add(counterpart);
+	}
+	knownEffects.set(name, { writes: [...direct, resettable], conflicts: [...conflicts, 'all'] });
+}
+
+/**
+ * Describes what a declaration writes and which previous writes can change its cascade.
+ *
+ * @param   property   Authored property or variable name.
+ *
+ * @returns            Effect keys shared by the conflict detector and dependency-preserving sorters.
+ */
+export const getPropertyEffects = (property: string): PropertyEffects => {
+	const name = normalizeProperty(property);
+	const known = knownEffects.get(name);
+	if (known) return known;
+	if (name === 'all') return { writes: [name], conflicts: [name, resettable] };
+	if (name.startsWith('--') || name.startsWith('$') || name === 'direction' || name === 'unicode-bidi') {
+		return { writes: [name], conflicts: [name] };
+	}
+	return { writes: [name, resettable], conflicts: [name, 'all'] };
 };
 
 /**
@@ -37,25 +82,7 @@ const getPropertyEffects = (property: string): ReadonlySet<string> => {
  * @returns          Whether the relative order must be retained.
  */
 export const doPropertiesOverlap = (first: string, second: string): boolean => {
-	const a = normalizeProperty(first);
-	const b = normalizeProperty(second);
-
-	if (a === b) return true;
-	if (/^(?:--|\$)/u.test(a) || /^(?:--|\$)/u.test(b)) return false;
-	if (a === 'all' || b === 'all') {
-		const affectedProperty = a === 'all' ? b : a;
-		// CSS excludes direction and unicode-bidi from the all shorthand's reset.
-		return !['direction', 'unicode-bidi'].includes(affectedProperty);
-	}
-
-	const firstEffects = getPropertyEffects(a);
-	const secondEffects = getPropertyEffects(b);
-	for (const effect of firstEffects) {
-		if (secondEffects.has(effect)) return true;
-		if (logicalProperties.get(effect)?.some((physical) => secondEffects.has(physical))) return true;
-	}
-
-	return [...secondEffects].some((effect) => {
-		return logicalProperties.get(effect)?.some((physical) => firstEffects.has(physical));
-	});
+	const { writes } = getPropertyEffects(first);
+	const { conflicts } = getPropertyEffects(second);
+	return writes.some((effect) => conflicts.includes(effect));
 };

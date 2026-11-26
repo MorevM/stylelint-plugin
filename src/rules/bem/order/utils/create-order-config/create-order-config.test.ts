@@ -5,6 +5,24 @@ import { createOrderConfig } from './create-order-config';
 import type { AtRule, Rule } from 'postcss';
 
 describe(createOrderConfig, () => {
+	it('Keeps the first matching property priority across literals, groups and the remainder', () => {
+		const root = scss.parse('gap: 0; overflow-wrap: normal; -webkit-appearance: none; color: red;');
+		const config = createOrderConfig({
+			order: ['declarations'],
+			categories: {
+				declarations: [
+					'*', ['grid-gap', 'word-wrap'], 'overflow-wrap',
+					[{ properties: [/appearance$/u], label: 'Native controls' }, 'appearance'],
+				],
+			},
+		});
+
+		const ranks = root.nodes.map((node) => config.getRank({ node, nodes: [node] }));
+
+		expect(ranks.map(({ inner }) => inner)).toStrictEqual([1, 1, 3, 0]);
+		expect(ranks[2].label?.text).toBe('Native controls');
+	});
+
 	it('Normalizes literal parameter spacing in outer matchers and category orders', () => {
 		const root = scss.parse(`
 			@media (--tablet) {}

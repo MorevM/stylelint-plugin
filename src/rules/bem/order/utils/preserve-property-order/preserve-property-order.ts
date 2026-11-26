@@ -1,4 +1,5 @@
 import { doPropertiesOverlap } from '../do-properties-overlap/do-properties-overlap';
+import { findPropertyOrderConflict } from '../find-property-order-conflict/find-property-order-conflict';
 
 /**
  * Applies preferred sorting while retaining source precedence between dependent declarations.
@@ -15,6 +16,8 @@ export const preservePropertyOrder = <T>(
 	preferred: readonly T[],
 	property: (item: T) => string | undefined,
 ): T[] => {
+	if (!findPropertyOrderConflict(original, preferred, property)) return [...preferred];
+
 	const predecessors = new Map<T, Set<T>>(original.map((item) => [item, new Set<T>()]));
 
 	for (const [index, item] of original.entries()) {
