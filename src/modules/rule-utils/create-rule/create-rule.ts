@@ -1,5 +1,6 @@
 import { stripIndent, tsObject } from '@morev/utils';
 import stylelint from 'stylelint';
+import { withRootSassScope } from '#modules/postcss/resolve-sass-declarations/resolve-sass-declarations';
 import { validateOptions } from '#modules/rule-utils/validate-options/validate-options';
 import { DOCUMENTATION_URL, NAMESPACE } from '#modules/shared';
 import type { Root } from 'postcss';
@@ -82,20 +83,18 @@ export const createRule = <
 			if (!success) return;
 			if (primary === null) return;
 
-			callback(
-				primary,
-				secondary,
-				{
+			withRootSassScope(root, 'read', () => {
+				callback(primary, secondary, {
 					root,
 					result,
 					messages,
-					report: (problem: BetterProblem) => report({
-						ruleName,
-						result,
-						...problem,
-					}),
-				},
-			);
+					report: (problem: BetterProblem) => {
+						const args = { ruleName, result, ...problem };
+						if (problem.fix) return withRootSassScope(root, 'edit', () => report(args));
+						return report(args);
+					},
+				});
+			});
 		};
 	};
 

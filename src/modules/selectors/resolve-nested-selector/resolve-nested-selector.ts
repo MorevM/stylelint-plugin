@@ -1,8 +1,8 @@
 import { assert, isEmpty, isNullish, tsObject } from '@morev/utils';
-import { getRoot, isAtRule, isRoot, isRule, resolveSassDeclarations } from '#modules/postcss';
+import { getRoot, getRootSassVariables, isAtRule, isRoot, isRule, resolveSassDeclarations } from '#modules/postcss';
 import { normalizeSassMemberName } from '#modules/sass';
 import { split } from './utils';
-import type { AtRule, ChildNode, Node, Root, Rule } from 'postcss';
+import type { AtRule, ChildNode, Node, Rule } from 'postcss';
 import type { SassVariableBindings } from '#modules/sass';
 import type {
 	Options,
@@ -482,11 +482,11 @@ const resolveSelectorTrees = (trees: ResolvedPathItem[][]): ResolvedSelector[] =
  * @returns                      Variables declared directly in the node.
  */
 const resolveNodeVariables = (
-	node: ChildNode | Root | null,
+	node: ChildNode,
 	context?: string,
 	inheritedVariables: SassVariableBindings = {},
 ): SassVariableBindings => {
-	if (!node || !('nodes' in node)) return {};
+	if (!('nodes' in node)) return {};
 	return resolveSassDeclarations(node, { context, inheritedVariables }).variables;
 };
 
@@ -515,7 +515,7 @@ const resolveNestedSelector = (options: Options): ResolvedSelector[] => {
 		let context = '';
 		let nodeVariables: SassVariableBindings = {};
 		if (lastVariableIndex !== -1) {
-			rootVariables ??= resolveNodeVariables(getRoot(options.node));
+			rootVariables ??= getRootSassVariables(getRoot(options.node));
 			nodeVariables = rootVariables;
 		}
 
