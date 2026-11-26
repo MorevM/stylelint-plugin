@@ -1551,7 +1551,7 @@ and [blank lines][blank-lines] for details.
 
 #### Matching items within a category
 
-- For ordinary properties, use their [comparison names][canonical comparison names]. \
+- For ordinary properties, use their [comparison names][canonical comparison names]{target="_self"}. \
   Keep the case and prefix of custom properties and Sass variables.
 
   ```js
@@ -2184,9 +2184,6 @@ in an order that stays the same on a second pass.
 
 :::: details Keep each BEM element with its hyphenated extensions
 
-In this project, `element-title` and `element-title-inner` are separate elements named after `element`.
-Group names by the part before the first hyphen and keep those groups in first-appearance order.
-Within each group, sort by name so each element precedes its extensions.
 
 ```js line-hints
 {
@@ -2461,61 +2458,67 @@ A missing neighbor never matches, even with `maxItems: 0`.
 
 ::::
 
-:::: details Let a comment separate groups and keep one-line blocks compact
+:::: details Conditional blank line configuration
 
-For any of the three gaps, give `rules` a nonempty list. The first match decides the spacing.
+This configuration has no practical use as written. Its only purpose is to show the available options in code.
 
 ```js line-hints
 {
-  order: [
-    'custom-properties',
-    {
-      properties: ['color'],
+  categories: {
+    'css:media': {
       blankLines: {
         before: {
+          default: 'ignore',
+          // [!hint] The first matching rule wins. If none matches, `default` applies.
+          // The lists in `rules`, `any`, and `all` each need at least one entry.
           rules: [
-            // [!hint] Keep the first item next to the opening brace.
-            // Use `last-nested` with `after` for the closing brace.
-            // The rule preserves whitespace at either end of the file.
+            // [!hint] `first-nested` and `last-nested` apply inside braces.
+            // The rule preserves whitespace at both ends of the file.
             { when: 'first-nested', mode: 'never' },
             {
-              // [!hint] `any` needs one match and `all` needs every match.
-              // Both take a nonempty list. Use `not` to invert a condition.
-              when: { any: [
-                'inside-single-line-block',
-                'separated-by-comment', // A leading comment on its own line.
-              ] },
-              mode: 'ignore',
+              when: {
+                any: [
+                  'separated-by-comment',
+                  { minItems: 2, scope: 'previous-group' },
+                ],
+              },
+              mode: 'always',
             },
           ],
-          default: 'always', // Separate the groups everywhere else.
+        },
+        between: {
+          default: 'never',
+          rules: [{
+            when: {
+              all: [
+                { minItems: 3, scope: 'group' },
+                // [!hint] The rule checks the final layout, including nested blocks.
+                // It reports a conflict if adding a gap reverses the spacing decision.
+                { not: 'inside-single-line-block' },
+              ],
+            },
+            mode: 'always',
+          }],
+        },
+        after: {
+          default: 'always',
+          rules: [
+            { when: 'last-nested', mode: 'never' },
+            { when: { maxItems: 1, scope: 'next-group' }, mode: 'ignore' },
+            { when: { maxItems: 4, scope: 'container' }, mode: 'never' },
+          ],
         },
       },
     },
-  ],
+  },
 }
 ```
-
-```css
-.badge { --text: red; color: var(--text); }
-
-.card {
-  --text: red;
-  /* Text color on the card surface. */
-  color: var(--text);
-}
-```
-
-A comment directly above a declaration travels with it. A trailing comment travels with the
-preceding item. Any required gap goes after the trailing comment and before the next item's
-leading comment.
-
-`inside-single-line-block` looks at the final layout, including nested blocks. If adding a gap
-makes the block multiline and reverses the same spacing decision, the rule reports the conflict.
 
 ::::
 
 :::: details Which setting wins when two groups share a gap?
+
+The second group's `before` wins over the first group's `after`.
 
 ```js line-hints
 {
@@ -2537,20 +2540,14 @@ makes the block multiline and reverses the same spacing decision, the rule repor
 }
 ```
 
-A category's spacing spans its priorities. A matcher, named group, or `unspecified` policy can
-override it for a particular gap. For example, a group can set `between: 'never'` and a matcher
-inside it can require a blank line before `&:focus`. Between whole BEM families, the parent
-controls the gap. Each family's settings govern the space inside it.
-
 ::::
 
 ## Diagnostics
 
 The rule looks for the fewest items to move, then the fewest consecutive runs.
-Each warning highlights the first item in a run and names the item it needs to cross. With
-[`unspecified: 'ignore'`][unspecified-option], warnings describe only the items you've asked to order.
+Each warning highlights the first item in a run and names the item it needs to cross.
 
-:::: details Read a warning that covers two declarations
+In this example, all five declarations change position and Stylelint reports just one warning.
 
 ```js
 {
@@ -2562,7 +2559,7 @@ Each warning highlights the first item in a run and names the item it needs to c
 
 ::: code-group
 
-```css{2} [Before]
+```css{2} [Before · 1 warning]
 .card {
   color: red;
   opacity: .5;
@@ -2586,27 +2583,24 @@ Each warning highlights the first item in a run and names the item it needs to c
 
 :::
 
-Stylelint highlights `color`. Moving it together with `opacity` fixes the whole block.
+Stylelint flags only `color`. Moving it together with `opacity` after `inset` puts all five declarations in order.
 
 ```text
 Expected declarations "color", "opacity" to come after "inset".
 ```
-
-::::
 
 ### Diagnostic labels
 
 Use `label` to name a matcher, group, or category in a warning. By default the rule uses
 the source text. If two items would have the same name, it can add a value or source location.
 
-:::: details Name the layout declarations and the print query
-
-```js line-hints
+```js{5,9} line-hints
 {
   order: [
-    // [!hint] A matcher's own label takes precedence over the label
-    // on its named group or category.
-    { properties: ['display', 'gap'], label: 'Layout' },
+    {
+      properties: ['display', 'gap'],
+      label: 'Layout',
+    },
     {
       type: 'at-rule', name: 'media', parameter: 'print',
       label: 'Print styles', // Names this query in both warnings below.
@@ -2640,27 +2634,19 @@ the source text. If two items would have the same name, it can add a value or so
 
 :::
 
-::::
-
-Rule and at-rule matchers, selector sets, and property groups accept `label` in
-[`order`][order-option] and [`root.order`][root-option]. The object forms of named groups,
-categories, and `unspecified` also accept a shared label. Selector-list and cascade warnings
-retain the authored selectors and property names.
-
 ## Autofix boundaries {#regions-and-autofix-boundaries}
 
-::: warning Review the diff when selectors can style the same element
-Autofix preserves known property dependencies within each block. Moving a nested selector or
-a mixin call can still change which declaration wins.
+::: warning Autofix changes source order
+Although I've built safeguards into autofix, static analysis can't guarantee that every fix is safe.
+Autofix keeps code in its original scope and preserves the order of
+known overlapping properties, fallbacks, and vendor-prefixed variants. It also avoids moving code across
+Sass control flow or content insertion points.
 
-```css
-.card {
-  color: red;
-  & { color: blue; }
-  color: green; /* Moving this above & turns the card blue. */
-}
-```
+If two selectors match the same element, moving one can change which style wins. \
+**Review the diff before accepting fixes in an existing stylesheet.**
 :::
+
+::: details What autofix can move and which dependencies it preserves
 
 - **Scope and comments.** Items move within their original braces. A media query can move as
   a whole. Attached comments travel with their items. A section comment followed by a blank line
@@ -2680,7 +2666,7 @@ a mixin call can still change which declaration wins.
 - **Stylelint directives.** Disabled ranges and nodes containing a Stylelint directive divide
   the stylesheet into separate regions for ordering and spacing.
 
-### Property dependencies {#property-names-and-cascade}
+<span id="property-names-and-cascade">**Property dependencies**</span>
 
 - **Built-in sorters** preserve the order of overlapping declarations, including fallbacks,
   prefixed variants, shorthands and their longhands, resets such as `border` and `border-image`,
@@ -2694,10 +2680,13 @@ a mixin call can still change which declaration wins.
   `overflow-wrap`, and `font-stretch` for `font-width`. Properties that require a value translation,
   such as `page-break-before`, keep their own names. Fixes preserve authored names and values.
 
+:::
+
 ## Acknowledgments
 
-The matcher objects follow the conventions of [`order/order`][stylelint-order].
-The checks for overlapping properties draw on [Stylelint][stylelint] property data.
+- Thanks to the [`order/order`][stylelint-order] community for the original idea and the
+  [bug reports and discussions][stylelint-order issue tracker] that shaped this rule.
+- Thanks to [Stylelint][stylelint] and [MDN][mdn-property-data] for the shorthand and longhand property data.
 
 [blank-lines]: #group-spacing
 [built-in categories]: #built-in-categories
@@ -2707,6 +2696,7 @@ The checks for overlapping properties draw on [Stylelint][stylelint] property da
 [diagnostic-labels]: #diagnostic-labels
 [groups-option]: #groups
 [layer-statements]: https://www.w3.org/TR/css-cascade-5/#layer-statements
+[mdn-property-data]: https://github.com/mdn/data/blob/main/css/properties.json
 [named groups]: #named-groups
 [namespace-placement]: https://www.w3.org/TR/css-namespaces-3/#syntax
 [object matchers]: #object-matchers
@@ -2718,6 +2708,7 @@ The checks for overlapping properties draw on [Stylelint][stylelint] property da
 [selector-sets]: #selector-sets
 [sorting-presets]: #sorting-presets
 [sorting]: #sorting
+[stylelint-order issue tracker]: https://github.com/hudochenkov/stylelint-order/issues
 [stylelint-order]: https://github.com/hudochenkov/stylelint-order/blob/master/rules/order/README.md
 [stylelint]: https://github.com/stylelint/stylelint
 [unspecified-option]: #unspecified
