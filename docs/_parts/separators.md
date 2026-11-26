@@ -7,8 +7,6 @@ This flexibility ensures compatibility with all popular BEM styles described in 
 official [BEM methodology naming convention][bem-guide]
 or even custom ones.
 
-#### Available separators
-
 | Option          | Default | Description                                         |
 | --------------- | ------- | --------------------------------------------------- |
 | `element`       | `__`    | Separator between block and element.                |

@@ -19,6 +19,7 @@ const rulesWithSeparators = [
 	'@morev/bem/no-grouped-entities',
 	'@morev/bem/no-misplaced-relational-styles',
 	'@morev/bem/no-side-effects',
+	'@morev/bem/order',
 	'@morev/bem/selector-pattern',
 	'@morev/bem/selector-variable-pattern',
 ] as const satisfies ReadonlyArray<keyof RulesSchema>;

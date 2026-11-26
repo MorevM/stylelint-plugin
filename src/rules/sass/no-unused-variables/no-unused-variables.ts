@@ -1,6 +1,6 @@
 import { isComment, isDeclaration, isRule } from '#modules/postcss';
 import { createRule, isSassSyntax, mergeMessages } from '#modules/rule-utils';
-import { getSassVariableReferences, isSimpleSassVariableName, normalizeSassMemberName } from '#modules/sass';
+import { getSassVariableReferences, isSassDefinition, isSimpleSassVariableName, normalizeSassMemberName } from '#modules/sass';
 import { toRegExp } from '#modules/shared';
 import { schema } from './no-unused-variables.schema';
 import type { Declaration, Node } from 'postcss';
@@ -43,7 +43,7 @@ export default createRule({
 	root.walk((node) => {
 		// Function and mixin parameters aren't represented as declarations,
 		// but their bodies still need scopes for tracking nested reassignments.
-		if (node.type === 'atrule' && (node.name === 'function' || node.name === 'mixin')) {
+		if (isSassDefinition(node)) {
 			ensureScope(node);
 			return;
 		}
