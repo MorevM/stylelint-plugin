@@ -1,4 +1,4 @@
-import { arrayUnique, assert, isUndefined, mergeObjects } from '@morev/utils';
+import { arrayUnique, assert, isUndefined } from '@morev/utils';
 import { Rule } from 'postcss';
 import { isPseudoElementNode } from '#modules/postcss';
 import { parseSelectors, resolveNestedSelector } from '#modules/selectors';
@@ -25,20 +25,20 @@ const isValidBemEntity = (entity: Partial<BemEntity>): entity is BemEntity => {
 };
 
 /**
- * Creates a default BEM entity structure with empty context and undefined fields,
- * allowing optional overrides.
+ * Gives each BEM entity its own context for the current selector segment.
  *
- * @param   partialEntity   Optional fields to override in the base structure.
+ * @param   parts   Containing rule and any class parts already resolved.
  *
- * @returns                 A partially constructed BEM entity with guaranteed shape.
+ * @returns         A partially constructed BEM entity.
  */
-const createBemEntity = (partialEntity?: Partial<BemEntity>): Partial<BemEntity> => {
-	return mergeObjects({
+const createBemEntity = (parts: Omit<Partial<BemEntity>, 'context'>): Partial<BemEntity> => {
+	return {
 		sourceContext: null,
 		block: undefined,
 		element: undefined,
 		modifierName: undefined,
 		modifierValue: undefined,
+		...parts,
 		context: {
 			classes: {
 				entities: [],
@@ -50,7 +50,7 @@ const createBemEntity = (partialEntity?: Partial<BemEntity>): Partial<BemEntity>
 			pseudoClasses: [],
 			pseudoElements: [],
 		},
-	}, partialEntity);
+	};
 };
 
 /**
