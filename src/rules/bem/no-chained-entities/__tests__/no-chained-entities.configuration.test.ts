@@ -44,33 +44,6 @@ testRuleConfig({
 	],
 });
 
-// Secondary option > disallowNestedModifierValues
-testRuleConfig({
-	description: 'Secondary option > disallowNestedModifierValues',
-	accept: [
-		{
-			description: 'Enabled option',
-			config: [true, {
-				disallowNestedModifierValues: true,
-			}],
-		},
-		{
-			description: 'Disabled option',
-			config: [true, {
-				disallowNestedModifierValues: false,
-			}],
-		},
-	],
-	reject: [
-		{
-			description: 'Non-valid option type',
-			config: [true, {
-				disallowNestedModifierValues: 1,
-			}],
-		},
-	],
-});
-
 // Secondary option > messages
 testRuleConfig({
 	description: 'Secondary option > messages',
@@ -83,7 +56,6 @@ testRuleConfig({
 					element: () => '',
 					modifierName: () => '',
 					modifierValue: () => '',
-					nestedModifierValue: () => '',
 				},
 			}],
 		},

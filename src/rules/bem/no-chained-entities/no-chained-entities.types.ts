@@ -33,10 +33,9 @@ export type RepeatingGroupItem = {
  */
 export type Violation = {
 	/**
-	 * Type of the BEM entity that caused the violation,
-	 * or a special case `nestedModifierValue`.
+	 * Type of the BEM entity whose name was split across nesting levels.
 	 */
-	type: EntityType | 'nestedModifierValue';
+	type: EntityType;
 
 	/**
 	 * Actually used selector for this part.

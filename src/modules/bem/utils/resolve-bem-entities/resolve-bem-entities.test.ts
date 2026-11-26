@@ -20,6 +20,21 @@ const resolveWith = (source: string, ruleSelector?: string, customSeparators?: S
 
 describe(resolveBemEntities, () => {
 	describe('Common mechanics', () => {
+		it('Extracts coinciding hoisted entities once despite their different lexical owners', () => {
+			const entities = resolveWith('.alpha, .beta { @at-root .block {} }', '.block');
+
+			expect(entities.map(({ bemSelector }) => bemSelector)).toStrictEqual(['.block']);
+		});
+
+		it('Preserves separately authored branches when hoisted entities coincide', () => {
+			const entities = resolveWith('.alpha, .beta { @at-root .block, .block {} }', '.block, .block');
+
+			expect(entities.map(({ bemSelector, block }) => [bemSelector, block.sourceRange])).toStrictEqual([
+				['.block', [10, 15]],
+				['.block', [18, 23]],
+			]);
+		});
+
 		it(`Does not resolve entities for selectors without classes`, () => {
 			expect(resolveWith(`a {}`)).toStrictEqual([]);
 			expect(resolveWith(`#id {}`)).toStrictEqual([]);

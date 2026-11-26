@@ -21,7 +21,73 @@ const resolveSelectorWithReplacements = (
 };
 
 describe(resolveNestedSelector, () => {
+	describe('Static at-root queries', () => {
+		it.each([
+			['without: rule', '.block__title'],
+			['without: all', '.block__title'],
+			['without: rule media', '.block__title'],
+			['with: media', '.block__title'],
+			[' with : media ', '.block__title'],
+			['with: rule', '.block .block__title'],
+			['with: all', '.block .block__title'],
+			['with: media rule', '.block .block__title'],
+			['without: media', '.block .block__title'],
+		])('Resolves (%s) while preserving the lexical owner', (query, resolved) => {
+			const code = `.block { @media (color) { @at-root (${query}) { #{&}__title {} } } }`;
+			const [selector] = resolveSelectorWithReplacements(code, '#{&}__title');
+
+			expect(selector).toMatchObject({ resolved, lexicalParent: '.block' });
+			expect(selector.replacements.some(({ type }) => type === 'parent-injection'))
+				.toBe(resolved.includes(' '));
+		});
+
+		it('Removes emitted ancestry from flat selectors without losing their owner', () => {
+			const code = '.block { @at-root (without: rule) { .block__title:hover {} } }';
+
+			expect(resolveSelectorWithReplacements(code, '.block__title:hover')).toMatchObject([{
+				resolved: '.block__title:hover', lexicalParent: '.block', parent: null, replacements: [],
+			}]);
+		});
+
+		it('Keeps variable interpolation and its exact replacement range through a query', () => {
+			const code = '.block { $b: #{&}; @at-root (without: rule) { #{$b}__title {} } }';
+
+			expect(resolveSelectorWithReplacements(code, '#{$b}__title')).toMatchObject([{
+				resolved: '.block__title', lexicalParent: '.block', parent: null,
+				replacements: [{ type: 'interpolation', sourceRange: [0, 5], resolvedRange: [0, 6] }],
+			}]);
+		});
+
+		it('Preserves hoisting through nested queries and subsequent descendants', () => {
+			const code = '.block { @at-root (with: media) { @at-root (with: rule) { #{&}__title { &:hover {} } } } }';
+
+			expect(resolveSelectorWithReplacements(code, '&:hover')).toMatchObject([{
+				resolved: '.block__title:hover', lexicalParent: '.block__title',
+			}]);
+		});
+
+		it.each(['', '(without: rule)'])('Resolves variables declared inside an at-root %s wrapper', (query) => {
+			const code = `.block { @at-root ${query} { $b: #{&}; #{$b}__title {} } }`;
+
+			expect(resolveSelectorWithReplacements(code, '#{$b}__title')).toMatchObject([{
+				resolved: '.block__title', lexicalParent: '.block', parent: null,
+				substitutions: { '#{$b}': '.block' },
+			}]);
+		});
+	});
+
 	describe('Lexical parent', () => {
+		it('Preserves distinct lexical owners of the same hoisted selector', () => {
+			const code = '.block, .other { @at-root .block__title {} }';
+			const selectors = resolveSelectorWithReplacements(code, '.block__title');
+
+			expect(selectors.map(({ resolved, lexicalParent }) => ({ resolved, lexicalParent })))
+				.toStrictEqual([
+					{ resolved: '.block__title', lexicalParent: '.block' },
+					{ resolved: '.block__title', lexicalParent: '.other' },
+				]);
+		});
+
 		it('Returns `null` for a flat top-level selector', () => {
 			const code = `.block__source:hover .block__target {}`;
 			const [selector] = resolveNestedSelector({
@@ -564,7 +630,7 @@ describe(resolveNestedSelector, () => {
 			]);
 		});
 
-		it('Hoists complex `@at-root` case', () => {
+		it('Hoists complex `@at-root` paths without merging their lexical owners', () => {
 			const code = `
 				.foo {
 					.bar &, & .baz  {
@@ -575,8 +641,9 @@ describe(resolveNestedSelector, () => {
 				}
 			`;
 
-			expect(resolveSelectorInContext(code, '.bar')).toStrictEqual([
-				{ source: '.bar', resolved: '.bar', substitutions: null, parent: null, offset: 0 },
+			expect(resolveSelectorWithReplacements(code, '.bar')).toMatchObject([
+				{ resolved: '.bar', lexicalParent: '.bar .foo', parent: null },
+				{ resolved: '.bar', lexicalParent: '.foo .baz', parent: null },
 			]);
 		});
 

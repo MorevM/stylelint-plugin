@@ -76,7 +76,7 @@ export const createViolationsRegistry = (ignoredPatterns: RegExp[]) => {
 		// Unknown or complex interpolations cannot be analyzed reliably.
 		if (selector.includes('#{')) return;
 
-		if (ignoredPatterns.some((pattern) => pattern.test(selector))) return;
+		if (ignoredPatterns.some((pattern) => selector.search(pattern) !== -1)) return;
 		// Skip if any ancestor node has already reported this selector -
 		// prevents duplicate violations from nested contexts.
 		if (hasAncestorWithSameSelector(node, selector)) return;

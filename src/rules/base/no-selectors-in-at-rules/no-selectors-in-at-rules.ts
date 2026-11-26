@@ -29,8 +29,7 @@ export default createRule({
 
 	const shouldIgnore = (name: string, params: string) =>
 		normalizedIgnore.some(({ nameRegex, paramRegexes }) =>
-			nameRegex.test(name)
-			&& paramRegexes.some((regExp) => regExp.test(params)));
+			name.search(nameRegex) !== -1 && paramRegexes.some((regExp) => params.search(regExp) !== -1));
 
 	root.walkAtRules((atRule) => {
 		if (isSassControlRule(atRule) || isSassDefinition(atRule)) return;

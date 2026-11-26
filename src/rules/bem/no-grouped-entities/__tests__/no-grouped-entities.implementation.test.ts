@@ -60,13 +60,13 @@ testRule({
 	],
 	reject: [
 		{
-			description: 'Reports a grouped entity and references its later sibling owner',
+			description: 'Reports a grouped entity and references its later sibling with functional conditions',
 			code: `
 				.block {
 					&__title,
 					&__label {}
 
-					&__title:hover {}
+					&__title:is(:hover, :focus) {}
 				}
 			`,
 			warnings: [
@@ -169,7 +169,9 @@ testRule({
 			code: `
 				.block {
 					&__title:hover,
-					&__title:focus-visible {}
+					&__title:is(:hover, :focus),
+					&__title:has(.icon, .badge),
+					&__title:not(.disabled, .loading) {}
 
 					&__box::before,
 					&__box::after {}
@@ -191,7 +193,7 @@ testRule({
 		{
 			description: 'Uses the rightmost compound as the declaration target',
 			code: `
-				.block__source .block__target,
+				:is(.dark, .light) .block__target,
 				.block__other .block__target {}
 			`,
 		},
@@ -210,16 +212,12 @@ testRule({
 			`,
 		},
 		{
-			description: 'Ignores selector lists inside functional pseudo-classes',
+			description: 'Skips functional-only aliases whose BEM target is unknown',
 			code: `
-				.block:is(.block__title, .block__label),
+				:is(.block__title, .block__label),
 				.block__item {}
-			`,
-		},
-		{
-			description: 'Ignores nested selector lists inside functional pseudo-classes',
-			code: `
-				.block:nth-child(2n of :is(.block__title, .block__label)),
+
+				:where(.block),
 				.block__item {}
 			`,
 		},
@@ -258,6 +256,24 @@ testRule({
 					line: 3, column: 2,
 					endLine: 3, endColumn: 18,
 				},
+			],
+		},
+		{
+			description: 'Checks direct targets qualified by functional selector lists',
+			code: `
+				.block:is(.block__title, .block__label),
+				.block__item {}
+
+				.block:nth-child(2n of :is(.block__title, .block__label)),
+				.block__item {}
+
+				:is(.dark, .light) .block__title,
+				.block__label {}
+			`,
+			warnings: [
+				{ message: messages.grouped('.block__item', '.block'), line: 2, column: 1, endColumn: 13 },
+				{ message: messages.grouped('.block__item', '.block'), line: 5, column: 1, endColumn: 13 },
+				{ message: messages.grouped('.block__label', '.block__title'), line: 8, column: 1, endColumn: 14 },
 			],
 		},
 		{

@@ -160,6 +160,7 @@ export const resolveBemEntities = (options: Options) => {
 	// If no rule is provided (selector-only mode),
 	// create a dummy `Rule` node for parsing context.
 	const rule = 'rule' in options ? options.rule : new Rule();
+	const seenSelectors = new Set<string>();
 
 	const allBemEntities = resolveNestedSelector({ source: options.source, node: rule })
 		.reduce<BemEntity[]>((acc, {
@@ -168,6 +169,12 @@ export const resolveBemEntities = (options: Options) => {
 			offset: sourceOffset,
 			parent: sourceParent,
 		}) => {
+			// Entity extraction does not consume lexical ownership.
+			// Repeated emitted inputs must not duplicate entities or downstream BEM chains.
+			const selectorKey = JSON.stringify([matchedSelector, resolvedSelector, sourceOffset, sourceParent]);
+			if (seenSelectors.has(selectorKey)) return acc;
+			seenSelectors.add(selectorKey);
+
 			// `resolveNestedSelector` splits selectors by `,` internally,
 			// so it's safe to take the first one directly.
 			const sourceSelectorNodes = parseSelectors(matchedSelector)[0];
