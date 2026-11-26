@@ -1,28 +1,69 @@
+import { isEmpty } from '@morev/utils';
 import { resolveBemEntities } from '#modules/bem/utils/resolve-bem-entities/resolve-bem-entities';
-import { isAtRule } from '#modules/postcss';
+import { hasAncestorRule, isAtRule } from '#modules/postcss';
 import { parseSelectors } from '#modules/selectors';
-import type { Root, Rule } from 'postcss';
+import type { Node, Root, Rule } from 'postcss';
 import type { Separators } from '#modules/shared';
 
+/**
+ * Component block selected from a base declaration or an internal BEM entity.
+ */
 type BemBlock = {
+	/**
+	 * Selected base declaration, or the first eligible entity rule when no base exists.
+	 */
 	rule: Rule;
+
+	/**
+	 * Component block name without the class prefix.
+	 */
 	blockName: string;
+
+	/**
+	 * Base block selector, even when inferred from an element or modifier.
+	 */
 	selector: string;
+
+	/**
+	 * Whether every selector in the selected rule ends with an unmodified block class.
+	 */
+	isBaseDeclaration: boolean;
 };
 
 /**
- * Retrieves the first valid BEM block definition from the PostCSS tree.
+ * Checks whether any ancestor at-rule falls outside the allowed names.
+ * Selector rules do not stop the search, and the node itself is excluded.
  *
- * By convention, a BEM block is determined as:
- * * A `Rule` with a single selector.
- * * Selector's last part is a class (e.g., `.the-component`).
- * * Rule is not nested inside any at-rule other than `@layer` or `@media`.
- * * Selectors like `html .the-component` are allowed; only the last part matters.
+ * @param   node           Node to inspect.
+ * @param   allowedNames   Allowed at-rule names; an empty list disallows all at-rule ancestors.
+ *
+ * @returns                Whether a disallowed ancestor at-rule exists.
+ */
+const hasDisallowedAtRuleAncestor = (
+	node: Node,
+	allowedNames: string[],
+) => {
+	let ancestor = node.parent;
+
+	while (ancestor) {
+		if (isAtRule(ancestor) && !allowedNames.includes(ancestor.name)) return true;
+		ancestor = ancestor.parent;
+	}
+
+	return false;
+};
+
+/**
+ * Selects the component's BEM block, preferring the first base declaration.
+ *
+ * Candidate selectors must end with classes belonging to the same block.
+ * Rules nested in another rule or in at-rules other than `@layer` and `@media` are excluded.
+ * If no base declaration exists, the first eligible element, modifier, or mixed selector list is used.
  *
  * @param   root         PostCSS `Root` object.
  * @param   separators   BEM separators used in the current config.
  *
- * @returns              The first BEM block definition if found, otherwise `null`.
+ * @returns              Selected block with declaration metadata, or `null` when no candidate is found.
  */
 export const getBemBlock = (
 	root: Root,
@@ -31,33 +72,25 @@ export const getBemBlock = (
 	let result: BemBlock | null = null;
 
 	root.walkRules((rule) => {
-		// PostCSS does not provide a way to break `walkRules`,
-		// so we rely on early return.
-		if (result) return;
+		if (result?.isBaseDeclaration) return;
+		if (hasAncestorRule(rule)) return;
 
-		// Skip rules inside disallowed at-rules.
-		if (
-			isAtRule(rule.parent)
-			&& rule.parent.name !== 'layer'
-			&& rule.parent.name !== 'media'
-		) return;
+		if (hasDisallowedAtRuleAncestor(rule, ['layer', 'media'])) return;
 
 		const blockCandidates = rule.selectors.map((selector) => {
-			const lastNodeString = parseSelectors(selector)[0]?.at(-1)!.toString();
-			// Only class selectors allowed.
-			if (!lastNodeString.startsWith('.')) return;
-			// Do not validate while writing the selector `.|`.
-			if (lastNodeString.length === 1) return;
+			const lastNode = parseSelectors(selector)[0]?.at(-1);
+			if (lastNode?.type !== 'class' || isEmpty(lastNode.value)) return;
 
-			return lastNodeString;
+			return lastNode.toString();
 		});
 
 		// A scenario like `.foo-component, #bar`
-		if (blockCandidates.includes(undefined)) return;
+		if (isEmpty(blockCandidates) || blockCandidates.includes(undefined)) return;
 
 		const allBemEntities = blockCandidates
 			.filter(Boolean)
 			.map((source) => resolveBemEntities({ source, separators })[0]);
+		if (allBemEntities.some((entity) => !entity)) return;
 
 		// `.foo-component, .foo-component--modifier {}`
 		const areAllBlocksSame = allBemEntities
@@ -65,11 +98,16 @@ export const getBemBlock = (
 
 		if (!areAllBlocksSame) return;
 
+		const isBaseDeclaration = allBemEntities
+			.every((entity) => !entity.element && !entity.modifierName && !entity.modifierValue);
+		if (result && !isBaseDeclaration) return;
+
 		const bemBlock = allBemEntities[0].block;
 		result = {
 			rule,
 			blockName: bemBlock.value,
 			selector: bemBlock.selector,
+			isBaseDeclaration,
 		};
 	});
 

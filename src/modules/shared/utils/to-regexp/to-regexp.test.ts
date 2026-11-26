@@ -2,18 +2,29 @@ import { toRegExp } from './to-regexp';
 
 describe(toRegExp, () => {
 	describe('When value is already a RegExp', () => {
-		it('Returns the same RegExp instance', () => {
-			const regex = /abc/i;
+		it('Copies frozen expressions without inheriting or changing their matching state', () => {
+			const regex = /abc/gi;
+			regex.lastIndex = 2;
+			Object.freeze(regex);
+			const result = toRegExp(regex);
 
-			expect(toRegExp(regex)).toBe(regex);
+			expect(result).not.toBe(regex);
+			expect(result).toStrictEqual(/abc/gi);
+			expect(result.lastIndex).toBe(0);
+			expect('ABC'.search(result)).toBe(0);
+			expect('ABC'.search(result)).toBe(0);
+			expect(regex.lastIndex).toBe(2);
 		});
 	});
 
 	describe('When value is a string that looks like a RegExp', () => {
-		it('Parses the string and returns equivalent RegExp', () => {
-			const result = toRegExp('/abc/i');
+		it('Parses the string and preserves sticky matching at the start of the input', () => {
+			const result = toRegExp('/abc/iy');
 
-			expect(result).toStrictEqual(new RegExp('abc', 'i'));
+			expect(result).toStrictEqual(/abc/iy);
+			expect('xABC'.search(result)).toBe(-1);
+			expect('ABC'.search(result)).toBe(0);
+			expect('ABC'.search(result)).toBe(0);
 		});
 	});
 

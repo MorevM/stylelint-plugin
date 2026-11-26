@@ -162,6 +162,8 @@ type SelectorVariablePatternContext = {
   owner: {
     selector: string;
     block: string | null;
+    element: string | null;
+    modifierName: string | null;
     depth: number;
     path: readonly string[];
   } | null;
@@ -170,7 +172,7 @@ type SelectorVariablePatternContext = {
 
 #### Default behavior
 
-By default, the rule checks variables declared directly in block selectors
+By default, the rule checks variables declared directly in base block selectors
 and representing an element of the same BEM block:
 
 - Plain elements require the exact element name;
@@ -178,7 +180,7 @@ and representing an element of the same BEM block:
   The modifier name and value do not affect the expected pattern.
 
 Blocks, elements of another block, aliases to other variables, stylesheet-root variables,
-and variables declared in nested selectors are skipped.
+and variables declared in element, modifier, or nested selectors are skipped.
 
 ```scss
 // Config: true
@@ -198,13 +200,22 @@ and variables declared in nested selectors are skipped.
     $nested: #{$b}__item; // ✅ Variables in nested selectors are skipped
   }
 }
+
+.the-component__title {
+  $b: #{&}; // ✅ Variables owned by element selectors are skipped
+}
+
+.the-component--active {
+  $wrong: '.the-component__title'; // ✅ Variables owned by modifier selectors are skipped
+}
 ```
 
 #### Custom naming policy
 
 A custom resolver replaces the default policy, including its scope restrictions.
 It receives statically resolved BEM selector variables from the stylesheet root
-and selectors at every nesting depth, including aliases and selectors from other blocks.
+and selectors at every nesting depth, including element and modifier owners,
+aliases, and selectors from other blocks.
 Use the callback context to decide which variables to check.
 
 | Return value          | Behavior                                                 | Auto-fix   |
@@ -371,7 +382,10 @@ resolve: ({ variable }) => {
 ##### `owner`
 
 Contains the resolved selector of the rule where the variable is declared. `block` is set only
-when that selector contains one unambiguous BEM entity. `path` contains the authored selectors
+when that selector contains one unambiguous BEM entity.
+`element` and `modifierName` contain its element and modifier names,
+or `null` when the corresponding part is absent or the owner is ambiguous.
+`path` contains the authored selectors
 from the outermost rule to the owner, while `depth` is the variable declaration's selector
 nesting level and equals `path.length`. At-rule wrappers do not affect either field.
 
@@ -381,6 +395,8 @@ For a variable declared inside `.the-component { &__wrapper {} }`, the owner con
 {
   selector: '.the-component__wrapper',
   block: 'the-component',
+  element: 'wrapper',
+  modifierName: null,
   depth: 2,
   path: ['.the-component', '&__wrapper'],
 }

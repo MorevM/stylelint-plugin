@@ -6,6 +6,11 @@ All rules from the plugin are namespaced with `@morev/` prefix and the additiona
 `@morev/{category-name}/{rule-name}`. \
 Refer to the [Rules](/rules/) page for the complete list of categories and rules.
 
+Rules that distinguish CSS from SCSS give `.css`, `.scss`, and `.sass` extensions precedence over `customSyntax`.
+For other extensions or input without a filename, Sass-specific checks require `customSyntax: 'postcss-scss'`.
+Syntax objects alone do not enable these checks.
+Unknown syntaxes retain CSS behavior, including checks for local BEM extensions.
+
 ---
 
 The plugin provides several rules, and the ones in the `base` and `sass`

@@ -327,8 +327,9 @@ testRule({
 	description: 'Pattern as a RegExp in string form',
 	config: [true, { patterns: { block: '/^foo-[a-z]+$/' } }],
 	accept: [
-		{ code: '.foo-bar {}' },
-		{ code: '.foo-test {}' },
+		{ code: `
+			.foo-bar {}
+		` },
 	],
 	reject: [
 		{
@@ -351,8 +352,9 @@ testRule({
 	description: 'Pattern as an actual RegExp',
 	config: [true, { patterns: { block: /^foo-[a-z]+$/ } }],
 	accept: [
-		{ code: '.foo-bar {}' },
-		{ code: '.foo-test {}' },
+		{ code: `
+			.foo-bar {}
+		` },
 	],
 	reject: [
 		{

@@ -9,6 +9,20 @@ testRule({
 	config: [true],
 	accept: [
 		{
+			description: 'Ignores a standalone element without a block declaration',
+			code: '.the-component__title {}',
+		},
+		{
+			description: 'Preserves an element reference and its nested selectors',
+			code: `
+				.the-component__title {
+					color: red;
+					$title: #{&};
+					&:hover { .the-component__icon {} }
+				}
+			`,
+		},
+		{
 			description: 'Ignores CSS files',
 			codeFilename: 'the-component.css',
 			code: `
@@ -86,6 +100,54 @@ testRule({
 		},
 	],
 	reject: [
+		{
+			description: 'Uses the first base block declaration across different blocks',
+			code: `
+				.foo__bar {}
+				.bar__bar {}
+				.bar {}
+				.foo {}
+			`,
+			fixed: `
+				.foo__bar {}
+				.bar__bar {}
+				.bar {
+					$b: #{&};
+				}
+				.foo {}
+			`,
+			warnings: [{ line: 3, column: 1, message: messages.missingVariable('$b') }],
+		},
+		{
+			description: 'Does not insert a block variable into a nested utility rule',
+			code: `
+				.foo__bar { .utility {} }
+				.foo {}
+			`,
+			fixed: `
+				.foo__bar { .utility {} }
+				.foo {
+					$b: #{&};
+				}
+			`,
+			warnings: [{ line: 2, column: 1, message: messages.missingVariable('$b') }],
+		},
+		{
+			description: 'Inserts the block variable after standalone elements without changing their variables',
+			code: `
+				.the-component__title { $title: #{&}; }
+				.the-component__title--active {}
+				.the-component {}
+			`,
+			fixed: `
+				.the-component__title { $title: #{&}; }
+				.the-component__title--active {}
+				.the-component {
+					$b: #{&};
+				}
+			`,
+			warnings: [{ line: 3, column: 1, message: messages.missingVariable('$b') }],
+		},
 		{
 			description: 'Lacks a variable referencing the block',
 			code: `
@@ -1125,6 +1187,27 @@ testRule({
 				}
 			`,
 			warnings: [{ message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true) }],
+		},
+	],
+});
+
+testRule({
+	description: 'Block declaration detection with custom separators',
+	config: [true, { separators: { element: '-', modifier: '_', modifierValue: '_' } }],
+	reject: [
+		{
+			description: 'Finds the base block after a modified element',
+			code: `
+				.component-title_active {}
+				.component {}
+			`,
+			fixed: `
+				.component-title_active {}
+				.component {
+					$b: #{&};
+				}
+			`,
+			warnings: [{ line: 2, column: 1, message: messages.missingVariable('$b') }],
 		},
 	],
 });

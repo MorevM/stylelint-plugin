@@ -2,6 +2,7 @@ import { isEmpty } from '@morev/utils';
 import { isDirectBemEntity, resolveBemEntities } from '#modules/bem';
 import { getRuleDeclarations, isPseudoElementNode } from '#modules/postcss';
 import { createRule, extractSeparators, mergeMessages } from '#modules/rule-utils';
+import { isSassDefinition } from '#modules/sass';
 import { parseSelectors, resolveNestedSelector } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
 import { schema } from './no-block-properties.schema';
@@ -74,7 +75,7 @@ export default createRule({
 					// Skip ignored blocks
 					.filter((bemEntity) => {
 						return !ignoredPatterns
-							.some((blockPattern) => blockPattern.test(bemEntity.block.value));
+							.some((blockPattern) => bemEntity.block.value.search(blockPattern) !== -1);
 					});
 
 				if (isEmpty(entitiesToReport)) return;
@@ -91,7 +92,7 @@ export default createRule({
 						})
 						.filter(({ atRulePath }) => {
 							return !atRulePath.some((atRule) => {
-								return ['page', 'mixin', 'function'].includes(atRule.name);
+								return atRule.name === 'page' || isSassDefinition(atRule);
 							});
 						})
 						.map(({ declaration }) => declaration);

@@ -1,5 +1,5 @@
 import { isEmpty } from '@morev/utils';
-import { getBemBlock } from '#modules/bem';
+import { getBemBlock, resolveBemEntities } from '#modules/bem';
 import { isSelectorOwnerNode } from '#modules/postcss';
 import { createRule, extractSeparators, mergeMessages } from '#modules/rule-utils';
 import { resolveSelectorNodes } from '#modules/selectors';
@@ -47,8 +47,14 @@ export default createRule({
 			// Find the last mention of the current BEM block in the resolved selector.
 			// Anything after it may represent a side-effect.
 			const lastBlockIndex = resolved.findLastIndex((resolvedNode) => {
-				return resolvedNode.type === 'class'
-					&& resolvedNode.value.startsWith(bemBlock.blockName);
+				if (resolvedNode.type !== 'class') return false;
+
+				const [bemEntity] = resolveBemEntities({
+					source: resolvedNode.toString(),
+					separators,
+				});
+
+				return bemEntity?.block.value === bemBlock.blockName;
 			});
 
 			// Every node is a side-effect

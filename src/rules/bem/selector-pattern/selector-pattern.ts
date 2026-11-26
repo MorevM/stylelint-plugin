@@ -54,7 +54,7 @@ export default createRule({
 		if (rule.type === 'atrule' && rule.name !== 'at-root') return;
 
 		resolveBemEntities({ rule, separators }).forEach((bemEntity) => {
-			if (ignoredBlocks.some((pattern) => pattern.test(bemEntity.block.value))) return;
+			if (ignoredBlocks.some((pattern) => bemEntity.block.value.search(pattern) !== -1)) return;
 
 			BEM_ENTITIES.forEach((entityType) => {
 				const bemEntityPart = bemEntity[entityType];
@@ -73,7 +73,7 @@ export default createRule({
 					// Determine whether this entity violates the configured patterns
 					const shouldReport = isDisallowedEntity || (
 						entityPatterns
-						&& entityPatterns.every((pattern) => !pattern.regexp.test(entityPart.value))
+						&& entityPatterns.every((pattern) => entityPart.value.search(pattern.regexp) === -1)
 						&& !hasParentViolation(bemEntity, entityType, entityPart)
 					);
 

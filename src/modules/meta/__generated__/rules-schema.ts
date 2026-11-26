@@ -7,10 +7,11 @@ import type * as blockVariable from '#rules/bem/block-variable/block-variable.ty
 import type * as matchFileName from '#rules/bem/match-file-name/match-file-name.types';
 import type * as noBlockProperties from '#rules/bem/no-block-properties/no-block-properties.types';
 import type * as noChainedEntities from '#rules/bem/no-chained-entities/no-chained-entities.types';
-import type * as noDetachedEntityExtensions from '#rules/bem/no-detached-entity-extensions/no-detached-entity-extensions.types';
+import type * as noDetachedEntities from '#rules/bem/no-detached-entities/no-detached-entities.types';
 import type * as noGroupedEntities from '#rules/bem/no-grouped-entities/no-grouped-entities.types';
 import type * as noMisplacedRelationalStyles from '#rules/bem/no-misplaced-relational-styles/no-misplaced-relational-styles.types';
 import type * as noSideEffects from '#rules/bem/no-side-effects/no-side-effects.types';
+import type * as order from '#rules/bem/order/order.types';
 import type * as selectorPattern from '#rules/bem/selector-pattern/selector-pattern.types';
 import type * as selectorVariablePattern from '#rules/bem/selector-variable-pattern/selector-variable-pattern.types';
 import type * as noUnusedVariables from '#rules/sass/no-unused-variables/no-unused-variables.types';
@@ -39,6 +40,13 @@ export type RulesSchema = {
 	'@morev/bem/selector-pattern': RuleSetting<selectorPattern.PrimaryOption, selectorPattern.SecondaryOption>;
 
 	/**
+	 * Orders CSS and SCSS content while keeping BEM families together.
+	 *
+	 * @see https://morevm.github.io/stylelint-plugin/rules/bem/order.html
+	 */
+	'@morev/bem/order': RuleSetting<order.PrimaryOption, order.SecondaryOption>;
+
+	/**
 	 * Disallows selectors that apply styles outside the scope of the current BEM block.
 	 *
 	 * @see https://morevm.github.io/stylelint-plugin/rules/bem/no-side-effects.html
@@ -60,11 +68,11 @@ export type RulesSchema = {
 	'@morev/bem/no-grouped-entities': RuleSetting<noGroupedEntities.PrimaryOption, noGroupedEntities.SecondaryOption>;
 
 	/**
-	 * Requires extensions of a BEM entity selector to be declared within that entity.
+	 * Requires BEM entities and their local extensions to be declared within their lexical owners.
 	 *
-	 * @see https://morevm.github.io/stylelint-plugin/rules/bem/no-detached-entity-extensions.html
+	 * @see https://morevm.github.io/stylelint-plugin/rules/bem/no-detached-entities.html
 	 */
-	'@morev/bem/no-detached-entity-extensions': RuleSetting<noDetachedEntityExtensions.PrimaryOption, noDetachedEntityExtensions.SecondaryOption>;
+	'@morev/bem/no-detached-entities': RuleSetting<noDetachedEntities.PrimaryOption, noDetachedEntities.SecondaryOption>;
 
 	/**
 	 * Disallows splitting BEM entities across multiple chained `&` selectors in SCSS.

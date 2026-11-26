@@ -123,6 +123,26 @@ testRule({
 	],
 	reject: [
 		{
+			description: 'Reports a foreign block sharing the current block prefix',
+			code: `
+				.foo {}
+				.foobar {}
+			`,
+			warnings: [{
+				message: messages.rejected('.foobar'),
+				line: 2, column: 1,
+				endLine: 2, endColumn: 8,
+			}],
+		},
+		{
+			description: 'Uses the first base block as the shared component scope',
+			code: `
+				.early__item {}
+				.component {}
+			`,
+			warnings: [{ line: 1, column: 1, message: messages.rejected('.early__item') }],
+		},
+		{
 			description: 'Reports side-effects after resolved SASS variables',
 			code: `
 				.the-component {
@@ -497,6 +517,23 @@ testRule({
 					endLine: 2, endColumn: 3,
 				},
 			],
+		},
+	],
+});
+
+testRule({
+	description: 'Custom separators',
+	config: [true, { separators: { element: '-', modifier: '_', modifierValue: '_' } }],
+	reject: [
+		{
+			description: 'Distinguishes local entities from a foreign block with the same prefix',
+			code: `
+				.foo {}
+				.foo-item {}
+				.foo_active {}
+				.foobar-item {}
+			`,
+			warnings: [{ message: messages.rejected('.foobar-item') }],
 		},
 	],
 });

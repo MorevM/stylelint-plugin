@@ -15,10 +15,11 @@ const rulesWithSeparators = [
 	'@morev/bem/match-file-name',
 	'@morev/bem/no-block-properties',
 	'@morev/bem/no-chained-entities',
-	'@morev/bem/no-detached-entity-extensions',
+	'@morev/bem/no-detached-entities',
 	'@morev/bem/no-grouped-entities',
 	'@morev/bem/no-misplaced-relational-styles',
 	'@morev/bem/no-side-effects',
+	'@morev/bem/order',
 	'@morev/bem/selector-pattern',
 	'@morev/bem/selector-variable-pattern',
 ] as const satisfies ReadonlyArray<keyof RulesSchema>;

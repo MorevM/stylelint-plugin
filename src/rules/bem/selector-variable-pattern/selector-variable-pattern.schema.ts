@@ -76,6 +76,16 @@ const vSelectorVariablePatternContext = vReadonly(v.strictObject({
 		block: vNullableString,
 
 		/**
+		 * BEM element name when the owner contains exactly one BEM entity with an element.
+		 */
+		element: vNullableString,
+
+		/**
+		 * BEM modifier name when the owner contains exactly one modified BEM entity.
+		 */
+		modifierName: vNullableString,
+
+		/**
 		 * Selector nesting level of the variable declaration.
 		 * At-rule wrappers do not increase the depth.
 		 */
@@ -98,6 +108,8 @@ const vSelectorVariablePatternResolver = vFunction(
 const defaultResolver: SelectorVariablePatternResolver = ({ selector, variable, owner }) => {
 	// Check only variables in top-level selectors.
 	if (!owner || owner.depth > 1) return;
+	// Ignore declarations owned by elements or modifiers.
+	if (owner.element || owner.modifierName) return;
 	// Ignore selectors from another block.
 	if (selector.block !== owner.block) return;
 	// Ignore aliases.
