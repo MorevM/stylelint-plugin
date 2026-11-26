@@ -59,15 +59,15 @@ testRule({
 	description: 'Sorting context for semantic owners',
 	config: [true, {
 		categories: {
-			elements: {
+			'bem:elements': {
 				sort: ((items, context) => {
-					expect(context.category).toBe('elements');
+					expect(context.category).toBe('bem:elements');
 					expect(context.family).toMatchObject([{ key: '.card' }]);
 
 					return context.sort(items, { by: 'name' });
 				}) satisfies OrderSorter,
 			},
-			declarations: {
+			'declarations': {
 				sort: ((items, context) => {
 					expect(context.category).toBe('declarations');
 					expect(context.family).toMatchObject([{ key: '.button' }]);

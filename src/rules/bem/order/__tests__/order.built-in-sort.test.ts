@@ -88,7 +88,7 @@ testRule({
 
 testRule({
 	description: 'Name sorting preset',
-	config: [true, { categories: { elements: { sort: { by: 'name' } } } }],
+	config: [true, { categories: { 'bem:elements': { sort: { by: 'name' } } } }],
 	reject: [{
 		description: 'Sorts local element names while keeping their states attached',
 		code: `

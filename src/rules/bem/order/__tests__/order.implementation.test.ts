@@ -282,7 +282,9 @@ testRule({
 
 testRule({
 	description: 'Context ownership',
-	config: [true, { order: ['context:external', 'base', 'pseudo-classes', 'context:internal', 'elements'] }],
+	config: [true, {
+		order: ['bem:context:external', 'base', 'pseudo-classes', 'bem:context:internal', 'bem:elements'],
+	}],
 	reject: [{
 		description: 'Groups contextual variants by their target and allows context before base',
 		code: `

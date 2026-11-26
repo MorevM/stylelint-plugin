@@ -157,8 +157,8 @@ testRule({
 testRule({
 	description: 'Spacing for complete modifier families',
 	config: [true, {
-		order: ['declarations', 'base', 'modifiers', 'pseudo-classes'],
-		categories: { modifiers: { blankLines: { before: 'always', between: 'always' } } },
+		order: ['declarations', 'base', 'bem:modifiers', 'pseudo-classes'],
+		categories: { 'bem:modifiers': { blankLines: { before: 'always', between: 'always' } } },
 	} satisfies SecondaryOption],
 	reject: [{
 		description: 'Keeps a modifier with its state and separates the next modifier',

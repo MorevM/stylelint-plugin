@@ -68,7 +68,8 @@ const resolveBranch = (
 	for (const part of [owner.element, owner.modifierName, owner.modifierValue]) {
 		if (!part) continue;
 		entity += part.selector;
-		path.push({ name: part.value, key: entity, category: part.type === 'element' ? 'elements' : 'modifiers' });
+		const category = part.type === 'element' ? 'bem:elements' : 'bem:modifiers';
+		path.push({ name: part.value, key: entity, category });
 	}
 
 	const subjectClasses = new Set(path.map((family) => family.key.slice(1)));
@@ -86,7 +87,7 @@ const resolveBranch = (
 		path.push({
 			name: canonicalSelector(context),
 			key: canonicalSelector(context),
-			category: isInternal ? 'context:internal' : 'context:external',
+			category: isInternal ? 'bem:context:internal' : 'bem:context:external',
 		});
 	}
 

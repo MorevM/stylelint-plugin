@@ -70,7 +70,7 @@
 		<g fill="var(--family)">
 			<text x="632" y="150">css:media</text>
 			<text x="632" y="181">pseudo-classes</text>
-			<text x="632" y="212">elements</text>
+			<text x="632" y="212">bem:elements</text>
 		</g>
 	</g>
 </svg>

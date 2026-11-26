@@ -58,16 +58,16 @@ const localRuleOverrides = defineLocalRules({
 			'qualifiers:class',
 			'qualifiers:attribute',
 			'group:functional-pseudo-classes',
-			'modifiers',
+			'bem:modifiers',
 
 			'group:other-pseudo-elements',
 			'group:prefixed-states',
 			'pseudo-elements',
 
-			'elements',
+			'bem:elements',
 
-			'context:internal',
-			'context:external',
+			'bem:context:internal',
+			'bem:context:external',
 			'rules',
 			{ type: 'at-rule', name: 'at-root' },
 

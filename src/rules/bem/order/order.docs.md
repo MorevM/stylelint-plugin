@@ -250,7 +250,7 @@ With no options, the rule uses the default sequences shown below.
       // Then list states on the pseudo-element itself.
       'pseudo-classes:pseudo-element',
       // Follow states with the variants named by BEM modifiers.
-      'modifiers',
+      'bem:modifiers',
       // Look for extra classes on the same node first...
       'qualifiers:class',
       // ...then attributes like [aria-busy].
@@ -258,13 +258,13 @@ With no options, the rule uses the default sequences shown below.
       // Put remaining qualifiers, such as an ID, after classes and attributes.
       'qualifiers',
       // Read overrides from ancestors in the same block first...
-      'context:internal',
+      'bem:context:internal',
       // ...then those that depend on an ancestor outside the block.
-      'context:external',
+      'bem:context:external',
       // Keep ::before and ::after with the selector they belong to.
       'pseudo-elements',
       // Each element starts its own family and follows this order again.
-      'elements',
+      'bem:elements',
       // Give placeholders and other nested selectors the same priority.
       ['sass:placeholders', 'rules'],
     ],
@@ -379,7 +379,7 @@ $card-gap: 16px;
   &:hover {}
   &:focus-visible {}
 
-  // [modifiers | .product-card--compact] The compact card is a new family.
+  // [bem:modifiers | .product-card--compact] The compact card is a new family.
   &--compact {}
 
   // [qualifiers:class] This class changes the card on the same HTML element.
@@ -391,12 +391,12 @@ $card-gap: 16px;
   &::before {}
   &::after {}
 
-  // [elements | .product-card__title] The same order starts again in the title.
+  // [bem:elements | .product-card__title] The title follows the same order.
   &__title {
     // [pseudo-classes] The title's own state comes before its modifier.
     &:hover {}
 
-    // [modifiers | .product-card__title--linked] The title owns this variant.
+    // [bem:modifiers | .product-card__title--linked] A variant of the title.
     &--linked {
       // [pseudo-classes] States come first inside the modifier too.
       &:hover {}
@@ -405,9 +405,9 @@ $card-gap: 16px;
       &::after {}
     }
 
-    // [context:internal] The compact card changes its own title.
+    // [bem:context:internal] The compact card changes its own title.
     #{$b}--compact & {}
-    // [context:external] The sidebar changes the title from outside the card.
+    // [bem:context:external] The sidebar changes the card title.
     .sidebar & {}
     // [pseudo-elements | .product-card__title::after] The title owns this one.
     &::after {}
@@ -454,8 +454,8 @@ In `order`, you can reference [built-in categories] and [named groups] or write 
     'declarations',
     'base',
     'pseudo-classes',
-    'modifiers',
-    'elements',
+    'bem:modifiers',
+    'bem:elements',
   ],
 }
 ```
@@ -463,7 +463,7 @@ In `order`, you can reference [built-in categories] and [named groups] or write 
 **Result**
 
 ```scss
-// At the document level, this example has no `declarations` or `modifiers`.
+// At the document level, this example has no `declarations` or `bem:modifiers`.
 // So, `.card` falls into the `base` category.
 .card {
   // Nesting creates a new context where the same order applies.
@@ -478,14 +478,14 @@ In `order`, you can reference [built-in categories] and [named groups] or write 
   // Next come the `pseudo-classes`.
   &:hover {}
 
-  // Then come the `modifiers`.
+  // Then come the `bem:modifiers`.
   &--compact {}
 
-  // The configuration places `elements` next.
+  // The configuration places `bem:elements` next.
   &__title {
     // The hierarchy repeats inside each new entity (a "BEM family").
     // Categories that are missing or don't apply to the entity are skipped.
-    // For example, the `modifiers` category is skipped inside `&--compact`.
+    // For example, the `bem:modifiers` category is skipped inside `&--compact`.
     &:hover {}
 
     &--muted {}
@@ -500,7 +500,7 @@ The rule still treats `.card` and its variants as one family. When you move the 
 .card {}
 .card:hover {}
 
-// This modifier belongs to the `modifiers` category in the `.card` family.
+// This modifier belongs to the `bem:modifiers` category in the `.card` family.
 // It also forms its own family, where `.card--compact` is the `base` rule.
 .card--compact {}
 // The configuration puts `base` before `pseudo-classes` within each family.
@@ -650,7 +650,7 @@ Built-in categories are the simplest way to refer to parts of a stylesheet by na
       </td>
     </tr>
     <tr>
-      <td><code>modifiers</code></td>
+      <td><code>bem:modifiers</code></td>
       <td>
         <code>.card--compact {}</code>
       </td>
@@ -688,7 +688,7 @@ Built-in categories are the simplest way to refer to parts of a stylesheet by na
       </td>
     </tr>
     <tr>
-      <td><code>context:internal</code></td>
+      <td><code>bem:context:internal</code></td>
       <td>
         <code>.card--compact .card__title {}</code><br />
         <small>
@@ -698,7 +698,7 @@ Built-in categories are the simplest way to refer to parts of a stylesheet by na
       </td>
     </tr>
     <tr>
-      <td><code>context:external</code></td>
+      <td><code>bem:context:external</code></td>
       <td>
         <code>.sidebar .card__title {}</code><br />
         <small>
@@ -714,7 +714,7 @@ Built-in categories are the simplest way to refer to parts of a stylesheet by na
       </td>
     </tr>
     <tr>
-      <td><code>elements</code></td>
+      <td><code>bem:elements</code></td>
       <td>
         <code>.card__title {}</code>
       </td>
@@ -1510,7 +1510,7 @@ and whether to leave [blank lines][blank-lines] before, after, or between items.
     //
     // .card__c {}
     // ```
-    'elements': {
+    'bem:elements': {
       sort: { by: 'name' },
       blankLines: { between: 'always' },
     },
@@ -2025,7 +2025,7 @@ A matcher with its own `sort` uses that sorter in place of the group's.
 
 ### Sorting presets {#sorting-presets}
 
-Alphabetize element names with `elements: { sort: { by: 'name' } }`.
+Alphabetize element names with `'bem:elements': { sort: { by: 'name' } }`.
 For `.card__title-icon`, the name being compared is `title-icon`.
 Set `direction: 'desc'` for reverse order. Name comparison is case-sensitive
 and gives the same result regardless of the machine's language settings.
@@ -2095,7 +2095,7 @@ and add just the comparison that's specific to your project.
 ```js
 {
   categories: {
-    elements: {
+    'bem:elements': {
       sort(items, context) {
         const byName = context.sort(items, { by: 'name' });
         return byName.toSorted((a, b) => a.name.length - b.name.length);

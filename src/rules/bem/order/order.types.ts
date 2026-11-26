@@ -40,11 +40,11 @@ export type OrderCategory =
 	| 'qualifiers:class'
 	| 'qualifiers:attribute'
 	| 'qualifiers:type'
-	| 'context:internal'
-	| 'context:external'
-	| 'modifiers'
+	| 'bem:context:internal'
+	| 'bem:context:external'
+	| 'bem:modifiers'
 	| 'pseudo-elements'
-	| 'elements';
+	| 'bem:elements';
 
 /**
  * Immutable description of one sortable sibling, which may represent an entire selector family.

@@ -45,7 +45,7 @@ testRule({
 	description: 'Ignored semantic families',
 	config: [true, {
 		categories: {
-			elements: { order: ['.card__title', '.card__icon'], unspecified: 'ignore' },
+			'bem:elements': { order: ['.card__title', '.card__icon'], unspecified: 'ignore' },
 		},
 	}],
 	reject: [{

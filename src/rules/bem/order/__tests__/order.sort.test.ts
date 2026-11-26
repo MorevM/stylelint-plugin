@@ -10,7 +10,7 @@ testRule({
 	description: 'Custom element sorting',
 	config: [true, {
 		categories: {
-			elements: {
+			'bem:elements': {
 				sort: ((items) => {
 					expect(Object.isFrozen(items)).toBe(true);
 
@@ -378,7 +378,7 @@ describe('Custom sorter validation', () => {
 				plugins: [stylelint.createPlugin(ruleName, rule)],
 				rules: {
 					[ruleName]: [true, {
-						categories: { elements: { sort: ((items) => [items[0], items[0]]) satisfies OrderSorter } },
+						categories: { 'bem:elements': { sort: ((items) => [items[0], items[0]]) satisfies OrderSorter } },
 					}],
 				},
 			},
@@ -388,7 +388,7 @@ describe('Custom sorter validation', () => {
 		expect(result.results[0].warnings).toStrictEqual([]);
 		expect(result.results[0].invalidOptionWarnings).toHaveLength(1);
 		expect(result.results[0].invalidOptionWarnings[0].text).toContain(
-			'categories.elements.sort: Return every original item exactly once',
+			'categories.bem:elements.sort: Return every original item exactly once',
 		);
 	});
 });

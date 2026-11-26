@@ -328,7 +328,7 @@ testRule({
 testRule({
 	description: 'Nested SCSS ancestor contexts',
 	config: [true, {
-		order: ['context:external', 'pseudo-classes', 'context:internal'],
+		order: ['bem:context:external', 'pseudo-classes', 'bem:context:internal'],
 	}],
 	reject: [{
 		description: 'Places the local hover state between the external and internal contexts of an element',
@@ -353,7 +353,7 @@ testRule({
 testRule({
 	description: 'Recursive BEM ordering configuration',
 	config: [true, {
-		order: ['pseudo-classes', 'base', 'elements', 'modifiers'],
+		order: ['pseudo-classes', 'base', 'bem:elements', 'bem:modifiers'],
 	}],
 	reject: [{
 		description: 'Applies the same custom category order inside block, element, and modifier families',

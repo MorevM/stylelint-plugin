@@ -35,14 +35,14 @@ export const DEFAULT_ORDER: OrderSequence = [
 	'qualifiers:type',
 	'pseudo-classes',
 	'pseudo-classes:pseudo-element',
-	'modifiers',
+	'bem:modifiers',
 	'qualifiers:class',
 	'qualifiers:attribute',
 	'qualifiers',
-	'context:internal',
-	'context:external',
+	'bem:context:internal',
+	'bem:context:external',
 	'pseudo-elements',
-	'elements',
+	'bem:elements',
 	['sass:placeholders', 'rules'],
 ];
 

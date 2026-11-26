@@ -30,11 +30,11 @@ testRuleConfig({
 				{ type: 'at-rule', name: 'media', parameter: '(--tablet)' },
 				[{ type: 'rule', selector: '&.is-active', label: 'Extra classes' }, 'qualifiers:attribute'],
 				'pseudo-classes',
-				'context:internal',
-				'context:external',
-				'modifiers',
+				'bem:context:internal',
+				'bem:context:external',
+				'bem:modifiers',
 				'pseudo-elements',
-				'elements',
+				'bem:elements',
 				'*',
 			],
 			categories: {
@@ -47,7 +47,7 @@ testRuleConfig({
 					':active', '*',
 				],
 				'pseudo-elements': ['::before', '::after', '*'],
-				'elements': { sort: { by: 'name' } },
+				'bem:elements': { sort: { by: 'name' } },
 				'at-rules': {
 					order: [
 						{ type: 'at-rule', name: 'media', parameter: '(--tablet)' },
@@ -253,7 +253,7 @@ testRuleConfig({
 		} } }] },
 	],
 	reject: [
-		{ description: 'Rejects unknown presets', config: [true, { categories: { elements: { sort: 'unknown' } } }] },
+		{ description: 'Rejects unknown presets', config: [true, { categories: { 'bem:elements': { sort: 'unknown' } } }] },
 		{ description: 'Rejects invalid group sorters', config: [true, { groups: { media: { order: [], sort: false } } }] },
 		{ description: 'Requires distinct units regardless of case', config: [true, { categories: { 'at-rules': {
 			sort: { by: 'dimension', units: ['rem', 'REM'] },
@@ -352,7 +352,7 @@ describe('bem/order configuration types', () => {
 		defineRules({
 			'@morev/bem/order': [true, {
 				categories: {
-					elements: {
+					'bem:elements': {
 						sort: (items) => {
 							expectTypeOf(items).toEqualTypeOf<readonly OrderSortItem[]>();
 

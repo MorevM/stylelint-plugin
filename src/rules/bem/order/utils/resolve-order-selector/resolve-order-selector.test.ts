@@ -16,7 +16,7 @@ describe(resolveOrderSelector, () => {
 		expect(selector).toMatchObject({
 			path: [
 				{ key: '.card', category: 'rules' },
-				{ key: '.card__title', category: 'elements' },
+				{ key: '.card__title', category: 'bem:elements' },
 			],
 			categories: ['pseudo-classes'],
 			localSelectors: [':hover'],
@@ -79,10 +79,10 @@ describe(resolveOrderSelector, () => {
 		});
 
 		expect(categories).toStrictEqual([
-			'context:internal',
-			'context:internal',
-			'context:internal',
-			'context:internal',
+			'bem:context:internal',
+			'bem:context:internal',
+			'bem:context:internal',
+			'bem:context:internal',
 		]);
 	});
 
@@ -97,9 +97,9 @@ describe(resolveOrderSelector, () => {
 		});
 
 		expect(categories).toStrictEqual([
-			'context:external',
-			'context:external',
-			'context:external',
+			'bem:context:external',
+			'bem:context:external',
+			'bem:context:external',
 		]);
 	});
 

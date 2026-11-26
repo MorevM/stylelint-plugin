@@ -68,7 +68,7 @@
 		<g font-size="16" fill="var(--family)" font-weight="600">
 			<text x="370" y="116">base</text>
 			<text x="370" y="180">pseudo-classes</text>
-			<text x="370" y="244">elements</text>
+			<text x="370" y="244">bem:elements</text>
 		</g>
 		<g font-size="21">
 			<text x="370" y="145">.card {}</text>
