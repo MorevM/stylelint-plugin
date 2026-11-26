@@ -55,14 +55,14 @@ export default createRule({
 	const hasContentInsertion = createContentInsertionChecker();
 	const knownTargets = new Set<string>();
 	const selectors = new Map<ChildNode, SelectorOrder | null | undefined>();
-	const selectorNodes: Array<Rule | AtRule> = [];
+	const selectorBranches = new Map<Rule | AtRule, ReturnType<typeof resolveSelectorNodes>>();
 
 	// Collect unambiguous BEM targets before resolving selectors with multiple possible owners.
 	root.walk((node) => {
 		if (node.type !== 'rule' && !isAtRule(node, ['at-root'])) return;
 		if (node.type === 'atrule' && (!node.nodes || !node.params || node.params.startsWith('('))) return;
-		selectorNodes.push(node);
 		const branches = resolveSelectorNodes({ node });
+		selectorBranches.set(node, branches);
 		const authored = node.type === 'rule' ? node.selector : node.params;
 		if (branches.length !== 1 || (authored.includes('%') && hasSassPlaceholder(branches[0].source))) return;
 		if (node.type === 'atrule' && selectorNodesToString(branches[0].resolved).includes('#{')) return;
@@ -75,10 +75,12 @@ export default createRule({
 	});
 
 	// Lists with a shared owner participate as whole rules, including when their local priority is unspecified.
-	for (const node of selectorNodes) {
-		const selector = resolveOrderSelector(node, separators, knownTargets);
+	for (const [node, branches] of selectorBranches) {
+		const selector = resolveOrderSelector(node, separators, knownTargets, branches);
 		if (node.type === 'rule' || selector) selectors.set(node, selector);
 	}
+
+	selectorBranches.clear();
 
 	const isDisabled = createDisabledRangeChecker(result.stylelint, '@morev/bem/order');
 

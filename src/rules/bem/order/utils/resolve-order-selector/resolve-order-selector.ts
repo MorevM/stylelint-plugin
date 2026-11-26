@@ -1,4 +1,4 @@
-import { arraysIntersection, arraysUnion, arrayUnique, deepEqual, isEmpty } from '@morev/utils';
+import { arraysIntersection, arraysUnion, arrayUnique, deepEqual, isArray, isEmpty, isString } from '@morev/utils';
 import parser from 'postcss-selector-parser';
 import { resolveMostSpecificBemEntities } from '#modules/bem';
 import { isPseudoElementNode } from '#modules/postcss';
@@ -139,7 +139,7 @@ const resolveBranch = (
  * @param   node           Authored selector rule or selector-form Sass `@at-root`.
  * @param   separators     Configured BEM separators.
  * @param   knownTargets   Unambiguous targets declared elsewhere in the stylesheet.
- * @param   source         Optional authored branch, resolved in the original rule's context.
+ * @param   input          A single authored branch or the branches already resolved for the whole node.
  *
  * @returns                Semantic classification, an unsafe boundary, or a generic rule.
  */
@@ -147,9 +147,10 @@ const resolveOrderSelector = (
 	node: Rule | AtRule,
 	separators: Separators,
 	knownTargets: Set<string>,
-	source?: string,
+	input?: string | ReturnType<typeof resolveSelectorNodes>,
 ): SelectorOrder | null | undefined => {
-	const branches = resolveSelectorNodes({ node, source });
+	const source = isString(input) ? input : undefined;
+	const branches = isArray(input) ? input : resolveSelectorNodes({ node, source });
 	if (branches.some(({ resolved }) => selectorNodesToString(resolved).includes('#{'))) return null;
 
 	const authored = source ?? (node.type === 'rule' ? node.selector : node.params);
