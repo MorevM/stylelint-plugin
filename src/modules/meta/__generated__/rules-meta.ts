@@ -33,6 +33,16 @@ export const rulesMeta = [
 		vitepressLink: '/rules/bem/selector-pattern.html',
 	},
 	{
+		id: '@morev/bem/order',
+		scope: 'bem',
+		name: 'order',
+		description: 'Orders CSS and SCSS content while keeping BEM families together.',
+		fixable: true,
+		docsPath: 'src/rules/bem/order/order.docs.md',
+		vitepressPath: '/rules/bem/order.md',
+		vitepressLink: '/rules/bem/order.html',
+	},
+	{
 		id: '@morev/bem/no-side-effects',
 		scope: 'bem',
 		name: 'no-side-effects',
@@ -226,6 +236,16 @@ export const scopedRulesMeta = [
 				docsPath: 'src/rules/bem/no-side-effects/no-side-effects.docs.md',
 				vitepressPath: '/rules/bem/no-side-effects.md',
 				vitepressLink: '/rules/bem/no-side-effects.html',
+			},
+			{
+				id: '@morev/bem/order',
+				scope: 'bem',
+				name: 'order',
+				description: 'Orders CSS and SCSS content while keeping BEM families together.',
+				fixable: true,
+				docsPath: 'src/rules/bem/order/order.docs.md',
+				vitepressPath: '/rules/bem/order.md',
+				vitepressLink: '/rules/bem/order.html',
 			},
 			{
 				id: '@morev/bem/selector-pattern',

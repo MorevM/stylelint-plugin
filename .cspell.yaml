@@ -17,6 +17,7 @@ dictionaries:
 import:
   - '@cspell/dict-ru_ru/cspell-ext.json'
 words:
+  - ExclusifyUnion
   - morev
   - morevm
   - dorny
@@ -28,6 +29,12 @@ words:
   - yalc
   - oxlint
   - ValiError
+  - Thirouin
+  - матчер
+  - миксинов
+  - псевдоклассов
+  - псевдоэлементов
+  - псевдоэлементы
 
 useGitignore: true
 allowCompoundWords: true

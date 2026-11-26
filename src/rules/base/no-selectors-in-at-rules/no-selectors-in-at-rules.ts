@@ -1,10 +1,9 @@
 import { toArray, tsObject } from '@morev/utils';
 import { isRule } from '#modules/postcss';
 import { createRule, mergeMessages } from '#modules/rule-utils';
+import { isSassControlRule, isSassDefinition } from '#modules/sass';
 import { toRegExp } from '#modules/shared';
 import { schema } from './no-selectors-in-at-rules.schema';
-
-const SASS_CONTROL_STRUCTURES = ['if', 'else', 'else if', 'for', 'while', 'mixin', 'function'];
 
 export default createRule({
 	scope: 'base',
@@ -34,7 +33,7 @@ export default createRule({
 			&& paramRegexes.some((regExp) => regExp.test(params)));
 
 	root.walkAtRules((atRule) => {
-		if (SASS_CONTROL_STRUCTURES.includes(atRule.name)) return;
+		if (isSassControlRule(atRule) || isSassDefinition(atRule)) return;
 		if (atRule.name === 'keyframes') return;
 
 		(atRule.nodes ?? []).forEach((node) => {

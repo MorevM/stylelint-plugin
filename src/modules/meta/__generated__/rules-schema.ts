@@ -11,6 +11,7 @@ import type * as noDetachedEntityExtensions from '#rules/bem/no-detached-entity-
 import type * as noGroupedEntities from '#rules/bem/no-grouped-entities/no-grouped-entities.types';
 import type * as noMisplacedRelationalStyles from '#rules/bem/no-misplaced-relational-styles/no-misplaced-relational-styles.types';
 import type * as noSideEffects from '#rules/bem/no-side-effects/no-side-effects.types';
+import type * as order from '#rules/bem/order/order.types';
 import type * as selectorPattern from '#rules/bem/selector-pattern/selector-pattern.types';
 import type * as selectorVariablePattern from '#rules/bem/selector-variable-pattern/selector-variable-pattern.types';
 import type * as noUnusedVariables from '#rules/sass/no-unused-variables/no-unused-variables.types';
@@ -37,6 +38,13 @@ export type RulesSchema = {
 	 * @see https://morevm.github.io/stylelint-plugin/rules/bem/selector-pattern.html
 	 */
 	'@morev/bem/selector-pattern': RuleSetting<selectorPattern.PrimaryOption, selectorPattern.SecondaryOption>;
+
+	/**
+	 * Orders CSS and SCSS content while keeping BEM families together.
+	 *
+	 * @see https://morevm.github.io/stylelint-plugin/rules/bem/order.html
+	 */
+	'@morev/bem/order': RuleSetting<order.PrimaryOption, order.SecondaryOption>;
 
 	/**
 	 * Disallows selectors that apply styles outside the scope of the current BEM block.
