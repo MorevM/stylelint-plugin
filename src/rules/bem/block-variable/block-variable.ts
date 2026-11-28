@@ -1,15 +1,15 @@
-import { quote } from '@morev/utils';
+import { isUndefined, quote } from '@morev/utils';
 import { Declaration } from 'postcss';
 import parseValue from 'postcss-value-parser';
 import { getBemBlock } from '#modules/bem';
 import {
-	getRuleContentMeta, getRuleDeclarations, getSassVariableRenameFix,
+	getIndentStep, getRuleContentMeta, getRuleDeclarations, getSassVariableRenameFix,
 	isAtRule, isNodeWithin, isRule, isSelectorOwnerNode,
 } from '#modules/postcss';
 import { createRule, extractSeparators, isSassSyntax, mergeMessages } from '#modules/rule-utils';
 import { parseSelectors } from '#modules/selectors';
 import { schema } from './block-variable.schema';
-import type { AtRule } from 'postcss';
+import type { AtRule, Rule } from 'postcss';
 import type parser from 'postcss-selector-parser';
 import type { Node as ValueNode } from 'postcss-value-parser';
 
@@ -72,6 +72,27 @@ const getAtRuleSelectors = (rule: AtRule): SelectorFragment[] => {
 
 	walk(parseValue(params).nodes);
 	return fragments;
+};
+
+/**
+ * Places the block reference in the first child's formatting slot.
+ * Empty blocks supply their closing whitespace in place of a child.
+ *
+ * @param   rule          Rule that owns the block reference.
+ * @param   declaration   New or existing reference to place at the top.
+ */
+const prependBlockVariable = (rule: Rule, declaration: Declaration) => {
+	const padding = rule.raws.after;
+	declaration.raws.before = undefined;
+	if (!rule.first && !isUndefined(padding) && /^\s*$/u.test(padding)) {
+		declaration.raws.before = padding.includes('\n') ? padding + getIndentStep(rule) : padding;
+	}
+
+	rule.prepend(declaration);
+	// Indented syntaxes can represent an empty rule without any closing whitespace.
+	const before = declaration.raws.before ?? rule.source?.input.css.match(/\r?\n/u)?.[0] ?? '\n';
+	// Keep blank lines attached to the original child.
+	declaration.raws.before = before.match(/(?:\r?\n)?[\t ]*$/u)![0];
 };
 
 export default createRule({
@@ -197,26 +218,19 @@ export default createRule({
 			node: bemBlock.rule,
 			word: bemBlock.selector,
 			fix: () => {
-				bemBlock.rule.prepend(
-					new Declaration({
-						prop: VARIABLE_NAME,
-						value: VALID_VALUES[0],
-						source: bemBlock.rule.source,
-						raws: {
-							before: '\n\t',
-							between: ': ',
-							value: {
-								value: VALID_VALUES[0],
-								raw: VALID_VALUES[0],
-							},
-						},
-					}),
-				);
+				const declaration = new Declaration({
+					prop: VARIABLE_NAME,
+					value: VALID_VALUES[0],
+					source: bemBlock.rule.source,
+				});
+				prependBlockVariable(bemBlock.rule, declaration);
 
-				if (bemBlock.rule.nodes.length === 1) {
-					bemBlock.rule.raws.semicolon = true;
-					bemBlock.rule.raws.after = '\n';
-				}
+				// PostCSS infers colon spacing from the first declaration anywhere in the file.
+				// Prefer a local separator and exclude comments or other tokens from the new declaration.
+				const plainColon = /^\s*:\s*$/u;
+				const local = nodeChildDeclarations.find((node) => plainColon.test(node.raws.between ?? ''));
+				const between = local?.raws.between ?? declaration.raw('between', 'colon');
+				declaration.raws.between = plainColon.test(between) ? between : ': ';
 			},
 		});
 	}
@@ -256,8 +270,7 @@ export default createRule({
 			messageArgs: ['variableNotFirst', VARIABLE_NAME, bemBlock.rule.selector],
 			node: validBlockVariable,
 			fix: () => {
-				bemBlock.rule.prepend(validBlockVariable.clone());
-				validBlockVariable.remove();
+				prependBlockVariable(bemBlock.rule, validBlockVariable);
 			},
 		});
 	}
