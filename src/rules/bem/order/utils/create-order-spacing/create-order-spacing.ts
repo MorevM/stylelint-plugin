@@ -1,5 +1,5 @@
 import { isString, isUndefined } from '@morev/utils';
-import { isComment } from '#modules/postcss';
+import { getIndentStep, isComment } from '#modules/postcss';
 import { getOrderHeader } from '../get-order-header/get-order-header';
 import type { ChildNode, Container } from 'postcss';
 import type { OrderItem, OrderScopes, PreparedOrderSpacing } from '../../order.internal-types';
@@ -165,6 +165,30 @@ export const createOrderSpacing = (
 	const categoryBoundaries = new Map<number, SpacingBoundary>();
 	const edits: OrderSpacingEdit[] = [];
 	let containerItemCount: number | undefined;
+	let childWhitespace: string | undefined;
+	let fileNewline: string | undefined;
+
+	const getLineWhitespace = (whitespace: string, isClosing: boolean, previous?: ChildNode) => {
+		const lineEnding = /(\r?\n)([\t ]*)$/u;
+		const local = lineEnding.exec(whitespace);
+		if (local) return { newline: local[1], indent: local[2] };
+
+		// An inline separator gives no indentation for a newly created line.
+		const neighbor = lineEnding.exec(previous?.raws.before ?? '');
+		if (neighbor && !isClosing) return { newline: neighbor[1], indent: neighbor[2] };
+
+		childWhitespace ??= container.nodes?.find((child) => lineEnding.test(child.raws.before ?? ''))?.raws.before ?? '';
+		const child = neighbor ?? lineEnding.exec(childWhitespace);
+		const parent = lineEnding.exec(container.raws.after ?? '') ?? lineEnding.exec(container.raws.before ?? '');
+		const newline = child?.[1] ?? parent?.[1]
+			?? (fileNewline ??= container.source?.input.css.match(/\r?\n/u)?.[0] ?? '\n');
+		const parentIndent = parent?.[2] ?? '';
+		const indent = isClosing
+			? parentIndent
+			: child?.[2]
+				?? (container.type === 'root' ? '' : parentIndent + getIndentStep(container));
+		return { newline, indent };
+	};
 
 	// Outer scopes own gaps between families; descendants can only claim gaps inside a family.
 	for (const { depth, units } of [...scopes].sort((a, b) => a.depth - b.depth)) {
@@ -282,8 +306,7 @@ export const createOrderSpacing = (
 		const canSeparateComment = hasEmptyLine && !hasLineBreak && !isString(policy)
 			&& hasSeparatingComment(following, true) && resolvePolicy(policy, group, itemPosition, true) !== 'always';
 
-		const newline = whitespace.includes('\r\n') || container.source?.input.css.includes('\r\n') ? '\r\n' : '\n';
-		const indent = /[\t ]*$/u.exec(whitespace)![0];
+		const { newline, indent } = getLineWhitespace(whitespace, isTerminal, sorted[position - 1]?.node);
 		if (canSeparateComment) {
 			edits.push({
 				node, field, value: newline + indent, reportNode: following.nodes[0],

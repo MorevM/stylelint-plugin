@@ -1249,7 +1249,7 @@ testRule({
 		`,
 		fixed: `
 			.card {
-			 /* 📌 Text color. */
+				/* 📌 Text color. */
 				color: red;
 				// 📌 This line separates the group members.
 				opacity: .5;
@@ -1602,6 +1602,16 @@ testRule({
 	reject: [{
 		description: 'Inserts a CRLF gap with the existing indentation',
 		code: '.card {\r\n  display: block;\r\n  color: red;\r\n}',
+		fixed: '.card {\r\n  display: block;\r\n\r\n  color: red;\r\n}',
+		warnings: [{ message: messages.expectedEmptyLineBefore('color') }],
+	}, {
+		description: 'Preserves a local LF between declarations in a file with CRLF',
+		code: '.card {\r\n  display: block;\n  color: red;\r\n}',
+		fixed: '.card {\r\n  display: block;\n\n  color: red;\r\n}',
+		warnings: [{ message: messages.expectedEmptyLineBefore('color') }],
+	}, {
+		description: 'Uses the sibling indentation when moving an inline declaration to a new line',
+		code: '.card {\r\n  display: block; color: red;\r\n}',
 		fixed: '.card {\r\n  display: block;\r\n\r\n  color: red;\r\n}',
 		warnings: [{ message: messages.expectedEmptyLineBefore('color') }],
 	}],
