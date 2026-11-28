@@ -1,11 +1,11 @@
 import { isNullish, isString } from '@morev/utils';
 import { resolveBemEntities } from '#modules/bem';
+import { getSassVariableRenameFix } from '#modules/postcss';
 import { createRule, extractSeparators, isSassSyntax, mergeMessages } from '#modules/rule-utils';
-import { isSimpleSassVariableName } from '#modules/sass';
 import { parseSelectors } from '#modules/selectors';
 import { toRegExp } from '#modules/shared';
 import { schema } from './selector-variable-pattern.schema';
-import { getSassVariableRenameFix, resolveVariableDeclarations } from './utils';
+import { resolveVariableDeclarations } from './utils';
 import type { ResolvedSassDeclaration } from '#modules/postcss';
 import type { SelectorVariablePatternContext, SelectorVariablePatternOwner } from './selector-variable-pattern.types';
 
@@ -89,7 +89,7 @@ export default createRule({
 				: actualName.search(toRegExp(expected)) !== -1;
 			if (isValid) continue;
 
-			const fix = isString(expected) && isSimpleSassVariableName(`$${expected}`)
+			const fix = isString(expected)
 				? getSassVariableRenameFix(root, declaration, `$${expected}`)
 				: undefined;
 

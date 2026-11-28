@@ -3,7 +3,8 @@ import { Declaration } from 'postcss';
 import parseValue from 'postcss-value-parser';
 import { getBemBlock } from '#modules/bem';
 import {
-	getRuleContentMeta, getRuleDeclarations, isAtRule, isNodeWithin, isRule, isSelectorOwnerNode,
+	getRuleContentMeta, getRuleDeclarations, getSassVariableRenameFix,
+	isAtRule, isNodeWithin, isRule, isSelectorOwnerNode,
 } from '#modules/postcss';
 import { createRule, extractSeparators, isSassSyntax, mergeMessages } from '#modules/rule-utils';
 import { parseSelectors } from '#modules/selectors';
@@ -168,7 +169,7 @@ export default createRule({
 
 	const allBlockVariableDeclarations = nodeChildDeclarations
 		.filter((declaration) => {
-			return VALID_VALUES.includes(declaration.value)
+			return (declaration.prop.startsWith('$') && VALID_VALUES.includes(declaration.value))
 				|| declaration.prop === VARIABLE_NAME;
 		});
 
@@ -183,9 +184,7 @@ export default createRule({
 				message: messages.invalidVariableName(VARIABLE_NAME, variableDeclaration.prop),
 				messageArgs: ['invalidVariableName', VARIABLE_NAME, variableDeclaration.prop],
 				node: variableDeclaration,
-				fix: () => {
-					variableDeclaration.prop = VARIABLE_NAME;
-				},
+				fix: getSassVariableRenameFix(root, variableDeclaration, VARIABLE_NAME),
 			});
 			return;
 		}

@@ -187,6 +187,12 @@ testRule({
 			],
 		},
 		{
+			description: 'Renames the references to the block variable in nested selectors',
+			code: '.card { $block: #{&}; #{$block}__title { color: red } }',
+			fixed: '.card { $b: #{&}; #{$b}__title { color: red } }',
+			warnings: [{ message: messages.invalidVariableName('$b', '$block') }],
+		},
+		{
 			description: 'Variable referencing the block, but with the wrong value',
 			code: `
 				.the-component {

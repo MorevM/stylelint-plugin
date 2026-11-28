@@ -3,6 +3,7 @@ export * from './get-first-rule/get-first-rule';
 export * from './get-root/get-root';
 export * from './get-rule-content-meta/get-rule-content-meta';
 export * from './get-rule-declarations/get-rule-declarations';
+export * from './get-sass-variable-rename-fix/get-sass-variable-rename-fix';
 export * from './has-ancestor-rule/has-ancestor-rule';
 export * from './is-at-rule/is-at-rule';
 export * from './is-comment/is-comment';
