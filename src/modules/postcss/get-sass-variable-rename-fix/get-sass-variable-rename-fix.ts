@@ -1,6 +1,10 @@
 import { isEmpty } from '@morev/utils';
-import { isAtRule, isComment, isDeclaration, isNodeWithin, isRule } from '#modules/postcss';
 import { getSassVariableReferences, isSimpleSassVariableName, normalizeSassMemberName } from '#modules/sass';
+import { isAtRule } from '../is-at-rule/is-at-rule';
+import { isComment } from '../is-comment/is-comment';
+import { isDeclaration } from '../is-declaration/is-declaration';
+import { isNodeWithin } from '../is-node-within/is-node-within';
+import { isRule } from '../is-rule/is-rule';
 import type { Declaration, Node, Root } from 'postcss';
 import type { SassVariableReference } from '#modules/sass';
 
@@ -129,6 +133,7 @@ export const getSassVariableRenameFix = (
 ): (() => void) | undefined => {
 	const parentRule = declaration.parent;
 	if (!isRule(parentRule) || /!(?:default|global)\b/.test(declaration.value)) return;
+	if (!isSimpleSassVariableName(declaration.prop) || !isSimpleSassVariableName(expectedName)) return;
 	if (root.toString().includes('variable-exists(')) return;
 
 	const actualName = declaration.prop;

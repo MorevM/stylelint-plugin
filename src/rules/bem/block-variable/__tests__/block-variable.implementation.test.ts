@@ -111,9 +111,7 @@ testRule({
 			fixed: `
 				.foo__bar {}
 				.bar__bar {}
-				.bar {
-					$b: #{&};
-				}
+				.bar {$b: #{&}}
 				.foo {}
 			`,
 			warnings: [{ line: 3, column: 1, message: messages.missingVariable('$b') }],
@@ -126,9 +124,7 @@ testRule({
 			`,
 			fixed: `
 				.foo__bar { .utility {} }
-				.foo {
-					$b: #{&};
-				}
+				.foo {$b: #{&}}
 			`,
 			warnings: [{ line: 2, column: 1, message: messages.missingVariable('$b') }],
 		},
@@ -142,9 +138,7 @@ testRule({
 			fixed: `
 				.the-component__title { $title: #{&}; }
 				.the-component__title--active {}
-				.the-component {
-					$b: #{&};
-				}
+				.the-component {$b: #{&};}
 			`,
 			warnings: [{ line: 3, column: 1, message: messages.missingVariable('$b') }],
 		},
@@ -154,9 +148,7 @@ testRule({
 				.the-component {}
 			`,
 			fixed: `
-				.the-component {
-					$b: #{&};
-				}
+				.the-component {$b: #{&}}
 			`,
 			warnings: [
 				{
@@ -185,6 +177,12 @@ testRule({
 					message: messages.invalidVariableName('$b', '$block'),
 				},
 			],
+		},
+		{
+			description: 'Renames the references to the block variable in nested selectors',
+			code: '.card { $block: #{&}; #{$block}__title { color: red } }',
+			fixed: '.card { $b: #{&}; #{$b}__title { color: red } }',
+			warnings: [{ message: messages.invalidVariableName('$b', '$block') }],
 		},
 		{
 			description: 'Variable referencing the block, but with the wrong value',
@@ -490,6 +488,103 @@ testRule({
 					message: messages.hardcodedBlockName('.block', '#{$b}', 'nested', true),
 				},
 			],
+		},
+	],
+});
+
+testRule({
+	description: 'Formatting of the block reference',
+	config: [true],
+	reject: [
+		{
+			description: 'Inserts the block variable with the same four-space indent as the first declaration',
+			code: `
+				.card {
+				    color: red;
+				}
+			`,
+			fixed: `
+				.card {
+				    $b: #{&};
+				    color: red;
+				}
+			`,
+			warnings: [{ message: messages.missingVariable('$b') }],
+		},
+		{
+			description: 'Inherits local indentation and colon spacing after a differently formatted declaration',
+			code: `
+				$base: 1;
+				@media print {\r
+				  .card {\r
+				\r
+				    // Color\r
+				    color:red\r
+				  }\r
+				}
+			`,
+			fixed: `
+				$base: 1;
+				@media print {\r
+				  .card {\r
+				    $b:#{&};\r
+				\r
+				    // Color\r
+				    color:red\r
+				  }\r
+				}
+			`,
+			warnings: [{ message: messages.missingVariable('$b') }],
+		},
+		{
+			description: 'Preserves an inline block and leaves a commented colon on its original property',
+			code: `
+				.card { color/* a:b */: #{&} }
+			`,
+			fixed: `
+				.card { $b: #{&}; color/* a:b */: #{&} }
+			`,
+			warnings: [{ message: messages.missingVariable('$b') }],
+		},
+		{
+			description: 'Indents an empty multiline block inside its surrounding media query',
+			code: `
+				%utility {
+					color: red;
+				}
+				@media print {\r
+				  .card {\r
+				  }\r
+				}
+			`,
+			fixed: `
+				%utility {
+					color: red;
+				}
+				@media print {\r
+				  .card {\r
+				    $b: #{&};\r
+				  }\r
+				}
+			`,
+			warnings: [{ message: messages.missingVariable('$b') }],
+		},
+		{
+			description: 'Moves an existing variable into the indentation of the first declaration',
+			code: `
+				.card {
+				  color: red;
+
+					$b:#{&};
+				}
+			`,
+			fixed: `
+				.card {
+				  $b:#{&};
+				  color: red;
+				}
+			`,
+			warnings: [{ message: messages.variableNotFirst('$b', '.card') }],
 		},
 	],
 });
@@ -1203,9 +1298,7 @@ testRule({
 			`,
 			fixed: `
 				.component-title_active {}
-				.component {
-					$b: #{&};
-				}
+				.component {$b: #{&}}
 			`,
 			warnings: [{ line: 2, column: 1, message: messages.missingVariable('$b') }],
 		},
